@@ -1,0 +1,22 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Common;
+
+namespace AuthService.DTOs.UserDTOs;
+
+public class NewUserDTO
+{
+
+  [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+  [Key]
+  public int Id { get; set; }
+  public required int TaxUserTypeId { get; set; }
+  public int? CompanyId { get; set; }
+  public required int RoleId { get; set; }
+  public string? FullName { get; set; }
+  public required string Email { get; set; }
+  public required string Password { get; set; }
+
+}
+
+
