@@ -19,28 +19,33 @@ namespace AuthService.Controllers
       _mediator = mediator;
     }
 
-
-[HttpPost("Create")]
+    [HttpPost("Create")]
     public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] NewUserDTO userDto)
     {
-       // Mapeas el DTO al Command (usando AutoMapper)
-    var command = new CreateTaxUserCommands(userDto);
+      // Mapeas el DTO al Command (usando AutoMapper)
+      var command = new CreateTaxUserCommands(userDto);
       var result = await _mediator.Send(command);
       if (result==null) return BadRequest(new { message = "Failed to create user" });      
-      
-
-
       return Ok(result);
     }
 
+    [HttpPut("Update")]
+    public async Task<ActionResult<ApiResponse<bool>>> Update([FromBody] UpdateUserDTO userDto)
+    {
+      var command = new UpdateTaxUserCommands(userDto);
+      var result = await _mediator.Send(command);
+      if (result==null) return BadRequest(new { message = "Failed to update user" });
+      return Ok(result);
+    }
 
-
-
-
-
-
-
-
+    [HttpDelete("Delete")]
+    public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+    {
+      var command = new DeleteTaxUserCommands(id);
+      var result = await _mediator.Send(command);
+      if (result==null) return BadRequest(new { message = "Failed to delete user" });
+      return Ok(result);
+    }
 
     [HttpGet("GetAll")]
     public async Task<ActionResult<ApiResponse<UserDTO[]>>> GetAll()
@@ -49,9 +54,7 @@ namespace AuthService.Controllers
 
       if (result.Success == false) return BadRequest(new { result });
 
-      return Ok(result);
-
-      
+      return Ok(result);      
     }
 
   //   [HttpGet("GetByUserId")]
