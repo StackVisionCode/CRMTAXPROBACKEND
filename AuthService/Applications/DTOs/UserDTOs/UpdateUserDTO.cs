@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AuthService.DTOs.UserDTOs;
 
-public class NewUserDTO
+public class UpdateUserDTO
 {
   [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
   [Key]

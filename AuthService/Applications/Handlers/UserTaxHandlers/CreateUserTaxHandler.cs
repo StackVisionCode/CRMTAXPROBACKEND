@@ -24,22 +24,19 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
     {
         try
         {
-           var userTax = _mapper.Map<TaxUser>(request);
-           userTax.CreatedAt = DateTime.UtcNow;
-           userTax.IsActive=true;
+            var userTax = _mapper.Map<TaxUser>(request.Usertax);
+            userTax.Confirm = false;
+            userTax.IsActive = true;
+            userTax.CreatedAt = DateTime.UtcNow;
             await _dbContext.TaxUsers.AddAsync(userTax, cancellationToken);
-          var result= await _dbContext.SaveChangesAsync(cancellationToken)>0?true:false;
-          _logger.LogInformation("User tax created successfully: {UserTax}", userTax);
+            var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+            _logger.LogInformation("User tax created successfully: {UserTax}", userTax);
             return new ApiResponse<bool>(result, result ? "User tax created successfully" : "Failed to create user tax", result);
-         
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating user tax: {Message}", ex.Message);
             return new ApiResponse<bool>(false, ex.Message, false);
-            
         }
     }
-
-
 }

@@ -13,7 +13,8 @@ public class UserProfile : Profile
   {
     CreateMap<NewUserDTO, TaxUser>().ReverseMap();
     CreateMap<UserDTO, TaxUser>().ReverseMap();
-       CreateMap<NewUserDTO, CreateTaxUserCommands>().ReverseMap();
-        CreateMap<CreateTaxUserCommands, TaxUser>().ReverseMap();
+    CreateMap<NewUserDTO, CreateTaxUserCommands>().ReverseMap();
+    CreateMap<UpdateUserDTO, UpdateTaxUserCommands>().ReverseMap();
+    CreateMap<CreateTaxUserCommands, TaxUser>().ReverseMap();
   }
 }

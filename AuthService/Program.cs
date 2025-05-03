@@ -7,10 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
-
-
 var builder = WebApplication.CreateBuilder(args);
-
 
 // Configurar logs con Serilog
 var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
@@ -21,105 +18,101 @@ if (!Directory.Exists(logFolderPath))
 }
 
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)  
+    .ReadFrom.Configuration(builder.Configuration)
       .WriteTo.File(
         Path.Combine(logFolderPath, "LogsApplication-.txt"),
         rollingInterval: RollingInterval.Day
-    ) .Enrich.FromLogContext()
+    ).Enrich.FromLogContext()
     .CreateLogger();
-
 
 try
 {
-   
-      Log.Information("Starting up the application");
- 
-
-
-// Configurar CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
+    Log.Information("Starting up the application");
+    // Configurar CORS
+    builder.Services.AddCors(options =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        options.AddPolicy("AllowAll", policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
     });
-});
 
-// Configurar Swagger (nativo de .NET 9)
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+    // Configurar Swagger (nativo de .NET 9)
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
 
-// Configurar JWT
-JwtSettings jwtSetting = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
+    // Configurar JWT
+    JwtSettings jwtSetting = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    var key = Encoding.UTF8.GetBytes(jwtSetting.SecretKey);
-    options.TokenValidationParameters = new TokenValidationParameters
+    builder.Services.AddAuthentication(options =>
     {
-        ValidateIssuer = jwtSetting.ValidateIssuer,
-        ValidateAudience = jwtSetting.ValidateAudience,
-        ValidateLifetime = jwtSetting.ValidateLifetime,
-        ValidateIssuerSigningKey = jwtSetting.ValidateIssuerSigningKey,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ClockSkew = jwtSetting.ClockSkew,
-    };
-});
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        var key = Encoding.UTF8.GetBytes(jwtSetting.SecretKey);
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = jwtSetting.ValidateIssuer,
+            ValidateAudience = jwtSetting.ValidateAudience,
+            ValidateLifetime = jwtSetting.ValidateLifetime,
+            ValidateIssuerSigningKey = jwtSetting.ValidateIssuerSigningKey,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ClockSkew = jwtSetting.ClockSkew,
+        };
+    });
 
-builder.Services.AddAuthorization();
-
-
-builder.Services.AddControllers();
-
-// Registrar AutoMapper
-builder.Services.AddAutoMapper(typeof(Program));
-
-//configure mediator
-builder.Services.AddMediatR(cfg => 
-{
-cfg.RegisterServicesFromAssemblyContaining<Program>();
-cfg.Lifetime = ServiceLifetime.Scoped;
-});
-
-// Configurar DbContext
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
+    builder.Services.AddAuthorization();
 
 
+    builder.Services.AddControllers();
 
- 
+    // Registrar AutoMapper
+    builder.Services.AddAutoMapper(typeof(Program));
 
-var app = builder.Build();
+    //configure mediator
+    builder.Services.AddMediatR(cfg =>
+    {
+        cfg.RegisterServicesFromAssemblyContaining<Program>();
+        cfg.Lifetime = ServiceLifetime.Scoped;
+    });
 
-// Middlewares
-app.UseCors("AllowAll");
+    // Configurar DbContext
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    });
 
-// Swagger UI siempre disponible
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Services TaxCloud V1");
-    c.RoutePrefix = "swagger"; // Swagger en la raíz (http://localhost:5092/)
-});
+    var app = builder.Build();
 
-// HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
-app.UseHttpsRedirection();
+    // Middlewares
+    app.UseCors("AllowAll");
 
-app.UseAuthentication();
-app.UseAuthorization();
+    // Swagger UI siempre disponible
+    app.UseSwagger(opt =>
+    {
+        opt.RouteTemplate = "openapi/{documentName}.json";
+    });
 
-app.MapControllers();
+    app.UseSwaggerUI(opt =>
+    {
+        opt.SwaggerEndpoint("/openapi/v1.json", "Services TaxCloud V1");
+        opt.RoutePrefix = "swagger";        // =>  http://localhost:5092/swagger
+    });
 
-app.Run();
+
+    // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
+    app.UseHttpsRedirection();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    app.Run();
 }
 catch (Exception ex)
 {
