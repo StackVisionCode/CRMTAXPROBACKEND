@@ -1,51 +1,65 @@
-// using AuthService.DTOs.RoleDTOs;
-// using AuthService.Services.RoleServices;
-// using Common;
-// using Microsoft.AspNetCore.Mvc;
+using AuthService.DTOs.RoleDTOs;
+using Commands.RoleCommands;
+using Common;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using Queries.RoleQueries;
 
-// namespace AuthService.Controllers;
-// [ApiController]
-// [Route("api/[controller]")]
-// public class RoleController : ControllerBase
-// {
-//   private readonly IReadCommandRoles _readRole;
+namespace AuthService.Controllers;
+[ApiController]
+[Route("api/[controller]")]
+public class RoleController : ControllerBase
+{
+  private readonly IMediator _mediator; 
+  public RoleController(IMediator mediator)
+  {
+    _mediator = mediator;
+  }
 
-//   public RoleController(IReadCommandRoles readRole)
-//   {
-//     _readRole = readRole;
-//   }
+  [HttpPost("Create")]
+  public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] RoleDTO roleDto)
+  {
+    var command = new CreateRoleCommands(roleDto);
+    var result = await _mediator.Send(command);
+    if (result == null) return BadRequest(new { message = "Failed to create a role" });
+    return Ok(result);
+  }
 
-//   [HttpGet("GetAllRolesAll")]
-//   public async Task<IActionResult> GetAllRolesAll()
-//   {
-//     var result = await _readRole.GetAll();
-//     if (result.Success == false) return BadRequest(new { result });
+  [HttpPut("Update")]
+  public async Task<ActionResult<ApiResponse<bool>>> Update([FromBody] RoleDTO roleDto)
+  {
+    var command = new UpdateRoleCommands(roleDto);
+    var result = await _mediator.Send(command);
+    if (result == null) return BadRequest(new { message = "Failed to update a role" });
+    return Ok(result);
+  }
 
-//         return Ok(result);
-//   }
+  [HttpDelete("Delete")]
+  public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+  {
+    var command = new DeleteRoleCommands(id);
+    var result = await _mediator.Send(command);
+    if (result == null) return BadRequest(new { message = "Failed to delete a role" });
+    return Ok(result);
+  }
 
-//   [HttpGet("GetByRoleId")]
-//   public async Task<IActionResult> GetRoleById(int RoleId)
-//   {
-//     ApiResponse<RoleDTO> result = await _readRole.GetbyId(RoleId);
-//     if (result.Success == false)
-//     {
-//       return BadRequest(new { result });
-//     }
+  [HttpGet("GetAll")]
+  public async Task<ActionResult> GetAll()
+  {
+    var command = new GetAllRoleQuery();
+    var result = await _mediator.Send(command);
+    if (result.Success == false) return BadRequest(new { result });
 
-//     return Ok(result);
-//   }
+    return Ok(result);
+  }
 
-//   [HttpGet("GetRoleByUserId")]
-//   public async Task<IActionResult> GetRoleByUserId(int userId)
-//   {
-//     var result = await _readRole.GetByUserId(userId);
+  [HttpGet("GetById")]
+  public async Task<IActionResult> GetById(int id)
+  {
+    var command = new GetRoleByIdQuery(id);
+    var result = await _mediator.Send(command);
+    if (result.Success == false) return BadRequest(new { result });
 
-//     if (!result.Success)
-//     {
-//       return NotFound(result);
-//     }
-
-//     return Ok(result);
-//   }
-// }
+    return Ok(result);
+  }
+}
