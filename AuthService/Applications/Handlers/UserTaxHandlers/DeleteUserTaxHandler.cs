@@ -1,10 +1,8 @@
-using AutoMapper;
 using Commands.UserCommands;
 using Common;
 using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using UserDTOS;
 
 namespace Handlers.UserTaxHandlers;
 

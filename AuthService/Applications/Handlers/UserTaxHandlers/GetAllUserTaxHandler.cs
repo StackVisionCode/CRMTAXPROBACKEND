@@ -10,8 +10,7 @@ namespace Handlers.UserTaxHandlers;
 
 public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse<List<UserDTO>>>
 {
-
-      private readonly ApplicationDbContext _dbContext;
+    private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<CreateUserTaxHandler> _logger;
     public GetAllUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<CreateUserTaxHandler> logger)
@@ -25,7 +24,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
         try
         {
             var users = await _dbContext.TaxUsers.ToListAsync(cancellationToken);
-             _logger.LogInformation("User tax created successfully: {UserTax}", users);
+            _logger.LogInformation("User tax getting successfully: {UserTax}", users);
             if (users == null || !users.Any())
             {
                 return new ApiResponse<List<UserDTO>>(false, "No user tax found", null!);
@@ -38,6 +37,5 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
             _logger.LogError(ex, "Error retrieving user tax: {Message}", ex.Message);
             return new ApiResponse<List<UserDTO>>(false, ex.Message, null!);
         }
-       
     }
 }
