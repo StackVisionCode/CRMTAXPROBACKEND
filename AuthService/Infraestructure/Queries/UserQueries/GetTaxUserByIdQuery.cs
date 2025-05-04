@@ -4,4 +4,4 @@ using UserDTOS;
 
 namespace Queries.UserQueries;
 
-public record class GetTaxUserByIdQuery(int  UsertaxId) : IRequest<ApiResponse<UserDTO>>;
+public record class GetTaxUserByIdQuery(int Id) : IRequest<ApiResponse<UserDTO>>;

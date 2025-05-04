@@ -57,14 +57,15 @@ namespace AuthService.Controllers
       return Ok(result);      
     }
 
-  //   [HttpGet("GetByUserId")]
-  //   public async Task<IActionResult> GetById(int id)
-  //   {
-  //     ApiResponse<UserDTO> result = await _userRead.GetUserById(id);
-  //     if (result.Success == false) return BadRequest(new { result });
+    [HttpGet("GetByUserId")]
+    public async Task<IActionResult> GetById(int id)
+    {
+      var command = new GetTaxUserByIdQuery(id);
+      var result = await _mediator.Send(command);
+      if (result.Success == false) return BadRequest(new { result });
 
-  //     return Ok(result);
-  //   }
+      return Ok(result);
+    }
 
   //   [HttpGet("GetProfile")]
   //   public async Task<ActionResult<ApiResponse<UserDTO>>> GetProfile()

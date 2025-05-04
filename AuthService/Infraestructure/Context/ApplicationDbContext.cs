@@ -110,7 +110,5 @@ public class ApplicationDbContext : DbContext
           Description = "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
           TaxUser = null // Set this to a valid TaxUser instance if required
         });
-
-        base.OnModelCreating(modelBuilder);
     }
 }

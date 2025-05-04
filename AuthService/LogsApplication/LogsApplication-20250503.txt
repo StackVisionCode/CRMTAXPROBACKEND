@@ -235,3 +235,7 @@ Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
 2025-05-03 19:42:42.291 -04:00 [INF] Starting up the application
 2025-05-03 19:47:12.671 -04:00 [INF] Starting up the application
 2025-05-03 19:57:49.169 -04:00 [INF] Starting up the application
+2025-05-03 20:17:16.001 -04:00 [INF] Starting up the application
+2025-05-03 20:21:06.863 -04:00 [INF] Starting up the application
+2025-05-03 20:22:15.670 -04:00 [INF] Starting up the application
+2025-05-03 20:25:34.730 -04:00 [INF] Starting up the application
