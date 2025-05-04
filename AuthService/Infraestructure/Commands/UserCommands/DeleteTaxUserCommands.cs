@@ -1,6 +1,5 @@
 using Common;
 using MediatR;
-using UserDTOS;
 
 namespace Commands.UserCommands;
 

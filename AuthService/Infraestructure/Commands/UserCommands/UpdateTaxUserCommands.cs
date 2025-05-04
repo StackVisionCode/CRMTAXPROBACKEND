@@ -1,7 +1,6 @@
 using AuthService.DTOs.UserDTOs;
 using Common;
 using MediatR;
-using UserDTOS;
 
 namespace Commands.UserCommands;
 
