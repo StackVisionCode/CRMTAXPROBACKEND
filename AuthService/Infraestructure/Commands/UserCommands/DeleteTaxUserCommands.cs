@@ -4,6 +4,6 @@ using UserDTOS;
 
 namespace Commands.UserCommands;
 
-public record class DeleteTaxUserCommands(UserDTO Usertax) : IRequest<ApiResponse<bool>>;
+public record class DeleteTaxUserCommands(int Id) : IRequest<ApiResponse<bool>>;
 
 
