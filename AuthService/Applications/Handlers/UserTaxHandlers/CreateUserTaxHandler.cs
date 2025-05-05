@@ -24,7 +24,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
     {
         try
         {
-           var userTax = _mapper.Map<TaxUser>(request);
+           var userTax = _mapper.Map<TaxUser>(request.Usertax);
            userTax.CreatedAt = DateTime.UtcNow;
            userTax.IsActive=true;
             await _dbContext.TaxUsers.AddAsync(userTax, cancellationToken);

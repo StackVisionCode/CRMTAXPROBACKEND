@@ -1,0 +1,8 @@
+namespace DTOs.DocumentsStatus;
+
+public class CreateNewDocumentsStatusDtos
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+     public required string Description { get; set; }
+}

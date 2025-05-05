@@ -1,0 +1,99 @@
+2025-05-04 09:15:27.033 -04:00 [INF] Starting up the application
+2025-05-04 09:50:52.912 -04:00 [INF] Starting up the application
+2025-05-04 10:09:25.344 -04:00 [INF] Starting up the application
+2025-05-04 10:12:39.735 -04:00 [INF] Starting up the application
+2025-05-04 10:16:45.178 -04:00 [INF] Starting up the application
+2025-05-04 10:26:50.346 -04:00 [INF] Starting up the application
+2025-05-04 10:28:53.970 -04:00 [INF] Starting up the application
+2025-05-04 10:30:20.898 -04:00 [INF] Starting up the application
+2025-05-04 10:35:25.093 -04:00 [INF] Starting up the application
+2025-05-04 10:45:57.106 -04:00 [INF] Starting up the application
+2025-05-04 11:09:34.482 -04:00 [INF] Starting up the application
+2025-05-04 11:59:36.117 -04:00 [INF] Starting up the application
+2025-05-04 13:41:06.280 -04:00 [INF] Starting up the application
+2025-05-04 13:46:22.052 -04:00 [INF] Starting up the application
+2025-05-04 13:46:22.422 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:46:35.510 -04:00 [INF] Starting up the application
+2025-05-04 13:46:35.705 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:47:19.714 -04:00 [INF] Starting up the application
+2025-05-04 13:47:19.901 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:47:49.797 -04:00 [INF] Starting up the application
+2025-05-04 13:47:49.925 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:48:29.494 -04:00 [INF] Starting up the application
+2025-05-04 13:52:47.615 -04:00 [INF] Starting up the application
+2025-05-04 13:52:47.849 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:53:39.258 -04:00 [INF] Starting up the application
+2025-05-04 13:53:39.388 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:54:49.986 -04:00 [INF] Starting up the application
+2025-05-04 13:54:50.145 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:55:13.107 -04:00 [INF] Starting up the application
+2025-05-04 13:55:13.272 -04:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\USUARIO\Documents\CloudTax\CRMTAXPROBACKEND\SignDocuTax\Program.cs:line 100
+2025-05-04 13:56:15.851 -04:00 [INF] Starting up the application
+2025-05-04 15:00:24.958 -04:00 [INF] Starting up the application
+2025-05-04 15:42:15.919 -04:00 [INF] Starting up the application
+2025-05-04 15:51:51.426 -04:00 [INF] Starting up the application
+2025-05-04 15:59:45.203 -04:00 [INF] Starting up the application
