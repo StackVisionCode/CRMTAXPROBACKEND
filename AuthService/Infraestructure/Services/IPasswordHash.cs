@@ -1,8 +1,8 @@
-namespace AuthService.Applications.Services
+namespace AuthService.Infraestructure.Services
 {
     public interface IPasswordHash
     {
-        string HasPassword(string password);
+        string HashPassword(string password);
         bool Verify(string password, string hash);
     }
 }

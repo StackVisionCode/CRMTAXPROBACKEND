@@ -1,14 +1,14 @@
+using AuthService.DTOs.UserDTOs;
 using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Queries.UserQueries;
-using UserDTOS;
 
 namespace Handlers.UserTaxHandlers;
 
-public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiResponse<UserDTO>>
+public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiResponse<UserGetDTO>>
 {
   private readonly ApplicationDbContext _dbContext;
   private readonly IMapper _mapper;
@@ -19,7 +19,7 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
     _logger = logger;
     _mapper = mapper;
   }
-  public async Task<ApiResponse<UserDTO>> Handle(GetTaxUserByIdQuery request, CancellationToken cancellationToken)
+  public async Task<ApiResponse<UserGetDTO>> Handle(GetTaxUserByIdQuery request, CancellationToken cancellationToken)
   {
     try
         {
@@ -30,9 +30,9 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
             if (user is null)
                 return new(false, "User not found");
 
-            var dto = _mapper.Map<UserDTO>(user);
+            var dto = _mapper.Map<UserGetDTO>(user);
 
-            return new ApiResponse<UserDTO>(true, "Ok", dto);
+            return new ApiResponse<UserGetDTO>(true, "Ok", dto);
         }
         catch (Exception ex)
         {

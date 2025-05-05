@@ -1,10 +1,13 @@
 using System.Text;
-
+using AuthService.Applications.Services;
+using AuthService.Infraestructure.Services;
+using AuthService.Middleware;
 using Common;
 using Infraestructure.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,7 +44,36 @@ try
 
     // Configurar Swagger (nativo de .NET 9)
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(c => 
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth Service API", Version = "v1" });
+    
+    // Configuración para utilizar JWT en Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme.",
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 
     // Configurar JWT
     JwtSettings jwtSetting = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
@@ -67,6 +99,8 @@ try
 
     builder.Services.AddAuthorization();
 
+    builder.Services.AddScoped<IPasswordHash, PasswordHash>();
+    builder.Services.AddScoped<ITokenService, TokenService>();
 
     builder.Services.AddControllers();
 
@@ -106,6 +140,8 @@ try
 
     // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
     app.UseHttpsRedirection();
+
+    app.UseSessionValidation();
 
     app.UseAuthentication();
     app.UseAuthorization();

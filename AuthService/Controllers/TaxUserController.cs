@@ -5,7 +5,6 @@ using Common;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Queries.UserQueries;
-using UserDTOS;
 
 namespace AuthService.Controllers
 {
@@ -48,7 +47,7 @@ namespace AuthService.Controllers
     }
 
     [HttpGet("GetAll")]
-    public async Task<ActionResult<ApiResponse<UserDTO[]>>> GetAll()
+    public async Task<ActionResult<ApiResponse<UserGetDTO[]>>> GetAll()
     {
       var result = await _mediator.Send(new GetAllUserQuery());
 

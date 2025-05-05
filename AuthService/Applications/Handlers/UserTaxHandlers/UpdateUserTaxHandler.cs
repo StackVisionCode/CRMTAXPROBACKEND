@@ -1,3 +1,4 @@
+using AuthService.Infraestructure.Services;
 using AutoMapper;
 using Commands.UserCommands;
 using Common;
@@ -11,11 +12,13 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<UpdateUserTaxHandler> _logger;
-    public UpdateUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<UpdateUserTaxHandler> logger)
+    private readonly IPasswordHash _passwordHash;
+    public UpdateUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<UpdateUserTaxHandler> logger, IPasswordHash passwordHash)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
+        _passwordHash = passwordHash;
     }
 
 public async Task<ApiResponse<bool>> Handle(UpdateTaxUserCommands request, CancellationToken cancellationToken)
@@ -28,6 +31,7 @@ public async Task<ApiResponse<bool>> Handle(UpdateTaxUserCommands request, Cance
                 return new ApiResponse<bool>(false, "User tax not found", false);
             }
 
+            request.Usertax.Password = _passwordHash.HashPassword(request.Usertax.Password);
             _mapper.Map(request.Usertax, userTax);
             userTax.UpdatedAt = DateTime.UtcNow;
             _dbContext.TaxUsers.Update(userTax);

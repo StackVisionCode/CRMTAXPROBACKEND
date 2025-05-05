@@ -1,58 +1,115 @@
-// using AuthService.DTOs.SessionDTOs;
-// using AuthService.Services.SessionServices;
-// using Common;
-// using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using AuthService.DTOs.PaginationDTO;
+using AuthService.DTOs.SessionDTOs;
+using AuthService.DTOs.UserDTOs;
+using Commands.SessionCommands;
+using Common;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Queries.SessionQueries;
 
-// namespace AuthService.Controllers
-// {
-//   [ApiController]
-//   [Route("api/[controller]")]
-//   public class SessionController : ControllerBase
-//   {
-//     private readonly ISessionCommandRead _sessionRead;
+namespace AuthService.Controllers
+{
+  [ApiController]
+  [Route("api/[controller]")]
+  public class SessionController : ControllerBase
+  {
+    private readonly IMediator _mediator;
+    public SessionController(IMediator mediator)
+    {
+      _mediator = mediator;
+    }
 
-//     public SessionController(ISessionCommandRead sessionRead)
-//     {
-//       _sessionRead = sessionRead;
-//     }
+    [HttpPost("Login")]
+    public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login([FromBody] UserLoginDTO dto)
+    {
+      if (!ModelState.IsValid)
+      {
+        return BadRequest(new ApiResponse<LoginResponseDTO>(false, "Invalid input data"));
+      }
 
-//     [HttpGet("GetAllSessions")]
-//     public async Task<IActionResult> GetAllSessions()
-//     {
-//       ApiResponse<List<SessionDTO>> result = await _sessionRead.GetAll();
+      var command = new LoginCommands(
+        dto.Email,
+        dto.Password,
+        HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        Request.Headers["User-Agent"].ToString(),
+        dto.RememberMe);
 
-//       if (result.Success == false)
-//       {
-//         return BadRequest(new { result });
-//       }
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
 
-//       return Ok(result);
-//     }
+    [Authorize]
+    [HttpPost("Logout")]
+    public async Task<ActionResult<ApiResponse<bool>>> Logout()
+    {
+      // Obtener sesión actual del contexto (desde el token)
+      var sessionId = HttpContext.Items["SessionId"] as int? ?? 0;
+      if (sessionId == 0)
+      {
+        return BadRequest(new ApiResponse<bool>(false, "Session not found"));
+      }
 
-//     [HttpGet("GetSessionById")]
-//     public async Task<IActionResult> GetSessionById(int sessionId)
-//     {
-//       ApiResponse<SessionDTO> result = await _sessionRead.GetById(sessionId);
+      // Obtener ID del usuario del token
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+      if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+      {
+        return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+      }
 
-//       if (result.Success == false)
-//       {
-//         return BadRequest(new { result });
-//       }
+      var command = new LogoutCommand(sessionId, userId);
+      var result = await _mediator.Send(command);
+      return Ok(result);
+    }
 
-//       return Ok(result);
-//     }
+    [Authorize]
+    [HttpPost("LogoutAll")]
+    public async Task<ActionResult<ApiResponse<bool>>> LogoutAll()
+    {
+      // Obtener ID del usuario del token
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+      if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+      {
+        return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+      }
 
-//     [HttpGet("GetSessionByUserId")]
-//     public async Task<IActionResult> GetSessionByUserId(int userId)
-//     {
-//       ApiResponse<List<SessionDTO>> result = await _sessionRead.GetByUserId(userId);
+      var command = new LogoutAllCommands(userId);
+      var result = await _mediator.Send(command);
+      return Ok(result);
+    }
 
-//       if (result.Success == false)
-//       {
-//         return BadRequest(new { result });
-//       }
+    [Authorize]
+    [HttpGet("Active")]
+    public async Task<ActionResult<ApiResponse<List<SessionDTO>>>> GetActiveSessions()
+    {
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+      if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+      {
+        return BadRequest(new ApiResponse<List<SessionDTO>>(false, "Invalid user identity"));
+      }
 
-//       return Ok(result);
-//     }
-//   }
-// }
+      var query = new GetActiveSessionsQuery(userId);
+      var result = await _mediator.Send(query);
+      return Ok(result);
+    }
+
+    [Authorize]
+    [HttpGet("GetSessionById")]
+    public async Task<ActionResult<ApiResponse<SessionDTO>>> GetSessionById(int id)
+    {
+      var query = new GetSessionByIdQuery(id);
+      var result = await _mediator.Send(query);
+      return Ok(result);
+    }
+
+    [Authorize]
+    [HttpGet("GetAllSessions")]
+    public async Task<ActionResult<ApiResponse<PaginatedResultDTO<SessionDTO>>>> GetAllSessions([FromQuery] int? pageSize = null, [FromQuery] int? pageNumber = null)
+    {
+      var query = new GetAllSessionsQuery(pageSize, pageNumber);
+      var result = await _mediator.Send(query);
+      return Ok(result);
+    }
+  }
+}
