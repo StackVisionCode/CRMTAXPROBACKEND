@@ -24,6 +24,13 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
     {
         try
         {
+
+               //Task for carlos
+            //Create Method for  Check if the user already exists   its should be implemented using interfaces
+            // passoword hashing   its should be implemented using interfaces
+            
+    
+
             var userTax = _mapper.Map<TaxUser>(request.Usertax);
             userTax.Confirm = false;
             userTax.IsActive = true;

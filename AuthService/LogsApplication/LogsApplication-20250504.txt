@@ -13,3 +13,24 @@
 2025-05-04 16:43:49.913 -04:00 [INF] Starting up the application
 2025-05-04 16:47:11.291 -04:00 [INF] Starting up the application
 2025-05-04 16:49:24.053 -04:00 [INF] Starting up the application
+2025-05-04 17:55:35.924 -07:00 [INF] Starting up the application
+2025-05-04 17:55:37.992 -07:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\Jorge Turbi\Desktop\TAXPRO\AuthService\Program.cs:line 89
+2025-05-04 17:56:08.492 -07:00 [INF] Starting up the application
+2025-05-04 17:56:08.605 -07:00 [FTL] Application failed to start
+Microsoft.Extensions.Hosting.HostAbortedException: The host was aborted.
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.ThrowHostAborted()
+   at Microsoft.Extensions.Hosting.HostFactoryResolver.HostingListener.OnNext(KeyValuePair`2 value)
+   at System.Diagnostics.DiagnosticListener.Write(String name, Object value)
+   at Microsoft.Extensions.Hosting.HostBuilder.ResolveHost(IServiceProvider serviceProvider, DiagnosticListener diagnosticListener)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder.Build()
+   at Microsoft.AspNetCore.Builder.WebApplicationBuilder.Build()
+   at Program.<Main>$(String[] args) in C:\Users\Jorge Turbi\Desktop\TAXPRO\AuthService\Program.cs:line 89
+2025-05-04 17:56:43.311 -07:00 [INF] Starting up the application

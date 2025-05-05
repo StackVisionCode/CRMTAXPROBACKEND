@@ -100,15 +100,15 @@ public class ApplicationDbContext : DbContext
         {
           Id = 1,
           Name = "Administrator",
-          Description = "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
-          TaxUser = null // Set this to a valid TaxUser instance if required
+          Description = "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform."
+      
 
         }, new Role
         {
           Id = 2,
           Name = "User",
-          Description = "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
-          TaxUser = null // Set this to a valid TaxUser instance if required
+          Description = "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality"
+     
         });
     }
 }

@@ -371,7 +371,7 @@ namespace AuthService.Migrations
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
                 {
                     b.HasOne("AuthService.Domains.Roles.Role", "Role")
-                        .WithMany("TaxUser")
+                        .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -390,11 +390,6 @@ namespace AuthService.Migrations
             modelBuilder.Entity("AuthService.Domains.Permissions.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("AuthService.Domains.Roles.Role", b =>
-                {
-                    b.Navigation("TaxUser");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
