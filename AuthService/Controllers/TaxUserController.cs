@@ -1,8 +1,10 @@
 
+using System.Security.Claims;
 using AuthService.DTOs.UserDTOs;
 using Commands.UserCommands;
 using Common;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Queries.UserQueries;
 
@@ -66,17 +68,17 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-  //   [HttpGet("GetProfile")]
-  //   public async Task<ActionResult<ApiResponse<UserDTO>>> GetProfile()
-  //   {
-  //     var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    [Authorize]
+    [HttpGet("Profile")]
+    public async Task<ActionResult<ApiResponse<UserProfileDTO>>> GetProfile()
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idClaim, out var userId))
+            return Unauthorized(new ApiResponse<UserProfileDTO>(false, "Invalid session"));
 
-  //     if (!int.TryParse(idClaim, out var userId))
-  //       return Unauthorized(new { message = "Invalid session" });
-
-  //     var result = await _userRead.GetProfile(userId);
-
-  //     return result.Success ? Ok(result) : BadRequest(result);
-  //   }
+        var command = new GetTaxUserByIdQuery(userId);
+        var result = await _mediator.Send(command);
+        return result.Success == true ? Ok(result) : BadRequest(result);
+    }
   }
 }

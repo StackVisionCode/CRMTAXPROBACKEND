@@ -40,13 +40,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Permission>().HasKey(t => t.Id);
         modelBuilder.Entity<Session>().HasKey(t => t.Id);
 
-
-        modelBuilder.Entity<RolePermissions>()
-            .HasOne(rp => rp.TaxUser)
-            .WithMany(tu => tu.RolePermissions)
-            .HasForeignKey(rp => rp.TaxUserId)
-            .OnDelete(DeleteBehavior.NoAction); // Use Restrict to avoid cascade delete issues
-                                                //todo permissions data default
+        //todo Permission data default
         modelBuilder.Entity<Permission>().HasData(
             new Permission
             {

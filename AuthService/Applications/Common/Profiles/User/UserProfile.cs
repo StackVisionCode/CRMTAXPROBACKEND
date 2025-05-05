@@ -15,6 +15,7 @@ public class UserProfile : Profile
     CreateMap<UpdateUserDTO, TaxUser>().ReverseMap();
     CreateMap<UserDTO, TaxUser>().ReverseMap();
     CreateMap<UserGetDTO, TaxUser>().ReverseMap();
+    CreateMap<UserProfileDTO, TaxUser>().ReverseMap();
     CreateMap<NewUserDTO, CreateTaxUserCommands>().ReverseMap();
     CreateMap<UpdateUserDTO, UpdateTaxUserCommands>().ReverseMap();
     CreateMap<CreateTaxUserCommands, TaxUser>().ReverseMap();

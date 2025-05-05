@@ -141,9 +141,6 @@ namespace AuthService.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TaxUserId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -152,8 +149,6 @@ namespace AuthService.Migrations
                     b.HasIndex("PermissionsId");
 
                     b.HasIndex("RoleId");
-
-                    b.HasIndex("TaxUserId");
 
                     b.ToTable("RolePermissions", (string)null);
                 });
@@ -344,17 +339,9 @@ namespace AuthService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AuthService.Domains.Users.TaxUser", "TaxUser")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("TaxUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.Navigation("Permissions");
 
                     b.Navigation("Role");
-
-                    b.Navigation("TaxUser");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Sessions.Session", b =>
@@ -394,8 +381,6 @@ namespace AuthService.Migrations
 
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
                 {
-                    b.Navigation("RolePermissions");
-
                     b.Navigation("Session");
                 });
 

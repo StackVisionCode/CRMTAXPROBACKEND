@@ -21,7 +21,6 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
                 try
                 {
                     var userTax = await _dbContext.TaxUsers.Include(u => u.Session)
-                                                            .Include(u => u.RolePermissions)
                                                             .FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken);
                     if (userTax == null)
                     {
@@ -29,7 +28,6 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
                     }
 
                     _dbContext.RemoveRange(userTax.Session);
-                    _dbContext.RemoveRange(userTax.RolePermissions);
                     _dbContext.TaxUsers.Remove(userTax);
                     var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0 ? true : false;
                     _logger.LogInformation("User tax deleted successfully: {Id}", request.Id);

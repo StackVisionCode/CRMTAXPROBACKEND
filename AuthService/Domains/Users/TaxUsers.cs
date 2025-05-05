@@ -23,7 +23,6 @@ public class TaxUser : BaseEntity
   public string? Otp { get; set; }
   public DateTime? OtpExpires { get; set; }
   public required virtual ICollection<Session> Session { get; set; }
-  public required virtual ICollection<RolePermissions> RolePermissions { get; set; }
   public required virtual TaxUserType TaxUserType { get; set; }
   public required virtual Role Role { get; set; }
 }

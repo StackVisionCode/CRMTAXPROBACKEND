@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AuthService.Migrations
 {
     /// <inheritdoc />
-    public partial class DirectorioCarlos : Migration
+    public partial class NewMigrations : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -65,6 +65,35 @@ namespace AuthService.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RolePermissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RoleId = table.Column<int>(type: "int", nullable: false),
+                    PermissionsId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Permissions_PermissionsId",
+                        column: x => x.PermissionsId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TaxUsers",
                 columns: table => new
                 {
@@ -103,41 +132,6 @@ namespace AuthService.Migrations
                         principalTable: "TaxUserTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "RolePermissions",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TaxUserId = table.Column<int>(type: "int", nullable: false),
-                    RoleId = table.Column<int>(type: "int", nullable: false),
-                    PermissionsId = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_RolePermissions_Permissions_PermissionsId",
-                        column: x => x.PermissionsId,
-                        principalTable: "Permissions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_RolePermissions_Roles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "Roles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_RolePermissions_TaxUsers_TaxUserId",
-                        column: x => x.TaxUserId,
-                        principalTable: "TaxUsers",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -210,11 +204,6 @@ namespace AuthService.Migrations
                 name: "IX_RolePermissions_RoleId",
                 table: "RolePermissions",
                 column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_RolePermissions_TaxUserId",
-                table: "RolePermissions",
-                column: "TaxUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_TaxUserId",

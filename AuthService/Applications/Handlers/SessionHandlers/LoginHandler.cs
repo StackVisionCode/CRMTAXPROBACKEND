@@ -45,12 +45,12 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             }
 
             // 2. Generamos token
-            TimeSpan accessTokenLifetime = request.RememberMe ? TimeSpan.FromDays(7) : TimeSpan.FromHours(1);
+            TimeSpan accessTokenLifetime = request.RememberMe ? TimeSpan.FromDays(1) : TimeSpan.FromHours(1);
             var (accessToken, accessTokenExpiry) = _tokenService.GenerateAccessToken(
                 user.Id, user.Email, user.FullName ?? "", accessTokenLifetime);
 
             var (refreshToken, _) = _tokenService.GenerateAccessToken(
-                user.Id, user.Email, user.FullName ?? "", TimeSpan.FromDays(14));
+                user.Id, user.Email, user.FullName ?? "", TimeSpan.FromDays(2));
 
             // 3. Creamos sesión
             var session = new Session
@@ -73,11 +73,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             var response = new LoginResponseDTO
             {
                 TokenRequest = accessToken,
-                ExpireTokenRequest = accessTokenExpiry,
-                RefreshToken = refreshToken,
-                UserId = user.Id,
-                Email = user.Email,
-                FullName = user.FullName
+                ExpireTokenRequest = accessTokenExpiry
             };
 
             _logger.LogInformation("User {Id} logged-in successfully. Session {SessionId} created", user.Id, session.Id);
