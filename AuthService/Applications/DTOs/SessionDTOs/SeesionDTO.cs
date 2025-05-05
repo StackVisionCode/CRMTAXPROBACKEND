@@ -15,5 +15,5 @@ public class SessionDTO
   public string? IpAddress { get; set; }
   public string? Location { get; set; } 
   public string? Device { get; set; }
-    public required bool IsRevoke { get; set; }=false;
+  public bool IsRevoke { get; set; }=false;
 }

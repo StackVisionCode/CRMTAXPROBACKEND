@@ -10,6 +10,5 @@ public class JwtSettings
     public bool ValidateAudience { get; set; } 
     public bool ValidateIssuerSigningKey { get; set; }
     public bool ValidateLifetime { get; set; }
-    public TimeSpan ClockSkew { get; set; } = TimeSpan.Zero; // Default value for ClockSkew
-   
+    public TimeSpan ClockSkew { get; set; } = TimeSpan.Zero;
 }

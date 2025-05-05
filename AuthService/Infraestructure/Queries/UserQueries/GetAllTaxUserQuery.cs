@@ -1,7 +1,7 @@
+using AuthService.DTOs.UserDTOs;
 using Common;
 using MediatR;
-using UserDTOS;
 
 namespace Queries.UserQueries;
 
-public record class GetAllUserQuery:IRequest<ApiResponse<List<UserDTO>>>;
+public record class GetAllUserQuery:IRequest<ApiResponse<List<UserGetDTO>>>;

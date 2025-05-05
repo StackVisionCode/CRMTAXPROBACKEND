@@ -1,3 +1,4 @@
+using AuthService.Infraestructure.Services;
 using AutoMapper;
 using Commands.UserCommands;
 using Common;
@@ -8,16 +9,17 @@ namespace Handlers.UserTaxHandlers;
 
 public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiResponse<bool>>
 {
-        private readonly ApplicationDbContext _dbContext;
+    private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
-    private readonly ILogger<CreateUserTaxHandler> _logger;
-    public UpdateUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<CreateUserTaxHandler> logger)
+    private readonly ILogger<UpdateUserTaxHandler> _logger;
+    private readonly IPasswordHash _passwordHash;
+    public UpdateUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<UpdateUserTaxHandler> logger, IPasswordHash passwordHash)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
+        _passwordHash = passwordHash;
     }
-
 
 public async Task<ApiResponse<bool>> Handle(UpdateTaxUserCommands request, CancellationToken cancellationToken)
     {
@@ -29,7 +31,9 @@ public async Task<ApiResponse<bool>> Handle(UpdateTaxUserCommands request, Cance
                 return new ApiResponse<bool>(false, "User tax not found", false);
             }
 
-            _mapper.Map(request, userTax);
+            request.Usertax.Password = _passwordHash.HashPassword(request.Usertax.Password);
+            _mapper.Map(request.Usertax, userTax);
+            userTax.UpdatedAt = DateTime.UtcNow;
             _dbContext.TaxUsers.Update(userTax);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0 ? true : false;
             _logger.LogInformation("User tax updated successfully: {UserTax}", userTax);

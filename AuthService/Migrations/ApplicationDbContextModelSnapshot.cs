@@ -49,6 +49,33 @@ namespace AuthService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Permissions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Write"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Reader"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "View"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Delete"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Update"
+                        });
                 });
 
             modelBuilder.Entity("AuthService.Domains.Roles.Role", b =>
@@ -78,6 +105,20 @@ namespace AuthService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Roles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Description = "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
+                            Name = "Administrator"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Description = "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
+                            Name = "User"
+                        });
                 });
 
             modelBuilder.Entity("AuthService.Domains.Roles.RolePermissions", b =>
@@ -100,9 +141,6 @@ namespace AuthService.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TaxUserId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -111,8 +149,6 @@ namespace AuthService.Migrations
                     b.HasIndex("PermissionsId");
 
                     b.HasIndex("RoleId");
-
-                    b.HasIndex("TaxUserId");
 
                     b.ToTable("RolePermissions", (string)null);
                 });
@@ -267,6 +303,26 @@ namespace AuthService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("TaxUserTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Description = "SuperUsuario",
+                            Name = "Owner"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Description = "Cliente",
+                            Name = "Client"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Description = "Empleado",
+                            Name = "Staff"
+                        });
                 });
 
             modelBuilder.Entity("AuthService.Domains.Roles.RolePermissions", b =>
@@ -283,17 +339,9 @@ namespace AuthService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AuthService.Domains.Users.TaxUser", "TaxUser")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("TaxUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.Navigation("Permissions");
 
                     b.Navigation("Role");
-
-                    b.Navigation("TaxUser");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Sessions.Session", b =>
@@ -310,7 +358,7 @@ namespace AuthService.Migrations
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
                 {
                     b.HasOne("AuthService.Domains.Roles.Role", "Role")
-                        .WithMany("TaxUser")
+                        .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -331,15 +379,8 @@ namespace AuthService.Migrations
                     b.Navigation("RolePermissions");
                 });
 
-            modelBuilder.Entity("AuthService.Domains.Roles.Role", b =>
-                {
-                    b.Navigation("TaxUser");
-                });
-
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
                 {
-                    b.Navigation("RolePermissions");
-
                     b.Navigation("Session");
                 });
 

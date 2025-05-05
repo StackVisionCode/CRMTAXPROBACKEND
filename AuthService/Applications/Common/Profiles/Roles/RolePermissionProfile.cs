@@ -10,6 +10,5 @@ public class RolesPermissionsProfile : Profile
   public RolesPermissionsProfile()
   {
     CreateMap<RolePermissionDTO, RolePermissions>().ReverseMap();
-
   }
 }

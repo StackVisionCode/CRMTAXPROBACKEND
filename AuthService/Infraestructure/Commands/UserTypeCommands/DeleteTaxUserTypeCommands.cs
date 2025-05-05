@@ -4,4 +4,4 @@ using UserDTOS;
 
 namespace Commands.UserTypeCommands;
 
-public record class DeleteTaxUserTypeCommands(TaxUserTypeDTO UserType) :IRequest<ApiResponse<bool>>;
+public record class DeleteTaxUserTypeCommands(int UserTypeId) :IRequest<ApiResponse<bool>>;
