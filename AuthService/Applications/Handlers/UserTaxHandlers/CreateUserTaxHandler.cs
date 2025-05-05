@@ -27,7 +27,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
 
                //Task for carlos
             //Create Method for  Check if the user already exists   its should be implemented using interfaces
-            // passoword hashing   its should be implemented using interfaces
+            // passoword hashing   its should be implemented using interfaces           other methods should be implemented using interfaces
             
     
 
