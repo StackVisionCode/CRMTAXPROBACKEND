@@ -101,7 +101,6 @@ try
 
     builder.Services.AddScoped<IPasswordHash, PasswordHash>();
     builder.Services.AddScoped<ITokenService, TokenService>();
-    builder.Services.AddScoped<IRabbitEventBus, RabbitEventBus>();
 
     builder.Services.AddControllers();
 

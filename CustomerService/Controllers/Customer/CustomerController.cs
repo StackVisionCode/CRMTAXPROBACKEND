@@ -3,7 +3,6 @@ using CustomerService.Commands.CustomerCommands;
 using CustomerService.DTOs.CustomerDTOs;
 using CustomerService.Queries.CustomerQueries;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CustomerService.Controllers.Customer
@@ -18,7 +17,6 @@ namespace CustomerService.Controllers.Customer
         _mediator = mediator;
     }
 
-    [Authorize]
     [HttpPost("Create")]
     public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] CustomerDTO customerDto)
     {
@@ -28,7 +26,6 @@ namespace CustomerService.Controllers.Customer
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("GetAll")]
     public async Task<ActionResult> GetAll()
     {

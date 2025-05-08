@@ -1,4 +1,3 @@
-using AuthService.Applications.DTOs.RabbitDTOs;
 using AuthService.Domains.Sessions;
 using AuthService.DTOs.SessionDTOs;
 using AuthService.Infraestructure.Services;
@@ -16,14 +15,12 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
   private readonly IPasswordHash _passwordHasher;
   private readonly ITokenService _tokenService;
   private readonly ILogger<LoginHandler> _logger;
-  private readonly IRabbitEventBus _bus;
-  public LoginHandler(ApplicationDbContext context, IPasswordHash passwordHasher, ITokenService tokenService, ILogger<LoginHandler> logger, IRabbitEventBus bus)
+  public LoginHandler(ApplicationDbContext context, IPasswordHash passwordHasher, ITokenService tokenService, ILogger<LoginHandler> logger)
   {
     _context = context;
     _passwordHasher = passwordHasher;
     _tokenService = tokenService;
     _logger = logger;
-    _bus = bus;
   }
 
   public async Task<ApiResponse<LoginResponseDTO>> Handle(LoginCommands request, CancellationToken cancellationToken)
@@ -80,8 +77,6 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             };
 
             _logger.LogInformation("User {Id} logged-in successfully. Session {SessionId} created", user.Id, session.Id);
-            var loginEvent = new LoginEvent(user.Id, user.Email, request.IpAddress, request.Device, DateTime.UtcNow);
-            _bus.Publish("auth.events", "auth.login", loginEvent);
             return new ApiResponse<LoginResponseDTO>(true, "Login successful", response);
         }
         catch (Exception ex)
