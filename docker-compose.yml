@@ -1,4 +1,13 @@
 services:
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"   # RabbitMQ default port
+      - "15672:15672" # RabbitMQ Management UI
+    networks:
+      - crmtaxpro-network
+
   auth-service:
     build:
       context: .
@@ -6,8 +15,9 @@ services:
     ports:
       - "5092:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development   
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal,1433;Database=AuthDB;User=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true
+      ASPNETCORE_ENVIRONMENT: Development   
+      ConnectionStrings__DefaultConnection: "Server=10.0.0.22,1433;Database=AuthDB;User Id=ccastillo;Password=Murasaki2527@;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+    depends_on: [rabbitmq]
     networks:
       - crmtaxpro-network
 
@@ -18,8 +28,9 @@ services:
     ports:
       - "5094:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal,1433;Database=CustomerDB;User=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=10.0.0.22,1433;Database=CustomerDB;User Id=ccastillo;Password=Murasaki2527@;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+    depends_on: [rabbitmq]
     networks:
       - crmtaxpro-network
 
