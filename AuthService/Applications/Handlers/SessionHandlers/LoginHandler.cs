@@ -73,7 +73,8 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             var response = new LoginResponseDTO
             {
                 TokenRequest = accessToken,
-                ExpireTokenRequest = accessTokenExpiry
+                ExpireTokenRequest = accessTokenExpiry,
+                TokenRefresh = refreshToken,
             };
 
             _logger.LogInformation("User {Id} logged-in successfully. Session {SessionId} created", user.Id, session.Id);
