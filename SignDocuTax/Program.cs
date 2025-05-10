@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
+using Services.Contracts;
+using Services;
 
 
 
@@ -70,9 +72,25 @@ try
             IssuerSigningKey = new SymmetricSecurityKey(key),
             ClockSkew = jwtSetting.ClockSkew,
         };
+
+        options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"Authentication failed: {context.Exception}");
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            Console.WriteLine($"Token validated: {context.SecurityToken}");
+            return Task.CompletedTask;
+        }
+    };
     });
 
     builder.Services.AddAuthorization();
+    builder.Services.AddMemoryCache(); // O Redis como antes
+    builder.Services.AddSingleton<ITokenStorage, TokenStorage>();
 
 
     builder.Services.AddControllers();
@@ -106,7 +124,7 @@ try
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Services TaxCloud V1");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Services Sign Docu Tax V1");
         c.RoutePrefix = "swagger"; // Swagger en la raíz (http://localhost:5092/)
     });
 
@@ -123,8 +141,11 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Application failed to start");
+    throw; // <- Agrega este throw
+
 }
 finally
 {
     Log.CloseAndFlush();
-}
+     
+    }

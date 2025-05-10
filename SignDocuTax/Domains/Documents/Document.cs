@@ -1,4 +1,5 @@
 using Common;
+using Domain.Signatures;
 using Domains.Requirements;
 namespace Domain.Documents;
 public class Document : BaseEntity
@@ -16,8 +17,9 @@ public class Document : BaseEntity
     public bool IsSigned { get; set; } // Indica si el documento ha sido firmado
     public DocumentType? DocumentTypes { get; set; }
     public required string? Path { get; set; }
-    public int RequirementSignatureId{ get; set; }
-    
+    public int RequirementSignatureId { get; set; }
+
+    public ICollection<EventSignature> EventSignatures { get; set; } = new List<EventSignature>();
     public ICollection<RequirementSignature>? RequirementSignatures { get; set; }
 
 

@@ -9,6 +9,7 @@ namespace Controllers.Documents
 {
     [ApiController]
     [Route("api/[controller]")]
+   
     public class DocumentsController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -63,14 +64,15 @@ namespace Controllers.Documents
         }
 
         [HttpDelete("Delete")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete([FromQuery] int  id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete([FromQuery] int id)
         {
-            var command = new DeleteDocumentCommands( new DeleteDocumentsDto {Id = id });
+            var command = new DeleteDocumentCommands(new DeleteDocumentsDto { Id = id });
             var result = await _mediator.Send(command);
 
             if (!result.Success.GetValueOrDefault()) return BadRequest(result);
 
             return Ok(result);
         }
+
     }
 }
