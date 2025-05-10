@@ -1,6 +1,7 @@
 using Common;
 using Domains.Requirements;
 using Domains.Signatures;
+using Domains.Signers;
 
 namespace Domain.Signatures;
 
@@ -12,12 +13,15 @@ public class EventSignature : BaseEntity
   public int DocumentId { get; set; } // Referencia directa al documento
 
   // Información del firmante
-  public int TaxUserId { get; set; }
-  public int CompanyId { get; set; }
+  public int? TaxUserId { get; set; }
+  public int? CompanyId { get; set; }
+
+  public int? ExternalSignerId { get; set; }
+  public ExternalSigner? ExternalSigner { get; set; }
 
   // Metadatos técnicos
   public string IpAddress { get; set; } = string.Empty;
-  public required string DeviceName { get; set; }
+  public string DeviceName { get; set; }
   public string? DeviceOs { get; set; } // Nuevo: Sistema operativo
   public string? Browser { get; set; } // Nuevo: Navegador usado
 

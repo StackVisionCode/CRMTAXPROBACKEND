@@ -1,11 +1,15 @@
 using Domain.Documents;
 using Domain.Signatures;
+using Domains.Contacts;
 using Domains.Firms;
 using Domains.Requirements;
 using Domains.Signatures;
+using Domains.Signers;
 using Microsoft.EntityFrameworkCore;
+using Infraestructure.Context; 
 
 namespace Infraestructure.Context;
+
 
 public class ApplicationDbContext : DbContext
 {
@@ -28,6 +32,8 @@ public class ApplicationDbContext : DbContext
   public DbSet<RequirementSignature> RequirementSignatures { get; set; }
   public DbSet<StatusRequirement> StatusRequirements { get; set; }
   public DbSet<AnswerRequirement> AnswerRequirements { get; set; }
+  public DbSet<ExternalSigner> ExternalSigners { get; set; }
+  public DbSet<Contact> Contacts { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -45,6 +51,8 @@ public class ApplicationDbContext : DbContext
     modelBuilder.Entity<RequirementSignature>().ToTable("RequirementSignatures");
     modelBuilder.Entity<StatusRequirement>().ToTable("StatusRequirements");
     modelBuilder.Entity<AnswerRequirement>().ToTable("AnswerRequirements");
+    modelBuilder.Entity<ExternalSigner>().ToTable("ExternalSigners");
+    modelBuilder.Entity<Contact>().ToTable("Contacts");
 
     modelBuilder.Entity<Document>()
     .HasOne(rp => rp.DocumentStatus)
@@ -57,6 +65,12 @@ public class ApplicationDbContext : DbContext
     .WithMany(tu => tu.Documents)
     .HasForeignKey(rp => rp.DocumentTypeId)
     .OnDelete(DeleteBehavior.NoAction); // Use Restrict to avoid cascade delete issues
+
+    modelBuilder.Entity<Document>()
+   .HasMany(rp => rp.RequirementSignatures)
+   .WithOne(tu => tu.Document)
+   .HasForeignKey(rp => rp.DocumentId)
+   .OnDelete(DeleteBehavior.NoAction);
 
     modelBuilder.Entity<Firm>()
     .HasOne(f => f.FirmStatus)
@@ -88,6 +102,13 @@ public class ApplicationDbContext : DbContext
     .HasForeignKey(es => es.RequirementSignatureId)
     .OnDelete(DeleteBehavior.NoAction); // Use Restrict to avoid cascade delete issues
 
+    // Configuración para EventSignature
+    modelBuilder.Entity<EventSignature>()
+        .HasOne(es => es.ExternalSigner)
+        .WithMany()
+        .HasForeignKey(es => es.ExternalSignerId)
+        .OnDelete(DeleteBehavior.NoAction);
+
     modelBuilder.Entity<AnswerRequirement>()
     .HasOne(ar => ar.RequirementSignature)
     .WithMany(rs => rs.RequiredSignature)
@@ -105,6 +126,21 @@ public class ApplicationDbContext : DbContext
     .WithMany(sr => sr.RequirementSignatures)
     .HasForeignKey(rs => rs.StatusSignatureId)
     .OnDelete(DeleteBehavior.NoAction); // Use Restrict to avoid cascade delete issues
+
+
+ // Configuración para ExternalSigner
+    modelBuilder.Entity<ExternalSigner>()
+        .HasOne(es => es.RequirementSignature)
+        .WithMany(rs => rs.ExternalSigners)
+        .HasForeignKey(es => es.RequirementSignatureId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+    modelBuilder.Entity<ExternalSigner>().HasOne(rs => rs.Contact)
+   .WithMany(sr => sr.ExternalSigners)
+   .HasForeignKey(rs => rs.ContactId)
+   .OnDelete(DeleteBehavior.NoAction); // Use Restrict to avoid cascade delete issues
+
+
 
 
 
