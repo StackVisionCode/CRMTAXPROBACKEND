@@ -1,38 +1,31 @@
-using System.Text;
-using AuthService.Applications.Services;
-using AuthService.Infraestructure.Services;
-using AuthService.Middleware;
-using Common;
-using Infraestructure.Context;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Infraestructure.Context;
 using Microsoft.OpenApi.Models;
-using Serilog;
+using Common;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text; // Este es el namespace donde está tu DbContext
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar logs con Serilog
-var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
+// Add services to the container.
+builder.Services.AddDbContext<CompanyDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-if (!Directory.Exists(logFolderPath))
-{
-    Directory.CreateDirectory(logFolderPath);
-}
+builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
+  // Registrar AutoMapper
+    builder.Services.AddAutoMapper(typeof(Program));
 
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-      .WriteTo.File(
-        Path.Combine(logFolderPath, "LogsApplication-.txt"),
-        rollingInterval: RollingInterval.Day
-    ).Enrich.FromLogContext()
-    .CreateLogger();
+    //configure mediator
+    builder.Services.AddMediatR(cfg =>
+    {
+        cfg.RegisterServicesFromAssemblyContaining<Program>();
+        cfg.Lifetime = ServiceLifetime.Scoped;
+    });
 
-try
-{
-    Log.Information("Starting up the application");
-    // Configurar CORS
-    builder.Services.AddCors(options =>
+       builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowAll", policy =>
         {
@@ -52,7 +45,7 @@ try
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = SecuritySchemeType.Http,
+        Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
@@ -97,32 +90,12 @@ try
         };
     });
 
-    builder.Services.AddAuthorization();
 
-    builder.Services.AddScoped<IPasswordHash, PasswordHash>();
-    builder.Services.AddScoped<ITokenService, TokenService>();
 
-    builder.Services.AddControllers();
 
-    // Registrar AutoMapper
-    builder.Services.AddAutoMapper(typeof(Program));
+var app = builder.Build();
 
-    //configure mediator
-    builder.Services.AddMediatR(cfg =>
-    {
-        cfg.RegisterServicesFromAssemblyContaining<Program>();
-        cfg.Lifetime = ServiceLifetime.Scoped;
-    });
-
-    // Configurar DbContext
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-    });
-
-    var app = builder.Build();
-
-    // Middlewares
+  // Middlewares
     app.UseCors("AllowAll");
 
     // Swagger UI siempre disponible
@@ -141,7 +114,7 @@ try
     // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
     app.UseHttpsRedirection();
 
-    app.UseSessionValidation();
+
 
     app.UseAuthentication();
     app.UseAuthorization();
@@ -149,12 +122,3 @@ try
     app.MapControllers();
 
     app.Run();
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application failed to start");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
