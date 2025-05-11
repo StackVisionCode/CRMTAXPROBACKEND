@@ -13,7 +13,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/login",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": ["POST"],
       "SwaggerKey": "auth"
     },
     {
@@ -26,7 +26,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/logout",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": ["POST"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -43,7 +43,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/logout-all",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": ["POST"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -60,7 +60,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/sessions",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -77,7 +77,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/sessions/{id}",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -94,14 +94,14 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/sessions/all",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
       "SwaggerKey": "auth"
     },
-    
+
     {
       "DownstreamPathTemplate": "/api/Role/Create",
       "DownstreamScheme": "http",
@@ -112,7 +112,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/roles/create",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": ["POST"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -129,7 +129,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/roles/update",
-      "UpstreamHttpMethod": [ "PUT" ],
+      "UpstreamHttpMethod": ["PUT"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -146,7 +146,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/roles/delete",
-      "UpstreamHttpMethod": [ "DELETE" ],
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -163,7 +163,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/roles",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -180,14 +180,14 @@
         }
       ],
       "UpstreamPathTemplate": "/api/auth/roles/getbyid",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
       "SwaggerKey": "auth"
     },
-    
+
     {
       "DownstreamPathTemplate": "/api/Customer/Create",
       "DownstreamScheme": "http",
@@ -198,7 +198,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/create",
-      "UpstreamHttpMethod": [ "POST" ],
+      "UpstreamHttpMethod": ["POST"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -219,7 +219,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -240,7 +240,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/getbyid",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -249,7 +249,112 @@
         "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
         "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
       },
-      "SwaggerKey": "customer"
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/getall",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/getall",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/getbyid",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/getbyid",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/delete",
+      "UpstreamHttpMethod": ["DELETE"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
     }
   ],
   "SwaggerEndPoints": [
@@ -270,6 +375,16 @@
           "Name": "Customer Service API",
           "Version": "v1",
           "Url": "http://localhost:5094/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "company",
+      "Config": [
+        {
+          "Name": "Company Service API",
+          "Version": "v1",
+          "Url": "http://localhost:5259/swagger/v1/swagger.json"
         }
       ]
     }
