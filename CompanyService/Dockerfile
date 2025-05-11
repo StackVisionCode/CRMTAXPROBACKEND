@@ -8,7 +8,7 @@ COPY ["CompanyService/CompanyService.csproj", "CompanyService/"]
 RUN dotnet restore "CompanyService/CompanyService.csproj"
 COPY . .
 WORKDIR "/src/CompanyService"
-RUN dotnet build "CustomerService.csproj" -c Release -o /app/build
+RUN dotnet build "CompanyService.csproj" -c Release -o /app/build
 
 FROM build AS publish
 RUN dotnet publish "CompanyService.csproj" -c Release -o /app/publish /p:UseAppHost=false
