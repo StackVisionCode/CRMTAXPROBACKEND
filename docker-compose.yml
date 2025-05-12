@@ -37,8 +37,8 @@ services:
 
   docu-services:
     build:
-       context: .
-       dockerfile: SignDocuTax/Dockerfile
+      context: .
+      dockerfile: SignDocuTax/Dockerfile
     ports:
       - "5066:8080"
     environment:
@@ -46,7 +46,6 @@ services:
       ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=SignDocuTax;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
       - crmtaxpro-network      
-   
 
 networks:
   crmtaxpro-network:
