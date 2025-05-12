@@ -19,7 +19,7 @@ services:
       - "5092:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development   
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=AuthDB;User Id=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=AuthDB;User Id=jp;Password=Jp1212@11;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
       - crmtaxpro-network
 
@@ -31,7 +31,7 @@ services:
       - "5094:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=CustomerDB;User Id=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=CustomerDB;User Id=jp;Password=Jp1212@11;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
       - crmtaxpro-network
 
@@ -43,9 +43,11 @@ services:
       - "5066:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=SignDocuTax;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=SignDocuTax;User Id=jp;Password=Jp1212@11;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
-      - crmtaxpro-network      
+      - crmtaxpro-network
+    command: >
+      sh -c "dotnet ef database update --project SignDocuTax/SignDocuTax.csproj --startup-project SignDocuTax/SignDocuTax.csproj && dotnet SignDocuTax.dll"        
    
 
 networks:
