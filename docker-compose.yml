@@ -37,18 +37,15 @@ services:
 
   docu-services:
     build:
-       context: .
-       dockerfile: SignDocuTax/Dockerfile
+      context: .
+      dockerfile: SignDocuTax/Dockerfile
     ports:
       - "5066:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=SignDocuTax;User Id=jp;Password=Jp1212@11;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
-      - crmtaxpro-network
-    command: >
-      sh -c "dotnet ef database update --project SignDocuTax/SignDocuTax.csproj --startup-project SignDocuTax/SignDocuTax.csproj && dotnet SignDocuTax.dll"        
-   
+      - crmtaxpro-network      
 
 networks:
   crmtaxpro-network:
