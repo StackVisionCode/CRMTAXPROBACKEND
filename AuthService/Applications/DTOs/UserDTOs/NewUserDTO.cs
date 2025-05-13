@@ -11,7 +11,7 @@ public class NewUserDTO
   public required int TaxUserTypeId { get; set; }
   public int? CompanyId { get; set; }
   public required int RoleId { get; set; }
-  public string? FullName { get; set; }
+  public required string FullName { get; set; }
   public required string Email { get; set; }
   public required string Password { get; set; }
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Ocelot.DependencyInjection;
@@ -26,20 +27,14 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .CreateLogger();
 
-// Load configuration
-builder.Configuration
-    .SetBasePath(builder.Environment.ContentRootPath)
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-    .AddJsonFile("ocelot.json", optional: false, reloadOnChange: true)
-    .AddEnvironmentVariables();
-
 try
 {
     Log.Information("Starting up API Gateway");
 
     // Add Serilog to ASP.NET Core
     builder.Host.UseSerilog();
+
+    builder.Configuration.AddOcelot(builder.Environment);
 
     // Add Ocelot
     builder.Services.AddOcelot(builder.Configuration);
@@ -50,8 +45,8 @@ try
         options.AddPolicy("AllowAll", policy =>
         {
             policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
+                .AllowAnyMethod()
+                .AllowAnyHeader();
         });
     });
 

@@ -11,7 +11,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignDocuTax", "SignDocuTax\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiGateway", "ApiGateway\ApiGateway.csproj", "{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}"
 EndProject
+<<<<<<< HEAD
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompanyService", "CompanyService\CompanyService.csproj", "{492F98F7-DC88-402E-868F-AA3EB24F560A}"
+=======
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompanyService", "CompanyService\CompanyService.csproj", "{32115A8B-06D6-4BA7-9276-BB71C31490AB}"
+>>>>>>> 706d227e2c349fcee9c0bcfc27e90f28bbf6a7c2
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,6 +75,7 @@ Global
 		{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}.Release|x64.Build.0 = Release|Any CPU
 		{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}.Release|x86.ActiveCfg = Release|Any CPU
 		{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}.Release|x86.Build.0 = Release|Any CPU
+<<<<<<< HEAD
 		{492F98F7-DC88-402E-868F-AA3EB24F560A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{492F98F7-DC88-402E-868F-AA3EB24F560A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{492F98F7-DC88-402E-868F-AA3EB24F560A}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -83,6 +88,20 @@ Global
 		{492F98F7-DC88-402E-868F-AA3EB24F560A}.Release|x64.Build.0 = Release|Any CPU
 		{492F98F7-DC88-402E-868F-AA3EB24F560A}.Release|x86.ActiveCfg = Release|Any CPU
 		{492F98F7-DC88-402E-868F-AA3EB24F560A}.Release|x86.Build.0 = Release|Any CPU
+=======
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Debug|x64.Build.0 = Debug|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Debug|x86.Build.0 = Debug|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Release|x64.ActiveCfg = Release|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Release|x64.Build.0 = Release|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Release|x86.ActiveCfg = Release|Any CPU
+		{32115A8B-06D6-4BA7-9276-BB71C31490AB}.Release|x86.Build.0 = Release|Any CPU
+>>>>>>> 706d227e2c349fcee9c0bcfc27e90f28bbf6a7c2
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
