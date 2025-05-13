@@ -1,6 +1,10 @@
 using CustomerService.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using SharedLibrary;
+using TAXPRO.SharedLibrary;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,11 +56,13 @@ builder.Services.AddMediatR(cfg =>
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+var objetoConexion = new ConnectionApp();
 
+    var connectionString = $"Server={objetoConexion.Server};Database=CustomerDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
 // Configurar DbContext
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+        options.UseSqlServer(connectionString);
     });
 
 var app = builder.Build();
@@ -74,7 +80,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-
+app.UseMiddleware<RestrictAccessMiddleware>();
 app.MapControllers();
 
 app.Run();

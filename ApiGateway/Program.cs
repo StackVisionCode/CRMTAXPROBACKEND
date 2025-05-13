@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Middlewares;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Serilog;
@@ -81,7 +82,7 @@ try
         };
     });
 
-    builder.Services.AddAuthorization();
+   
 
     // Add HttpClient for service communication
     builder.Services.AddHttpClient();
@@ -94,11 +95,11 @@ try
     app.UseCors("AllowAll");
     app.UseHttpsRedirection();
 
-    app.UseAuthentication();
+app.UseMiddleware<InterceptionMiddleware>();
     app.UseAuthorization();
 
     // Use Ocelot middleware
-    await app.UseOcelot();
+     app.UseOcelot().Wait();
 
     app.Run();
 }

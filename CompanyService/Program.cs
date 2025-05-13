@@ -4,13 +4,16 @@ using Microsoft.OpenApi.Models;
 using Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text; // Este es el namespace donde está tu DbContext
+using System.Text;
+using SharedLibrary;
+using TAXPRO.SharedLibrary; // Este es el namespace donde está tu DbContext
 
 var builder = WebApplication.CreateBuilder(args);
-
+var objetoConexion = new ConnectionApp();
+    var connectionString = $"Server={objetoConexion.Server};Database=DbCompany;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
 // Add services to the container.
 builder.Services.AddDbContext<CompanyDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -114,11 +117,11 @@ var app = builder.Build();
     // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
     app.UseHttpsRedirection();
 
+    // Middleware de autenticación
 
-
-    app.UseAuthentication();
     app.UseAuthorization();
-
+  
+    app.UseMiddleware<RestrictAccessMiddleware>();
     app.MapControllers();
 
     app.Run();
