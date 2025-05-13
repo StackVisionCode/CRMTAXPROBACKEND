@@ -10,7 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
-using TAXPRO.SharedLibrary;
 
 
 var builder = WebApplication.CreateBuilder(args);

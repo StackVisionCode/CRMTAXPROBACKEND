@@ -1,4 +1,4 @@
-namespace TAXPRO.SharedLibrary;
+namespace SharedLibrary;
 
 public class ConnectionApp
 {

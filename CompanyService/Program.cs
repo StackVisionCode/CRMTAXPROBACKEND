@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using SharedLibrary;
-using TAXPRO.SharedLibrary; // Este es el namespace donde está tu DbContext
 
 var builder = WebApplication.CreateBuilder(args);
 var objetoConexion = new ConnectionApp();

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Middlewares;
+using ApiGateway.Middlewares;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Serilog;
@@ -95,11 +95,12 @@ try
     app.UseCors("AllowAll");
     app.UseHttpsRedirection();
 
-app.UseMiddleware<InterceptionMiddleware>();
+    app.UseMiddleware<TokenCheckerMiddleware>();
+    app.UseMiddleware<InterceptionMiddleware>();
     app.UseAuthorization();
 
     // Use Ocelot middleware
-     app.UseOcelot().Wait();
+    app.UseOcelot().Wait();
 
     app.Run();
 }

@@ -1,0 +1,102 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5092
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/register",
+      "UpstreamHttpMethod": ["POST"],
+      "SwaggerKey": "taxuser"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5092
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "SwaggerKey": "taxuser"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/Delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5092
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/delete",
+      "UpstreamHttpMethod": ["DELETE"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "SwaggerKey": "taxuser"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5092
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/getall",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "SwaggerKey": "taxuser"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/GetByUserId",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5092
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/getbyuserid",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "SwaggerKey": "taxuser"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/Profile",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5092
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/getprofile",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "SwaggerKey": "taxuser"
+    }
+  ]
+}

@@ -49,7 +49,6 @@ namespace AuthService.Controllers
     }
 }
 
-    [Authorize]
     [HttpPost("Logout")]
     public async Task<ActionResult<ApiResponse<bool>>> Logout()
     {
@@ -72,7 +71,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpPost("LogoutAll")]
     public async Task<ActionResult<ApiResponse<bool>>> LogoutAll()
     {
@@ -88,7 +86,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("Active")]
     public async Task<ActionResult<ApiResponse<List<SessionDTO>>>> GetActiveSessions()
     {
@@ -103,7 +100,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("GetSessionById")]
     public async Task<ActionResult<ApiResponse<SessionDTO>>> GetSessionById(int id)
     {
@@ -112,7 +108,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("GetAllSessions")]
     public async Task<ActionResult<ApiResponse<PaginatedResultDTO<SessionDTO>>>> GetAllSessions([FromQuery] int? pageSize = null, [FromQuery] int? pageNumber = null)
     {
