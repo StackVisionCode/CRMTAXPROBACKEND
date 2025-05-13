@@ -13,4 +13,3 @@ public class ConnectionApp
         Password = password;
     }
 }
-
