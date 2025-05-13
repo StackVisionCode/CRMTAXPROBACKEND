@@ -6,7 +6,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using SharedLibrary;
-using TAXPRO.SharedLibrary;
 
 
 
