@@ -24,21 +24,30 @@ namespace AuthService.Controllers
     [HttpPost("Login")]
     public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login([FromBody] UserLoginDTO dto)
     {
-      if (!ModelState.IsValid)
-      {
-        return BadRequest(new ApiResponse<LoginResponseDTO>(false, "Invalid input data"));
-      }
 
-      var command = new LoginCommands(
-        dto.Email,
-        dto.Password,
-        HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        Request.Headers["User-Agent"].ToString(),
-        dto.RememberMe);
+    try
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(new ApiResponse<LoginResponseDTO>(false, "Invalid input data"));
+        }
+
+        var command = new LoginCommands(
+            dto.Email,
+            dto.Password,
+            HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            Request.Headers["User-Agent"].ToString(),
+            dto.RememberMe);
 
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+    catch (Exception ex)
+    {
+
+        return StatusCode(500, new ApiResponse<LoginResponseDTO>(false, ex.Message));
+    }
+}
 
     [Authorize]
     [HttpPost("Logout")]

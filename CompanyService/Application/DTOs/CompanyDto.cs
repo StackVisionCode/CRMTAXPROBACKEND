@@ -26,5 +26,5 @@ public class CompanyDto
    public required bool Login { get; set; }
    public string? Brand { get; set; }
    public required int UserCount { get; set; }
-   public required bool IsActive { get; set; }
+  
 }

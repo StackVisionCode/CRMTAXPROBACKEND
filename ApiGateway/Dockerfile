@@ -19,3 +19,4 @@ COPY --from=publish /app/publish .
 
 
 ENTRYPOINT ["dotnet", "ApiGateway.dll"]
+
