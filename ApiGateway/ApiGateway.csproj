@@ -35,10 +35,8 @@
     <Content Update="ocelot.routes.company.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    </Content>
     <Content Update="ocelot.routes.signdocu.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     </Content>
     <Content Update="ocelot.routes.taxuser.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
