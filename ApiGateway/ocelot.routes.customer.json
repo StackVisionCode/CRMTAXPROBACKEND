@@ -1,0 +1,67 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/Customer/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customers/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Customer/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customers",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Customer/GetById",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customers/getbyid",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "customer"
+    }
+  ]
+}

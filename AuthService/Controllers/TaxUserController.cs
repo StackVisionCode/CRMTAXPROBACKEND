@@ -68,7 +68,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("Profile")]
     public async Task<ActionResult<ApiResponse<UserProfileDTO>>> GetProfile()
     {

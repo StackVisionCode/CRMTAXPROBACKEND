@@ -9,8 +9,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using SharedLibrary;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 // Configurar logs con Serilog
 var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
@@ -44,15 +48,15 @@ try
 
     // Configurar Swagger (nativo de .NET 9)
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(c => 
+    builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth Service API", Version = "v1" });
-    
+
     // Configuración para utilizar JWT en Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
+        Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
@@ -115,10 +119,13 @@ try
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
 
+var objetoConexion = new ConnectionApp();
+
+    var connectionString = $"Server={objetoConexion.Server};Database=AuthDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
     // Configurar DbContext
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+        options.UseSqlServer(connectionString);
     });
 
     var app = builder.Build();
@@ -143,7 +150,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
-
+    app.UseMiddleware<RestrictAccessMiddleware>();
     app.MapControllers();
 
     app.Run();

@@ -5,8 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
-using Services.Contracts;
-using Services;
+using SharedLibrary;
 
 
 
@@ -104,11 +103,13 @@ try
         cfg.RegisterServicesFromAssemblyContaining<Program>();
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
+var objetoConexion = new ConnectionApp();
 
+    var connectionString = $"Server={objetoConexion.Server};Database=SignDocuTax;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
     // Configurar DbContext
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+        options.UseSqlServer(connectionString);
     });
 
 
@@ -133,7 +134,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
-
+app.UseMiddleware<RestrictAccessMiddleware>();
     app.MapControllers();
 
     app.Run();

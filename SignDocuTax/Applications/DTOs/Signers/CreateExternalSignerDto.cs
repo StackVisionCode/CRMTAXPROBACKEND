@@ -4,8 +4,13 @@ namespace DTOs.Signers
     {
         public int DocumentId { get; set; }
         public int ContactId { get; set; } // ← Se envía solo el ContactId
+<<<<<<< HEAD
     }
 
+=======
+        public int RequirementSignatureId { get; set; }
+    }
+>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e
     public class UpdateExternalSignerDto
     {
         public int Id { get; set; }

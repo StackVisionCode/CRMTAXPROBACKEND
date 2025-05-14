@@ -26,17 +26,20 @@ namespace AuthService.Controllers
     [HttpPost("Login")]
     public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login([FromBody] UserLoginDTO dto)
     {
-      if (!ModelState.IsValid)
-      {
-        return BadRequest(new ApiResponse<LoginResponseDTO>(false, "Invalid input data"));
-      }
 
-      var command = new LoginCommands(
-        dto.Email,
-        dto.Password,
-        HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        Request.Headers["User-Agent"].ToString(),
-        dto.RememberMe);
+    try
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(new ApiResponse<LoginResponseDTO>(false, "Invalid input data"));
+        }
+
+        var command = new LoginCommands(
+            dto.Email,
+            dto.Password,
+            HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            Request.Headers["User-Agent"].ToString(),
+            dto.RememberMe);
 
         var result = await _mediator.Send(command);
 
@@ -49,8 +52,13 @@ namespace AuthService.Controllers
     );
         return Ok(result);
     }
+    catch (Exception ex)
+    {
 
-    [Authorize]
+        return StatusCode(500, new ApiResponse<LoginResponseDTO>(false, ex.Message));
+    }
+}
+
     [HttpPost("Logout")]
     public async Task<ActionResult<ApiResponse<bool>>> Logout()
     {
@@ -73,7 +81,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpPost("LogoutAll")]
     public async Task<ActionResult<ApiResponse<bool>>> LogoutAll()
     {
@@ -89,7 +96,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("Active")]
     public async Task<ActionResult<ApiResponse<List<SessionDTO>>>> GetActiveSessions()
     {
@@ -104,7 +110,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("GetSessionById")]
     public async Task<ActionResult<ApiResponse<SessionDTO>>> GetSessionById(int id)
     {
@@ -113,7 +118,6 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("GetAllSessions")]
     public async Task<ActionResult<ApiResponse<PaginatedResultDTO<SessionDTO>>>> GetAllSessions([FromQuery] int? pageSize = null, [FromQuery] int? pageNumber = null)
     {

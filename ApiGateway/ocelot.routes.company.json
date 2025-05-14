@@ -1,0 +1,109 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/Company/create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/getall",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/getall",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/getbyid",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/getbyid",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5259
+        }
+      ],
+      "UpstreamPathTemplate": "/api/company/delete",
+      "UpstreamHttpMethod": ["DELETE"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
+        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+      },
+      "SwaggerKey": "company"
+    }
+  ]
+}

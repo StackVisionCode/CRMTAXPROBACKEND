@@ -6,6 +6,7 @@ namespace AuthService.Middleware;
 
 public class SessionMiddleware
 {
+    //this middleware is called here
     private readonly RequestDelegate _next;
     private readonly ILogger<SessionMiddleware> _logger;
 
@@ -18,12 +19,18 @@ public class SessionMiddleware
     public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext, ITokenService tokenService)
     {
         var bearer = context.Request.Headers["Authorization"].FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(bearer) || !bearer.StartsWith("Bearer "))
-        {
-            await _next(context);
-            return;
-        }
+                if (bearer==null || bearer is null)
+                {
+                    return;
 
+                }
+
+                if (!bearer.StartsWith("Bearer"))
+                {
+                    return;
+                }
+
+      
         var token = bearer.Substring("Bearer ".Length);
         
         // 1) ¿el JWT firma / vida / issuer / audience es correcto?
@@ -36,7 +43,7 @@ public class SessionMiddleware
 
         // 2) podemos extraer los datos con seguridad
         var userId = tokenService.GetUserIdFromToken(token);
-
+            //getSessionbyToken put in TokenServices
         var session = await dbContext.Sessions
             .FirstOrDefaultAsync(s => s.TokenRequest == token && !s.IsRevoke);
 

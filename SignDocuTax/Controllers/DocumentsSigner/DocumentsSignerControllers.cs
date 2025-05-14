@@ -1,8 +1,15 @@
 using Commands.Signers;
 using DTOs.Documents;
 using DTOs.Signers;
+<<<<<<< HEAD
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+=======
+using Handlers.Signers;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using Queries.Signers;
+>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e
 
 namespace Controllers.DocumentsSigner
 {
@@ -49,6 +56,7 @@ namespace Controllers.DocumentsSigner
             return Ok(result);
         }
 
+<<<<<<< HEAD
         [HttpGet("{documentId}/signers")]
         public async Task<IActionResult> GetDocumentSigners(int documentId)
         {
@@ -57,6 +65,14 @@ namespace Controllers.DocumentsSigner
 
             return Ok(result);
         }
+=======
+       [HttpGet("{documentId}/signers")]
+    public async Task<IActionResult> GetDocumentSigners(int documentId)
+    {
+        var response = await _mediator.Send(new GetDocumentSignersQuery(documentId));
+        return Ok(response);
+    }
+>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e
 
 
 
