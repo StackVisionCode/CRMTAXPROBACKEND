@@ -12,6 +12,10 @@ public record SendReminderCommand(SignDocumentRequest Request) : IRequest<ApiRes
 
 // Queries
 public record GetDocumentByIdQuery(int DocumentId) : IRequest<ApiResponse<DocumentDetailResponse>>;
+<<<<<<< HEAD
+public record GetDocumentSignersQuery(int DocumentId) : IRequest<ApiResponse<List<SignerInfoResponse>>>;
+=======
 public record class GetDocumentSigners(int DocumentId) : IRequest<ApiResponse<List<ExternalSignerDto>>>;
+>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e
 public record GetPendingDocumentsQuery(int UserId) : IRequest<ApiResponse<List<DocumentResponse>>>;
 public record GetDocumentByTokenQuery(string Token) : IRequest<ApiResponse<DocumentDetailResponse>>;

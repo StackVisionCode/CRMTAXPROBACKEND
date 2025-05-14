@@ -12,13 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace SignDocuTax.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-<<<<<<<< HEAD:SignDocuTax/Migrations/20250508181939_FixCascadeEventSignature.Designer.cs
-    [Migration("20250508181939_FixCascadeEventSignature")]
-    partial class FixCascadeEventSignature
-========
-    [Migration("20250511223706_InitialCreate")]
+    [Migration("20250508201326_InitialCreate")]
     partial class InitialCreate
->>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e:SignDocuTax/Migrations/20250511223706_InitialCreate.Designer.cs
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -588,11 +583,7 @@ namespace SignDocuTax.Migrations
                     b.Property<DateTime>("InvitationSentDate")
                         .HasColumnType("datetime2");
 
-<<<<<<<< HEAD:SignDocuTax/Migrations/20250508181939_FixCascadeEventSignature.Designer.cs
-                    b.Property<int>("RequirementSignatureId1")
-========
                     b.Property<int>("RequirementSignatureId")
->>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e:SignDocuTax/Migrations/20250511223706_InitialCreate.Designer.cs
                         .HasColumnType("int");
 
                     b.Property<int>("SignatureStatusId")
@@ -614,11 +605,7 @@ namespace SignDocuTax.Migrations
 
                     b.HasIndex("DocumentId");
 
-<<<<<<<< HEAD:SignDocuTax/Migrations/20250508181939_FixCascadeEventSignature.Designer.cs
-                    b.HasIndex("RequirementSignatureId1");
-========
                     b.HasIndex("RequirementSignatureId");
->>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e:SignDocuTax/Migrations/20250511223706_InitialCreate.Designer.cs
 
                     b.HasIndex("SignatureStatusId");
 
@@ -786,11 +773,7 @@ namespace SignDocuTax.Migrations
 
                     b.HasOne("Domains.Requirements.RequirementSignature", "RequirementSignature")
                         .WithMany("ExternalSigners")
-<<<<<<<< HEAD:SignDocuTax/Migrations/20250508181939_FixCascadeEventSignature.Designer.cs
-                        .HasForeignKey("RequirementSignatureId1")
-========
                         .HasForeignKey("RequirementSignatureId")
->>>>>>>> 4b49bd843ef322600271ae0810b969304e69192e:SignDocuTax/Migrations/20250511223706_InitialCreate.Designer.cs
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
