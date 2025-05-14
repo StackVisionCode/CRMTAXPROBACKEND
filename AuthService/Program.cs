@@ -101,6 +101,7 @@ try
 
     builder.Services.AddScoped<IPasswordHash, PasswordHash>();
     builder.Services.AddScoped<ITokenService, TokenService>();
+    builder.Services.AddHttpClient<IWebhookNotifier, WebhookNotifierService>();
 
     builder.Services.AddControllers();
 
@@ -126,14 +127,11 @@ try
     app.UseCors("AllowAll");
 
     // Swagger UI siempre disponible
-    app.UseSwagger(opt =>
-    {
-        opt.RouteTemplate = "openapi/{documentName}.json";
-    });
+    app.UseSwagger();
 
     app.UseSwaggerUI(opt =>
     {
-        opt.SwaggerEndpoint("/openapi/v1.json", "Services TaxCloud V1");
+        opt.SwaggerEndpoint("/swagger/v1/swagger.json", "Services TaxCloud V1");
         opt.RoutePrefix = "swagger";        // =>  http://localhost:5092/swagger
     });
 
@@ -153,6 +151,7 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Application failed to start");
+    throw;
 }
 finally
 {

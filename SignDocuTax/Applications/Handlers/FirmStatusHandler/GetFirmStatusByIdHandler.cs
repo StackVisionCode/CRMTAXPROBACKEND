@@ -1,7 +1,6 @@
 using AutoMapper;
 using Common;
 using Dtos.FirmsStatusDto;
-using DTOs.FirmsDto;
 using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

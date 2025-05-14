@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace SignDocuTax.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250505175900_FixCascadeEventSignature")]
+    [Migration("20250508181939_FixCascadeEventSignature")]
     partial class FixCascadeEventSignature
     {
         /// <inheritdoc />
@@ -164,7 +164,7 @@ namespace SignDocuTax.Migrations
                     b.Property<string>("Browser")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CompanyId")
+                    b.Property<int?>("CompanyId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -189,6 +189,9 @@ namespace SignDocuTax.Migrations
                     b.Property<int>("DocumentId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ExternalSignerId")
+                        .HasColumnType("int");
+
                     b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -197,6 +200,9 @@ namespace SignDocuTax.Migrations
                         .HasColumnType("bit");
 
                     b.Property<int>("RequirementSignatureId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RequirementSignatureId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("SignatureDate")
@@ -211,7 +217,7 @@ namespace SignDocuTax.Migrations
                     b.Property<string>("SignatureLevel")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TaxUserId")
+                    b.Property<int?>("TaxUserId")
                         .HasColumnType("int");
 
                     b.Property<string>("TimestampAuthority")
@@ -227,11 +233,57 @@ namespace SignDocuTax.Migrations
 
                     b.HasIndex("AnswerRequirementId");
 
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("ExternalSignerId");
+
                     b.HasIndex("RequirementSignatureId");
+
+                    b.HasIndex("RequirementSignatureId1");
 
                     b.HasIndex("SignatureEventTypeId");
 
                     b.ToTable("EventSignatures", (string)null);
+                });
+
+            modelBuilder.Entity("Domains.Contacts.Contact", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserTaxId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Contacts", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Firms.Firm", b =>
@@ -382,11 +434,17 @@ namespace SignDocuTax.Migrations
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("DocumentId")
+                    b.Property<int?>("DocumentId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ExpiryDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ExternalSignerEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExternalSignerName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("FirmId")
                         .HasColumnType("int");
@@ -502,6 +560,88 @@ namespace SignDocuTax.Migrations
                     b.ToTable("SignatureType", (string)null);
                 });
 
+            modelBuilder.Entity("Domains.Signers.ExternalSigner", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContactId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InvitationSentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequirementSignatureId1")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SignatureStatusId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SignedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SigningToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContactId");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("RequirementSignatureId1");
+
+                    b.HasIndex("SignatureStatusId");
+
+                    b.ToTable("ExternalSigners", (string)null);
+                });
+
+            modelBuilder.Entity("Domains.Signers.SignatureStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SignatureStatus");
+                });
+
             modelBuilder.Entity("Domain.Documents.Document", b =>
                 {
                     b.HasOne("Domain.Documents.DocumentStatus", "DocumentStatus")
@@ -529,11 +669,26 @@ namespace SignDocuTax.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Domain.Documents.Document", null)
+                        .WithMany("EventSignatures")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domains.Signers.ExternalSigner", "ExternalSigner")
+                        .WithMany()
+                        .HasForeignKey("ExternalSignerId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Domains.Requirements.RequirementSignature", "RequirementSignature")
                         .WithMany("Firms")
                         .HasForeignKey("RequirementSignatureId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("Domains.Requirements.RequirementSignature", null)
+                        .WithMany("EventSignatures")
+                        .HasForeignKey("RequirementSignatureId1");
 
                     b.HasOne("Domains.Signatures.SignatureEventType", "SignatureEventType")
                         .WithMany("Firms")
@@ -542,6 +697,8 @@ namespace SignDocuTax.Migrations
                         .IsRequired();
 
                     b.Navigation("AnswerRequirement");
+
+                    b.Navigation("ExternalSigner");
 
                     b.Navigation("RequirementSignature");
 
@@ -587,8 +744,7 @@ namespace SignDocuTax.Migrations
                     b.HasOne("Domain.Documents.Document", "Document")
                         .WithMany("RequirementSignatures")
                         .HasForeignKey("DocumentId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("Domains.Requirements.StatusRequirement", "StatusRequirement")
                         .WithMany("RequirementSignatures")
@@ -601,8 +757,45 @@ namespace SignDocuTax.Migrations
                     b.Navigation("StatusRequirement");
                 });
 
+            modelBuilder.Entity("Domains.Signers.ExternalSigner", b =>
+                {
+                    b.HasOne("Domains.Contacts.Contact", "Contact")
+                        .WithMany("ExternalSigners")
+                        .HasForeignKey("ContactId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Documents.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domains.Requirements.RequirementSignature", "RequirementSignature")
+                        .WithMany("ExternalSigners")
+                        .HasForeignKey("RequirementSignatureId1")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Domains.Signers.SignatureStatus", "SignatureStatus")
+                        .WithMany()
+                        .HasForeignKey("SignatureStatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contact");
+
+                    b.Navigation("Document");
+
+                    b.Navigation("RequirementSignature");
+
+                    b.Navigation("SignatureStatus");
+                });
+
             modelBuilder.Entity("Domain.Documents.Document", b =>
                 {
+                    b.Navigation("EventSignatures");
+
                     b.Navigation("RequirementSignatures");
                 });
 
@@ -614,6 +807,11 @@ namespace SignDocuTax.Migrations
             modelBuilder.Entity("Domain.Documents.DocumentType", b =>
                 {
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("Domains.Contacts.Contact", b =>
+                {
+                    b.Navigation("ExternalSigners");
                 });
 
             modelBuilder.Entity("Domains.Firms.FirmStatus", b =>
@@ -628,6 +826,10 @@ namespace SignDocuTax.Migrations
 
             modelBuilder.Entity("Domains.Requirements.RequirementSignature", b =>
                 {
+                    b.Navigation("EventSignatures");
+
+                    b.Navigation("ExternalSigners");
+
                     b.Navigation("Firm");
 
                     b.Navigation("Firms");

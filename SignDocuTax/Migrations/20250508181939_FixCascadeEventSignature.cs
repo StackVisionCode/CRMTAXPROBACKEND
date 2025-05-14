@@ -12,6 +12,26 @@ namespace SignDocuTax.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Contacts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserTaxId = table.Column<int>(type: "int", nullable: false),
+                    CompanyId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Contacts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DocumentStatus",
                 columns: table => new
                 {
@@ -77,6 +97,23 @@ namespace SignDocuTax.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SignatureEventTypes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SignatureStatus",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SignatureStatus", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -157,9 +194,11 @@ namespace SignDocuTax.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CustomerId = table.Column<int>(type: "int", nullable: false),
-                    DocumentId = table.Column<int>(type: "int", nullable: false),
+                    DocumentId = table.Column<int>(type: "int", nullable: true),
                     TaxUserId = table.Column<int>(type: "int", nullable: false),
                     CompanyId = table.Column<int>(type: "int", nullable: false),
+                    ExternalSignerEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ExternalSignerName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     StatusSignatureId = table.Column<int>(type: "int", nullable: false),
                     FirmId = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
@@ -206,6 +245,50 @@ namespace SignDocuTax.Migrations
                         column: x => x.RequirementSignatureId,
                         principalTable: "RequirementSignatures",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ExternalSigners",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DocumentId = table.Column<int>(type: "int", nullable: false),
+                    ContactId = table.Column<int>(type: "int", nullable: false),
+                    SignatureStatusId = table.Column<int>(type: "int", nullable: false),
+                    SigningToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    InvitationSentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SignedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RequirementSignatureId1 = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ExternalSigners", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ExternalSigners_Contacts_ContactId",
+                        column: x => x.ContactId,
+                        principalTable: "Contacts",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ExternalSigners_Documents_DocumentId",
+                        column: x => x.DocumentId,
+                        principalTable: "Documents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ExternalSigners_RequirementSignatures_RequirementSignatureId1",
+                        column: x => x.RequirementSignatureId1,
+                        principalTable: "RequirementSignatures",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ExternalSigners_SignatureStatus_SignatureStatusId",
+                        column: x => x.SignatureStatusId,
+                        principalTable: "SignatureStatus",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -257,8 +340,9 @@ namespace SignDocuTax.Migrations
                     RequirementSignatureId = table.Column<int>(type: "int", nullable: false),
                     AnswerRequirementId = table.Column<int>(type: "int", nullable: false),
                     DocumentId = table.Column<int>(type: "int", nullable: false),
-                    TaxUserId = table.Column<int>(type: "int", nullable: false),
-                    CompanyId = table.Column<int>(type: "int", nullable: false),
+                    TaxUserId = table.Column<int>(type: "int", nullable: true),
+                    CompanyId = table.Column<int>(type: "int", nullable: true),
+                    ExternalSignerId = table.Column<int>(type: "int", nullable: true),
                     IpAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DeviceName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DeviceOs = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -273,6 +357,7 @@ namespace SignDocuTax.Migrations
                     TimestampAuthority = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     SignatureLevel = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DocumentHashAtSigning = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RequirementSignatureId1 = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -286,8 +371,24 @@ namespace SignDocuTax.Migrations
                         principalTable: "AnswerRequirements",
                         principalColumn: "Id");
                     table.ForeignKey(
+                        name: "FK_EventSignatures_Documents_DocumentId",
+                        column: x => x.DocumentId,
+                        principalTable: "Documents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_EventSignatures_ExternalSigners_ExternalSignerId",
+                        column: x => x.ExternalSignerId,
+                        principalTable: "ExternalSigners",
+                        principalColumn: "Id");
+                    table.ForeignKey(
                         name: "FK_EventSignatures_RequirementSignatures_RequirementSignatureId",
                         column: x => x.RequirementSignatureId,
+                        principalTable: "RequirementSignatures",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_EventSignatures_RequirementSignatures_RequirementSignatureId1",
+                        column: x => x.RequirementSignatureId1,
                         principalTable: "RequirementSignatures",
                         principalColumn: "Id");
                     table.ForeignKey(
@@ -318,14 +419,49 @@ namespace SignDocuTax.Migrations
                 column: "AnswerRequirementId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_EventSignatures_DocumentId",
+                table: "EventSignatures",
+                column: "DocumentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventSignatures_ExternalSignerId",
+                table: "EventSignatures",
+                column: "ExternalSignerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_EventSignatures_RequirementSignatureId",
                 table: "EventSignatures",
                 column: "RequirementSignatureId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_EventSignatures_RequirementSignatureId1",
+                table: "EventSignatures",
+                column: "RequirementSignatureId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_EventSignatures_SignatureEventTypeId",
                 table: "EventSignatures",
                 column: "SignatureEventTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ExternalSigners_ContactId",
+                table: "ExternalSigners",
+                column: "ContactId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ExternalSigners_DocumentId",
+                table: "ExternalSigners",
+                column: "DocumentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ExternalSigners_RequirementSignatureId1",
+                table: "ExternalSigners",
+                column: "RequirementSignatureId1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ExternalSigners_SignatureStatusId",
+                table: "ExternalSigners",
+                column: "SignatureStatusId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Firms_FirmStatusId",
@@ -366,6 +502,9 @@ namespace SignDocuTax.Migrations
                 name: "AnswerRequirements");
 
             migrationBuilder.DropTable(
+                name: "ExternalSigners");
+
+            migrationBuilder.DropTable(
                 name: "SignatureEventTypes");
 
             migrationBuilder.DropTable(
@@ -375,7 +514,13 @@ namespace SignDocuTax.Migrations
                 name: "SignatureType");
 
             migrationBuilder.DropTable(
+                name: "Contacts");
+
+            migrationBuilder.DropTable(
                 name: "RequirementSignatures");
+
+            migrationBuilder.DropTable(
+                name: "SignatureStatus");
 
             migrationBuilder.DropTable(
                 name: "Documents");

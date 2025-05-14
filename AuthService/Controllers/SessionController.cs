@@ -16,9 +16,11 @@ namespace AuthService.Controllers
   public class SessionController : ControllerBase
   {
     private readonly IMediator _mediator;
-    public SessionController(IMediator mediator)
+    private readonly IWebhookNotifier _webhookNotifier;
+    public SessionController(IMediator mediator,IWebhookNotifier webhookNotifier)
     {
       _mediator = mediator;
+      _webhookNotifier = webhookNotifier;
     }
 
     [HttpPost("Login")]
@@ -37,6 +39,14 @@ namespace AuthService.Controllers
         dto.RememberMe);
 
         var result = await _mediator.Send(command);
+
+          // Notificar a SignDocuTax
+    await _webhookNotifier.NotifyAuthEventAsync(
+        eventType: "UserAuthenticated",
+        data: result.Data.TokenRequest,
+        Expired: result.Data.ExpireTokenRequest,
+        additionalData: $"IP: {HttpContext.Connection.RemoteIpAddress}"
+    );
         return Ok(result);
     }
 
