@@ -1,32 +1,20 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using ApiGateway.Middlewares;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Serilog;
 using System.Text;
+using SharedLibrary.Logs;
+using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure Serilog
-var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
+// Llama al método para configurar Serilog desde la SharedLibrary
+SerilogConfiguration.ConfigureSerilog(builder.Configuration);
 
-if (!Directory.Exists(logFolderPath))
-{
-    Directory.CreateDirectory(logFolderPath);
-}
-
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .WriteTo.Console()
-    .WriteTo.File(
-        Path.Combine(logFolderPath, "ApiGateway-.txt"),
-        rollingInterval: RollingInterval.Day
-    )
-    .Enrich.FromLogContext()
-    .CreateLogger();
+builder.Host.UseSerilog();
 
 try
 {
@@ -41,15 +29,7 @@ try
     builder.Services.AddOcelot(builder.Configuration);
 
     // Add CORS
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("AllowAll", policy =>
-        {
-            policy.AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader();
-        });
-    });
+    builder.Services.AddCustomCors();
 
     // Configure JWT Authentication
     var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -57,6 +37,7 @@ try
 
     if (string.IsNullOrEmpty(secretKey))
     {
+       Log.Error("JWT SecretKey is not configured in appsettings.json");
         throw new InvalidOperationException("JWT SecretKey is not configured in appsettings.json");
     }
 
@@ -82,7 +63,7 @@ try
         };
     });
 
-   
+
 
     // Add HttpClient for service communication
     builder.Services.AddHttpClient();
@@ -107,6 +88,7 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "API Gateway failed to start");
+    throw;
 }
 finally
 {
