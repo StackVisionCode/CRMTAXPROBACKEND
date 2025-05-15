@@ -12,13 +12,13 @@ namespace Handlers.DocumentsHandlers
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<DeleteDocumentsHandler> _logger;
-          private readonly IWebHostEnvironment _env;
+        private readonly IWebHostEnvironment _env;
 
-        public DeleteDocumentsHandler(ApplicationDbContext dbContext, ILogger<DeleteDocumentsHandler> logger,IWebHostEnvironment env)
+        public DeleteDocumentsHandler(ApplicationDbContext dbContext, ILogger<DeleteDocumentsHandler> logger, IWebHostEnvironment env)
         {
-        
+
             _dbContext = dbContext;
-            _logger = logger;_env = env;
+            _logger = logger; _env = env;
         }
 
         public async Task<ApiResponse<bool>> Handle(DeleteDocumentCommands request, CancellationToken cancellationToken)
@@ -28,11 +28,11 @@ namespace Handlers.DocumentsHandlers
                 var document = await _dbContext.Documents.FirstOrDefaultAsync(x => x.Id == request.Documents.Id, cancellationToken);
                 if (document == null)
                     return new ApiResponse<bool>(false, "Document not found", false);
-     // Llamamos al método privado para eliminar el archivo físico
+                // Llamamos al método privado para eliminar el archivo físico
                 var filePath = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), document.Path);
                 if (File.Exists(filePath))
                     DeleteFile(filePath); // Eliminar el archivo físico
-                   
+
                 _dbContext.Documents.Remove(document);
                 var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
@@ -69,5 +69,5 @@ namespace Handlers.DocumentsHandlers
         }
     }
 
-    
+
 }

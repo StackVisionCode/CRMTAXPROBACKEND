@@ -29,7 +29,6 @@ namespace Handlers.Signers
                 return new ApiResponse<bool>(false, "Contact not found");
             }
 
-<<<<<<< HEAD
             var externalSigner = new ExternalSigner
             {
                 DocumentId = request.CreateExternalSignerDto.DocumentId,
@@ -42,22 +41,6 @@ namespace Handlers.Signers
             externalSigner.UpdatedAt = DateTime.UtcNow;
 
             _context.ExternalSigners.Add(externalSigner);
-=======
-            var signer = new ExternalSigner
-        {
-            ContactId = request.CreateExternalSignerDto.ContactId,
-            RequirementSignatureId = request.CreateExternalSignerDto.RequirementSignatureId,
-            DocumentId = request.CreateExternalSignerDto.DocumentId,
-            InvitationSentDate = DateTime.UtcNow,
-            SigningToken = Guid.NewGuid().ToString(),
-            SignatureStatusId = 1
-        };
-
-            signer.CreatedAt = DateTime.UtcNow;
-           signer.UpdatedAt = DateTime.UtcNow;
-
-            _context.ExternalSigners.Add(signer);
->>>>>>> 4b49bd843ef322600271ae0810b969304e69192e
             await _context.SaveChangesAsync(cancellationToken);
 
             return new ApiResponse<bool>(true, "External Singer Succesfully");
