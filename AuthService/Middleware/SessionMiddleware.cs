@@ -19,18 +19,12 @@ public class SessionMiddleware
     public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext, ITokenService tokenService)
     {
         var bearer = context.Request.Headers["Authorization"].FirstOrDefault();
-                if (bearer==null || bearer is null)
-                {
-                    return;
+        if (string.IsNullOrWhiteSpace(bearer) || !bearer.StartsWith("Bearer "))
+        {
+            await _next(context);
+            return;
+        }
 
-                }
-
-                if (!bearer.StartsWith("Bearer"))
-                {
-                    return;
-                }
-
-      
         var token = bearer.Substring("Bearer ".Length);
         
         // 1) ¿el JWT firma / vida / issuer / audience es correcto?
