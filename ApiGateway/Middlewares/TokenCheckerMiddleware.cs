@@ -8,7 +8,7 @@ public class TokenCheckerMiddleware(RequestDelegate next)
     {
         string requestPath = context.Request.Path.Value!;
         if (requestPath.Contains("auth/login", StringComparison.InvariantCultureIgnoreCase) ||
-            requestPath.Contains("auth/register", StringComparison.InvariantCultureIgnoreCase) || 
+            requestPath.Contains("taxuser/register", StringComparison.InvariantCultureIgnoreCase) || 
             requestPath.Contains("Session/Login", StringComparison.InvariantCultureIgnoreCase) || 
             requestPath.Contains("TaxUser/Create", StringComparison.InvariantCultureIgnoreCase) ||
             requestPath.Equals("/"))
