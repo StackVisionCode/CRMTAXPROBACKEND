@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using SharedLibrary;
+using SharedLibrary.Extensions;
 
 
 
@@ -37,15 +38,7 @@ try
 
 
     // Configurar CORS
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("AllowAll", policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-    });
+    builder.Services.AddCustomCors();
 
     // Configurar Swagger (nativo de .NET 9)
     builder.Services.AddEndpointsApiExplorer();
@@ -73,18 +66,18 @@ try
         };
 
         options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"Authentication failed: {context.Exception}");
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            Console.WriteLine($"Token validated: {context.SecurityToken}");
-            return Task.CompletedTask;
-        }
-    };
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"Authentication failed: {context.Exception}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine($"Token validated: {context.SecurityToken}");
+                return Task.CompletedTask;
+            }
+        };
     });
 
     builder.Services.AddAuthorization();
@@ -103,7 +96,7 @@ try
         cfg.RegisterServicesFromAssemblyContaining<Program>();
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
-var objetoConexion = new ConnectionApp();
+    var objetoConexion = new ConnectionApp();
 
     var connectionString = $"Server={objetoConexion.Server};Database=SignDocuTax;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
     // Configurar DbContext
@@ -134,7 +127,7 @@ var objetoConexion = new ConnectionApp();
 
     app.UseAuthentication();
     app.UseAuthorization();
-app.UseMiddleware<RestrictAccessMiddleware>();
+    app.UseMiddleware<RestrictAccessMiddleware>();
     app.MapControllers();
 
     app.Run();
@@ -148,5 +141,5 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
-     
-    }
+
+}

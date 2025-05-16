@@ -42,14 +42,6 @@ namespace AuthService.Controllers
             dto.RememberMe);
 
         var result = await _mediator.Send(command);
-
-          // Notificar a SignDocuTax
-    await _webhookNotifier.NotifyAuthEventAsync(
-        eventType: "UserAuthenticated",
-        data: result.Data.TokenRequest,
-        Expired: result.Data.ExpireTokenRequest,
-        additionalData: $"IP: {HttpContext.Connection.RemoteIpAddress}"
-    );
         return Ok(result);
     }
     catch (Exception ex)

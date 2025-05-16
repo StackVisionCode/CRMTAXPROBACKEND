@@ -58,7 +58,7 @@ services:
     networks:
       - crmtaxpro-network      
 
-  Email-Services:
+  email-services:
     build:
       context: .
       dockerfile: EmailServices/Dockerfile

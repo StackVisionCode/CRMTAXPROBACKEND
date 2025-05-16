@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
+using SharedLibrary.Extensions;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,15 +37,7 @@ try
 {
     Log.Information("Starting up the application");
     // Configurar CORS
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("AllowAll", policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-    });
+    builder.Services.AddCustomCors();
 
     // Configurar Swagger (nativo de .NET 9)
     builder.Services.AddEndpointsApiExplorer();
