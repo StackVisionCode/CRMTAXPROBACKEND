@@ -11,6 +11,10 @@
       ],
       "UpstreamPathTemplate": "/api/auth/login",
       "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 1,
       "SwaggerKey": "auth"
     },
     {
@@ -28,6 +32,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
@@ -45,6 +53,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
@@ -56,16 +68,20 @@
           "Port": 5092
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/sessions",
+      "UpstreamPathTemplate": "/api/auth/sessions/active",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
-      "DownstreamPathTemplate": "/api/Session/GetSessionById",
+      "DownstreamPathTemplate": "/api/Session/GetSessionById?id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -79,6 +95,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
@@ -90,12 +110,16 @@
           "Port": 5092
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/sessions/all",
+      "UpstreamPathTemplate": "/api/auth/sessions",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     }
   ]

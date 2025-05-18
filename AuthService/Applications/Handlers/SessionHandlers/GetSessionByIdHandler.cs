@@ -29,6 +29,8 @@ public class GetSessionByIdHandler : IRequestHandler<GetSessionByIdQuery, ApiRes
         try
         {
             var session = await _context.Sessions
+                .Include(s => s.TaxUser) 
+                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
             if (session == null)

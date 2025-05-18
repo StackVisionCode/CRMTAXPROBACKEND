@@ -5,4 +5,4 @@ using MediatR;
 
 namespace Queries.SessionQueries;
 
-public record class GetAllSessionsQuery(int? PageSize = null, int? PageNumber = null) : IRequest<ApiResponse<PaginatedResultDTO<SessionDTO>>>;
+public record class GetAllSessionsQuery() : IRequest<ApiResponse<List<SessionDTO>>>;

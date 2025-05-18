@@ -1,6 +1,10 @@
 {
   "GlobalConfiguration": {
-    "BaseUrl": "http://localhost:5000"
+    "BaseUrl": "http://localhost:5000",
+    "DownstreamHeaderTransform": {
+      "Authorization": ">>",
+      "X-From-Gateway": "set(Api-Gateway)"
+    }
   },
   "SwaggerEndPoints": [
     {

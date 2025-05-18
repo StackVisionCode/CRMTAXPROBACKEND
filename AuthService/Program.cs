@@ -1,21 +1,15 @@
-using System.Text;
+using System.IdentityModel.Tokens.Jwt;
 using AuthService.Applications.Services;
 using AuthService.Infraestructure.Services;
-using AuthService.Middleware;
-using Common;
 using Infraestructure.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Extensions;
 
-
 var builder = WebApplication.CreateBuilder(args);
-
-
 
 // Configurar logs con Serilog
 var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
@@ -27,7 +21,7 @@ if (!Directory.Exists(logFolderPath))
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-      .WriteTo.File(
+    .WriteTo.File(
         Path.Combine(logFolderPath, "LogsApplication-.txt"),
         rollingInterval: RollingInterval.Day
     ).Enrich.FromLogContext()
@@ -36,6 +30,9 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     Log.Information("Starting up the application");
+
+    JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+    
     // Configurar CORS
     builder.Services.AddCustomCors();
 
@@ -73,32 +70,21 @@ try
 });
 
     // Configurar JWT
-    JwtSettings jwtSetting = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
+    builder.Services.AddJwtAuth(builder.Configuration);
 
-    builder.Services.AddAuthentication(options =>
+     // Configurar caché en memoria en lugar de Redis
+    builder.Services.AddSessionCache();
+
+    builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", opts =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        var key = Encoding.UTF8.GetBytes(jwtSetting.SecretKey);
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = jwtSetting.ValidateIssuer,
-            ValidateAudience = jwtSetting.ValidateAudience,
-            ValidateLifetime = jwtSetting.ValidateLifetime,
-            ValidateIssuerSigningKey = jwtSetting.ValidateIssuerSigningKey,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ClockSkew = jwtSetting.ClockSkew,
-        };
+        var cfg = builder.Configuration.GetSection("JwtSettings");
+        opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
     });
 
     builder.Services.AddAuthorization();
 
     builder.Services.AddScoped<IPasswordHash, PasswordHash>();
-    builder.Services.AddScoped<ITokenService, TokenService>();
-    builder.Services.AddHttpClient<IWebhookNotifier, WebhookNotifierService>();
 
     builder.Services.AddControllers();
 
@@ -112,7 +98,7 @@ try
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
 
-var objetoConexion = new ConnectionApp();
+    var objetoConexion = new ConnectionApp();
 
     var connectionString = $"Server={objetoConexion.Server};Database=AuthDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
     // Configurar DbContext
@@ -139,11 +125,9 @@ var objetoConexion = new ConnectionApp();
     // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
     app.UseHttpsRedirection();
 
-    app.UseSessionValidation();
-
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseMiddleware<RestrictAccessMiddleware>();
+    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
     app.MapControllers();
 
     app.Run();

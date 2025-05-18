@@ -2,6 +2,7 @@ using AuthService.DTOs.RoleDTOs;
 using Commands.RoleCommands;
 using Common;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Queries.RoleQueries;
 
@@ -43,6 +44,7 @@ public class RoleController : ControllerBase
     return Ok(result);
   }
 
+  [Authorize]
   [HttpGet("GetAll")]
   public async Task<ActionResult> GetAll()
   {

@@ -23,9 +23,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -41,9 +41,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -59,9 +59,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -77,9 +77,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -95,9 +95,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -114,9 +114,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -132,9 +132,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -150,9 +150,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -168,9 +168,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -186,9 +186,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -205,9 +205,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -223,9 +223,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -241,9 +241,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -259,9 +259,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -277,9 +277,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -295,9 +295,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -314,9 +314,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -332,9 +332,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -350,9 +350,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -368,9 +368,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -387,9 +387,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     
@@ -406,9 +406,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -424,9 +424,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -442,9 +442,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -460,9 +460,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -479,9 +479,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -497,9 +497,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -515,9 +515,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -533,9 +533,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -551,9 +551,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -570,9 +570,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -588,9 +588,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -607,9 +607,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -626,9 +626,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -645,9 +645,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -663,9 +663,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -681,9 +681,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -700,9 +700,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -718,9 +718,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
     {
@@ -736,9 +736,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     },
 
@@ -755,9 +755,9 @@
         "AllowedScopes": []
       },
       "AddHeadersToRequest": {
-        "UserId": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier] > value",
-        "Email": "Claims[http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress] > value"
+        "X-From-Gateway": "Api-Gateway"
       },
+      "Priority": 0,
       "SwaggerKey": "signdocu"
     }
   ]

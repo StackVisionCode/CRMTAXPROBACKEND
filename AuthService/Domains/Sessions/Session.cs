@@ -6,6 +6,7 @@ namespace AuthService.Domains.Sessions;
 
 public class Session : BaseEntity
 {
+    public required string SessionUid { get; set; }
     public int TaxUserId { get; set; }
     public required string TokenRequest { get; set; }
     public required DateTime ExpireTokenRequest { get; set; }
@@ -17,6 +18,3 @@ public class Session : BaseEntity
     public bool IsRevoke { get; set; }
     public required virtual TaxUser TaxUser { get; set; }
 }
-
- 
-

@@ -16,22 +16,20 @@ namespace AuthService.Controllers
   public class SessionController : ControllerBase
   {
     private readonly IMediator _mediator;
-    private readonly IWebhookNotifier _webhookNotifier;
-    public SessionController(IMediator mediator,IWebhookNotifier webhookNotifier)
+    public SessionController(IMediator mediator)
     {
       _mediator = mediator;
-      _webhookNotifier = webhookNotifier;
     }
 
     [HttpPost("Login")]
     public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login([FromBody] UserLoginDTO dto)
     {
 
-    try
-    {
+      try
+      {
         if (!ModelState.IsValid)
         {
-            return BadRequest(new ApiResponse<LoginResponseDTO>(false, "Invalid input data"));
+          return BadRequest(new ApiResponse<LoginResponseDTO>(false, "Invalid input data"));
         }
 
         var command = new LoginCommands(
@@ -43,20 +41,29 @@ namespace AuthService.Controllers
 
         var result = await _mediator.Send(command);
         return Ok(result);
-    }
-    catch (Exception ex)
-    {
+      }
+      catch (Exception ex)
+      {
 
         return StatusCode(500, new ApiResponse<LoginResponseDTO>(false, ex.Message));
+      }
     }
-}
 
+    [Authorize]
     [HttpPost("Logout")]
     public async Task<ActionResult<ApiResponse<bool>>> Logout()
     {
       // Obtener sesión actual del contexto (desde el token)
-      var sessionId = HttpContext.Items["SessionId"] as int? ?? 0;
-      if (sessionId == 0)
+      var sid = User.FindFirst("sid")?.Value;
+
+      // Si no se encuentra en los claims, intentar obtenerlo de HttpContext.Items
+      if (string.IsNullOrEmpty(sid))
+      {
+        sid = HttpContext.Items["SessionUid"] as string;
+        return BadRequest(new ApiResponse<bool>(false, $"SessionUid no encontrado en los claims, obtenido de HttpContext.Items: {sid}"));
+      }
+
+      if (string.IsNullOrEmpty(sid))
       {
         return BadRequest(new ApiResponse<bool>(false, "Session not found"));
       }
@@ -68,11 +75,12 @@ namespace AuthService.Controllers
         return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
       }
 
-      var command = new LogoutCommand(sessionId, userId);
+      var command = new LogoutCommand(sid, userId);
       var result = await _mediator.Send(command);
       return Ok(result);
     }
 
+    [Authorize]
     [HttpPost("LogoutAll")]
     public async Task<ActionResult<ApiResponse<bool>>> LogoutAll()
     {
@@ -88,6 +96,7 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
+    [Authorize]
     [HttpGet("Active")]
     public async Task<ActionResult<ApiResponse<List<SessionDTO>>>> GetActiveSessions()
     {
@@ -102,6 +111,7 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
+    [Authorize]
     [HttpGet("GetSessionById")]
     public async Task<ActionResult<ApiResponse<SessionDTO>>> GetSessionById(int id)
     {
@@ -110,12 +120,22 @@ namespace AuthService.Controllers
       return Ok(result);
     }
 
+    [Authorize]
     [HttpGet("GetAllSessions")]
-    public async Task<ActionResult<ApiResponse<PaginatedResultDTO<SessionDTO>>>> GetAllSessions([FromQuery] int? pageSize = null, [FromQuery] int? pageNumber = null)
+    public async Task<ActionResult<ApiResponse<PaginatedResultDTO<SessionDTO>>>> GetAllSessions()
     {
-      var query = new GetAllSessionsQuery(pageSize, pageNumber);
-      var result = await _mediator.Send(query);
+      var command = new GetAllSessionsQuery();
+      var result = await _mediator.Send(command);
+      if (result.Success == false) return BadRequest(new { result });
+
       return Ok(result);
+    }
+
+    [HttpGet("IsValid")]
+    public async Task<IActionResult> IsValid([FromQuery] string sid)
+    {
+      bool active = await _mediator.Send(new ValidateSessionQuery(sid));
+      return active ? Ok() : Unauthorized();
     }
   }
 }

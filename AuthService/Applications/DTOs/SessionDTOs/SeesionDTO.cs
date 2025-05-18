@@ -8,6 +8,7 @@ public class SessionDTO
   [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
   [Key]
   public int Id { get; set; }
+  public required string SessionUid { get; set; }
   public required int TaxUserId { get; set; }
   public required string TokenRequest { get; set; } 
   public DateTime ExpireTokenRequest { get; set; }

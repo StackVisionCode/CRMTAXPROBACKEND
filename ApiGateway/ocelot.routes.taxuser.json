@@ -11,6 +11,10 @@
       ],
       "UpstreamPathTemplate": "/api/taxuser/register",
       "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "taxuser"
     },
     {
@@ -28,6 +32,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "taxuser"
     },
     {
@@ -45,6 +53,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "taxuser"
     },
     {
@@ -62,6 +74,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "taxuser"
     },
     {
@@ -79,6 +95,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "taxuser"
     },
     {
@@ -96,6 +116,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "taxuser"
     }
   ]

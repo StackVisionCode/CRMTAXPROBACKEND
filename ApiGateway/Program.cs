@@ -1,12 +1,10 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using ApiGateway.Middlewares;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Serilog;
-using System.Text;
 using SharedLibrary.Logs;
 using SharedLibrary.Extensions;
+using SharedLibrary.Middleware;
+using ApiGateway.Applications.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,49 +23,38 @@ try
 
     builder.Configuration.AddOcelot(builder.Environment);
 
+    builder.Services.AddTransient<GatewayHeaderHandler>();
+
     // Add Ocelot
-    builder.Services.AddOcelot(builder.Configuration);
+    builder.Services.AddOcelot(builder.Configuration)
+        .AddDelegatingHandler<GatewayHeaderHandler>(true);
 
     // Add CORS
     builder.Services.AddCustomCors();
 
     // Configure JWT Authentication
-    var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-    var secretKey = jwtSettings["SecretKey"];
-
-    if (string.IsNullOrEmpty(secretKey))
-    {
-       Log.Error("JWT SecretKey is not configured in appsettings.json");
-        throw new InvalidOperationException("JWT SecretKey is not configured in appsettings.json");
-    }
-
-    var key = Encoding.UTF8.GetBytes(secretKey);
-
-    builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
+    // ====== JWT & Sesiones ======
+    builder.Services.AddJwtAuth(builder.Configuration);          // reutiliza JwtSettings
+    builder.Services.AddAuthentication("Bearer")
+        .AddJwtBearer("Bearer", opts =>
         {
-            ValidateIssuer = bool.Parse(jwtSettings["ValidateIssuer"] ?? "true"),
-            ValidateAudience = bool.Parse(jwtSettings["ValidateAudience"] ?? "true"),
-            ValidateLifetime = bool.Parse(jwtSettings["ValidateLifetime"] ?? "true"),
-            ValidateIssuerSigningKey = bool.Parse(jwtSettings["ValidateIssuerSigningKey"] ?? "true"),
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ClockSkew = TimeSpan.Zero
-        };
+            var cfg = builder.Configuration.GetSection("JwtSettings");
+            opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+        });
+
+    // Configurar caché en memoria con opciones
+    builder.Services.AddSessionCache();
+    
+    // Cliente HTTP para auth service
+    builder.Services.AddHttpClient("Auth", c => 
+    {
+        var baseUrl = builder.Environment.IsDevelopment()
+                ? "http://localhost:5092"
+                : "http://authservice";          // nombre del servicio en Docker
+        c.BaseAddress = new Uri(baseUrl);
+        c.DefaultRequestHeaders.Add("X-From-Gateway", "Api-Gateway");
     });
-
-
-
-    // Add HttpClient for service communication
-    builder.Services.AddHttpClient();
-
+    
     var app = builder.Build();
 
     // Configure middleware pipeline
@@ -76,8 +63,8 @@ try
     app.UseCors("AllowAll");
     app.UseHttpsRedirection();
 
-    app.UseMiddleware<TokenCheckerMiddleware>();
-    app.UseMiddleware<InterceptionMiddleware>();
+    app.UseAuthentication();
+    app.UseSessionValidation();  
     app.UseAuthorization();
 
     // Use Ocelot middleware

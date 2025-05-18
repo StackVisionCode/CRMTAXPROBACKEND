@@ -1,17 +1,10 @@
-using System.Text;
-using Common;
 using Infraestructure.Context;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Extensions;
 
-
-
 var builder = WebApplication.CreateBuilder(args);
-
 
 // Configurar logs con Serilog
 var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
@@ -23,19 +16,15 @@ if (!Directory.Exists(logFolderPath))
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-      .WriteTo.File(
+    .WriteTo.File(
         Path.Combine(logFolderPath, "LogsApplication-.txt"),
         rollingInterval: RollingInterval.Day
     ).Enrich.FromLogContext()
     .CreateLogger();
 
-
 try
 {
-
     Log.Information("Starting up the application");
-
-
 
     // Configurar CORS
     builder.Services.AddCustomCors();
@@ -45,45 +34,21 @@ try
     builder.Services.AddSwaggerGen();
 
     // Configurar JWT
-    JwtSettings jwtSetting = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
+    builder.Services.AddJwtAuth(builder.Configuration);
 
-    builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        var key = Encoding.UTF8.GetBytes(jwtSetting.SecretKey);
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = jwtSetting.ValidateIssuer,
-            ValidateAudience = jwtSetting.ValidateAudience,
-            ValidateLifetime = jwtSetting.ValidateLifetime,
-            ValidateIssuerSigningKey = jwtSetting.ValidateIssuerSigningKey,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ClockSkew = jwtSetting.ClockSkew,
-        };
+    // Configurar caché en memoria en lugar de Redis
+    builder.Services.AddSessionCache();
 
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                Console.WriteLine($"Authentication failed: {context.Exception}");
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                Console.WriteLine($"Token validated: {context.SecurityToken}");
-                return Task.CompletedTask;
-            }
-        };
+    builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", opts =>
+    {
+        var cfg = builder.Configuration.GetSection("JwtSettings");
+        opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
     });
 
     builder.Services.AddAuthorization();
-    builder.Services.AddMemoryCache(); // O Redis como antes
-    builder.Services.AddSingleton<ITokenStorage, TokenStorage>();
 
+    builder.Services.AddSingleton<ITokenStorage, TokenStorage>();
 
     builder.Services.AddControllers();
 
@@ -105,10 +70,6 @@ try
         options.UseSqlServer(connectionString);
     });
 
-
-
-
-
     var app = builder.Build();
 
     // Middlewares
@@ -124,10 +85,9 @@ try
 
     // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
     app.UseHttpsRedirection();
-
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseMiddleware<RestrictAccessMiddleware>();
+    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
     app.MapControllers();
 
     app.Run();

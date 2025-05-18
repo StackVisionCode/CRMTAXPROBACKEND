@@ -15,6 +15,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
@@ -32,6 +36,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
@@ -49,6 +57,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
@@ -66,6 +78,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     },
     {
@@ -83,6 +99,10 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
       "SwaggerKey": "auth"
     }
   ]
