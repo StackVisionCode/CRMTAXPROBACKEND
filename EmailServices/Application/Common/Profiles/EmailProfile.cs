@@ -8,6 +8,9 @@ public class EmailProfile:Profile
 {
     public EmailProfile()
     {
-        CreateMap<EmailDTO,EmailMessage>().ReverseMap();
+        CreateMap<Email, EmailDTO>()
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
+            .ReverseMap()
+            .ForMember(d => d.Status, o => o.Ignore());
     }
 }

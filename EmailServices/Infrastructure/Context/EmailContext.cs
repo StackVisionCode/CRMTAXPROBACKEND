@@ -1,7 +1,7 @@
 using Domain;
+using EmailServices.Domain;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Context;
 
 public class EmailContext : DbContext
@@ -13,39 +13,70 @@ public class EmailContext : DbContext
 
     //mapping table
 
-    public DbSet<EmailMessage> EmailMessages { get; set; }
-     public DbSet<EmailSettings> EmailSettings { get; set; }
+    public DbSet<Email> Emails { get; set; }
+    public DbSet<EmailConfig> EmailConfigs { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        /* ---------- EmailConfig ---------- */
+        var cfg = modelBuilder.Entity<EmailConfig>();
 
+        cfg.ToTable("EmailConfigs");
+        cfg.HasKey(c => c.Id);
 
-        modelBuilder.Entity<EmailMessage>().Property(e => e.To).IsRequired();
-        modelBuilder.Entity<EmailMessage>().Property(e => e.Subject).IsRequired();
-        modelBuilder.Entity<EmailMessage>().Property(e => e.IsHtml).IsRequired();
-        modelBuilder.Entity<EmailMessage>().Property(e => e.Send).IsRequired();
-       
-        modelBuilder.Entity<EmailMessage>().Property(e => e.Body).IsRequired();
+        cfg.Property(c => c.Name)
+            .IsRequired()
+            .HasMaxLength(120);
 
+        cfg.Property(c => c.ProviderType)
+            .IsRequired()
+            .HasMaxLength(10);
 
-        modelBuilder.Entity<EmailSettings>().Property(e => e.Port).IsRequired();
-        modelBuilder.Entity<EmailSettings>().Property(e => e.CompanyId).IsRequired();
-        modelBuilder.Entity<EmailSettings>().Property(e => e.UserId).IsRequired();
-        modelBuilder.Entity<EmailSettings>().Property(e => e.SenderEmail).IsRequired();       
-        modelBuilder.Entity<EmailSettings>().Property(e => e.SmtpServer).IsRequired();
-           modelBuilder.Entity<EmailSettings>().Property(e => e.Username).IsRequired();
-        modelBuilder.Entity<EmailSettings>().Property(e => e.Password).IsRequired();       
-        modelBuilder.Entity<EmailSettings>().Property(e => e.IsDefault).IsRequired();
+        cfg.Property(c => c.SmtpServer).HasMaxLength(150);
+        cfg.Property(c => c.SmtpUsername).HasMaxLength(150);
+        cfg.Property(c => c.SmtpPassword).HasMaxLength(150);
+        cfg.Property(c => c.GmailClientId).HasMaxLength(200);
+        cfg.Property(c => c.GmailEmailAddress).HasMaxLength(150);
 
-        modelBuilder.Entity<EmailMessage>().ToTable("EmailMessages");
-        modelBuilder.Entity<EmailMessage>().HasKey(a => a.Id);
+        cfg.Property(c => c.DailyLimit)
+            .HasDefaultValue(100);
 
-         modelBuilder.Entity<EmailSettings>().ToTable("EmailSettings");
-        modelBuilder.Entity<EmailSettings>().HasKey(a => a.Id);
+        // índice para búsquedas por empresa
+        cfg.HasIndex(c => c.CompanyId);
+        // índice para búsquedas por usuario dueño
+        cfg.HasIndex(c => c.UserId);
+
+        /* ---------- Email ---------- */
+        var email = modelBuilder.Entity<Email>();
+
+        email.ToTable("Emails");
+        email.HasKey(e => e.Id);
+
+        // relación
+        email.HasOne<EmailConfig>()
+            .WithMany()
+            .HasForeignKey(e => e.ConfigId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // enum EmailStatus → string
+        var statusConverter = new EnumToStringConverter<EmailStatus>();
+        email.Property(e => e.Status)
+            .HasConversion(statusConverter)
+            .HasMaxLength(10);
+
+        email.Property(e => e.ToAddresses).IsRequired().HasMaxLength(500);
+        email.Property(e => e.Subject).IsRequired().HasMaxLength(300);
+        email.Property(e => e.Body).IsRequired();
+
+        email.Property(e => e.CreatedOn)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        email.HasIndex(e => e.ConfigId);
+        email.HasIndex(e => e.SentOn);
+        email.HasIndex(e => new { e.Status, e.CreatedOn });
 
         base.OnModelCreating(modelBuilder);
-
     }
 
 }
