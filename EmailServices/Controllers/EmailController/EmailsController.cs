@@ -11,6 +11,7 @@ namespace Api.Controllers;
 public class EmailsController : ControllerBase
 {
     private readonly IMediator _mediator;
+
     public EmailsController(IMediator mediator) => _mediator = mediator;
 
     // crear email (pendiente)
@@ -18,9 +19,7 @@ public class EmailsController : ControllerBase
     public async Task<ActionResult<EmailDTO>> Create([FromBody] EmailDTO dto)
     {
         var created = await _mediator.Send(new CreateEmailCommand(dto));
-        return CreatedAtRoute("GetEmailById",
-                            new { id = created.Id },
-                            created);
+        return CreatedAtRoute("GetEmailById", new { id = created.Id }, created);
     }
 
     // enviar email
@@ -35,10 +34,10 @@ public class EmailsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EmailDTO>>> List(
         [FromQuery] int? companyId,
-        [FromQuery] int? userId)
+        [FromQuery] int? userId
+    )
     {
-        var result = await _mediator.Send(
-                        new GetEmailsQuery(companyId, userId));
+        var result = await _mediator.Send(new GetEmailsQuery(companyId, userId));
         return Ok(result);
     }
 
@@ -47,7 +46,8 @@ public class EmailsController : ControllerBase
     public async Task<ActionResult<EmailDTO>> Get(int id)
     {
         var mail = await _mediator.Send(new GetEmailByIdQuery(id));
-        if (mail is null) return NotFound();
+        if (mail is null)
+            return NotFound();
         return Ok(mail);
     }
 }

@@ -8,8 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.Handlers;
 
-public class CreateEmailHandler
-    : IRequestHandler<CreateEmailCommand, EmailDTO>
+public class CreateEmailHandler : IRequestHandler<CreateEmailCommand, EmailDTO>
 {
     private readonly EmailContext _ctx;
     private readonly IMapper _map;
@@ -25,8 +24,7 @@ public class CreateEmailHandler
     public async Task<EmailDTO> Handle(CreateEmailCommand request, CancellationToken ct)
     {
         // verifica configuración existente
-        var cfg = await _ctx.EmailConfigs.FindAsync(
-            new object[] { request.EmailDto.ConfigId }, ct);
+        var cfg = await _ctx.EmailConfigs.FindAsync(new object[] { request.EmailDto.ConfigId }, ct);
 
         if (cfg is null)
             throw new KeyNotFoundException("Email configuration not found");

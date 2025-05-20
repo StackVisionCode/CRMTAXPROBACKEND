@@ -6,14 +6,12 @@ public class ConnectionApp
     public string User { get; }
     public string Password { get; }
 
-    public ConnectionApp(
-        string server = "DESKTOP-S0SEBP1",
-        string user = "ccastillo",
-        string password = "Murasaki2527@"
-    )
+    public ConnectionApp()
     {
-        Server = server;
-        User = user;
-        Password = password;
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "DESKTOP-S0SEBP1";
+
+        User = Environment.GetEnvironmentVariable("DB_USER") ?? "ccastillo";
+
+        Password = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "YourPassword";
     }
 }

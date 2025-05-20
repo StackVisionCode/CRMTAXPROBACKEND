@@ -10,52 +10,55 @@ namespace Api.Controllers;
 [Route("api/[controller]")]
 public class EmailConfigController : ControllerBase
 {
-  private readonly IMediator _med;
-  public EmailConfigController(IMediator med)
-  {
-    _med = med;
-  }
+    private readonly IMediator _med;
 
-  // create
-  [HttpPost]
-  public async Task<ActionResult<EmailConfigDTO>> Create([FromBody] EmailConfigDTO dto)
-  {
-    var created = await _med.Send(new CreateEmailConfigCommand(dto));
-    return CreatedAtRoute("GetEmailConfigById", new { id = created.Id }, created);
-  }
+    public EmailConfigController(IMediator med)
+    {
+        _med = med;
+    }
 
-  // update
-  [HttpPut]
-  public async Task<ActionResult<EmailConfigDTO>> Update(int id, [FromBody] EmailConfigDTO dto)
-  {
-    var updated = await _med.Send(new UpdateEmailConfigCommand(id, dto));
-    return Ok(updated);
-  }
+    // create
+    [HttpPost]
+    public async Task<ActionResult<EmailConfigDTO>> Create([FromBody] EmailConfigDTO dto)
+    {
+        var created = await _med.Send(new CreateEmailConfigCommand(dto));
+        return CreatedAtRoute("GetEmailConfigById", new { id = created.Id }, created);
+    }
 
-  // delete
-  [HttpDelete("{id:int}")]
-  public async Task<IActionResult> Delete(int id)
-  {
-    await _med.Send(new DeleteEmailConfigCommand(id));
-    return NoContent();
-  }
+    // update
+    [HttpPut]
+    public async Task<ActionResult<EmailConfigDTO>> Update(int id, [FromBody] EmailConfigDTO dto)
+    {
+        var updated = await _med.Send(new UpdateEmailConfigCommand(id, dto));
+        return Ok(updated);
+    }
 
-  // list
-  [HttpGet]
-  public async Task<ActionResult<IEnumerable<EmailConfigDTO>>> List(
-      [FromQuery] int? companyId,
-      [FromQuery] int? userId)
-  {
-    var list = await _med.Send(new GetEmailConfigsQuery(companyId, userId));
-    return Ok(list);
-  }
+    // delete
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _med.Send(new DeleteEmailConfigCommand(id));
+        return NoContent();
+    }
 
-  // detail
-  [HttpGet("{id:int}")]
-  public async Task<ActionResult<EmailConfigDTO>> Get(int id)
-  {
-    var cfg = await _med.Send(new GetEmailConfigByIdQuery(id));
-    if (cfg is null) return NotFound();
-    return Ok(cfg);
-  }
+    // list
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<EmailConfigDTO>>> List(
+        [FromQuery] int? companyId,
+        [FromQuery] int? userId
+    )
+    {
+        var list = await _med.Send(new GetEmailConfigsQuery(companyId, userId));
+        return Ok(list);
+    }
+
+    // detail
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<EmailConfigDTO>> Get(int id)
+    {
+        var cfg = await _med.Send(new GetEmailConfigByIdQuery(id));
+        if (cfg is null)
+            return NotFound();
+        return Ok(cfg);
+    }
 }

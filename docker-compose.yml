@@ -20,7 +20,9 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=AuthDB;User Id=sa;Password=-;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      DB_SERVER: host.docker.internal,1433
+      DB_USER: ccastillo
+      DB_PASSWORD: "YourPassword"
     networks:
       - backend
 
@@ -31,7 +33,9 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=CompanyDB;User Id=ccastillo;Password=-;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      DB_SERVER: host.docker.internal,1433
+      DB_USER: ccastillo
+      DB_PASSWORD: "YourPassword"
     networks:
       - backend
 
@@ -42,7 +46,9 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=CustomerDB;User Id=ccastillo;Password=-;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      DB_SERVER: host.docker.internal,1433
+      DB_USER: ccastillo
+      DB_PASSWORD: "YourPassword"
     networks:
       - backend
 
@@ -53,7 +59,9 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=SignDocuTax;User Id=ccastillo;Password=-;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      DB_SERVER: host.docker.internal,1433
+      DB_USER: ccastillo
+      DB_PASSWORD: "YourPassword"
     networks:
       - backend
 
@@ -64,7 +72,9 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=EmailDB;User Id=ccastillo;Password=-;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
+      DB_SERVER: host.docker.internal,1433
+      DB_USER: ccastillo
+      DB_PASSWORD: "YourPassword"
     networks:
       - backend
 
