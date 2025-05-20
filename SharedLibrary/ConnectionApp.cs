@@ -6,7 +6,7 @@ public class ConnectionApp
     public string User { get; }
     public string Password { get; }
 
-    public ConnectionApp(string server = "", string user = "", string password = "")
+    public ConnectionApp(string server = "localhost\\SQLEXPRESS", string user = "jp", string password = "Jp1212@11")
     {
         Server = server;
         User = user;
