@@ -6,7 +6,7 @@ using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 var objetoConexion = new ConnectionApp();
-var connectionString = $"Server={objetoConexion.Server};Database=DbCompany;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+var connectionString = $"Server={objetoConexion.Server};Database=CompanyDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
 // Add services to the container.
 builder.Services.AddDbContext<CompanyDbContext>(options =>
     options.UseSqlServer(connectionString));
