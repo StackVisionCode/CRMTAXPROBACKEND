@@ -30,6 +30,7 @@ public class CreateEmailHandler : IRequestHandler<CreateEmailCommand, EmailDTO>
             throw new KeyNotFoundException("Email configuration not found");
 
         var entity = _map.Map<Email>(request.EmailDto);
+        entity.SentByUserId = request.EmailDto.UserId;
         entity.Status = EmailServices.Domain.EmailStatus.Pending;
         entity.CreatedOn = DateTime.UtcNow;
 

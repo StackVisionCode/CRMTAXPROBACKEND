@@ -26,7 +26,7 @@ public class EmailConfigController : ControllerBase
     }
 
     // update
-    [HttpPut]
+    [HttpPut("{id:int}")]
     public async Task<ActionResult<EmailConfigDTO>> Update(int id, [FromBody] EmailConfigDTO dto)
     {
         var updated = await _med.Send(new UpdateEmailConfigCommand(id, dto));
@@ -53,7 +53,7 @@ public class EmailConfigController : ControllerBase
     }
 
     // detail
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "GetEmailConfigById")]
     public async Task<ActionResult<EmailConfigDTO>> Get(int id)
     {
         var cfg = await _med.Send(new GetEmailConfigByIdQuery(id));

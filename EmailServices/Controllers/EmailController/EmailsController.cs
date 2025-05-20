@@ -42,7 +42,7 @@ public class EmailsController : ControllerBase
     }
 
     // detalle
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "GetEmailById")]
     public async Task<ActionResult<EmailDTO>> Get(int id)
     {
         var mail = await _mediator.Send(new GetEmailByIdQuery(id));
