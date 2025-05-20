@@ -4,80 +4,63 @@ services:
     build:
       context: .
       dockerfile: ApiGateway/Dockerfile
-    environment:
-      - RUNNING_IN_DOCKER=true
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://0.0.0.0:80
     ports:
       - "5000:80"
-    networks:
-      - backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+   
 
   auth-service:
     build:
       context: .
       dockerfile: AuthService/Dockerfile
+    ports:
+      - "5001:8080"
     environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
-      DB_PASSWORD: "YourPassword"
+      ASPNETCORE_ENVIRONMENT: Development   
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=AuthDB;User Id=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
-      - backend
+      - crmtaxpro-network
 
   company-service:
     build:
       context: .
       dockerfile: CompanyService/Dockerfile
+    ports:
+      - "5002:8080"
     environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
-      DB_PASSWORD: "YourPassword"
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=CompanyDB;User Id=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
-      - backend
+      - crmtaxpro-network
 
   customer-service:
     build:
       context: .
       dockerfile: CustomerService/Dockerfile
+    ports:
+      - "5003:8080"
     environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
-      DB_PASSWORD: "YourPassword"
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=CustomerDB;User Id=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
-      - backend
+      - crmtaxpro-network
 
-  docu-service:
+  docu-services:
     build:
       context: .
       dockerfile: SignDocuTax/Dockerfile
+    ports:
+      - "5004:8080"
     environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
-      DB_PASSWORD: "YourPassword"
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=SignDocuTax;User Id=sa;Password=Brittany040238.;TrustServerCertificate=True;Encrypt=false;MultipleActiveResultSets=true"
     networks:
-      - backend
+      - crmtaxpro-network      
 
-  email-service:
-    build:
-      context: .
-      dockerfile: EmailServices/Dockerfile
-    environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
-      DB_PASSWORD: "YourPassword"
-    networks:
-      - backend
+ 
+
 
 networks:
-  backend:
+  crmtaxpro-network:
     driver: bridge
