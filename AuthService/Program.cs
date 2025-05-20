@@ -24,7 +24,8 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(
         Path.Combine(logFolderPath, "LogsApplication-.txt"),
         rollingInterval: RollingInterval.Day
-    ).Enrich.FromLogContext()
+    )
+    .Enrich.FromLogContext()
     .CreateLogger();
 
 try
@@ -32,55 +33,64 @@ try
     Log.Information("Starting up the application");
 
     JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-    
+
     // Configurar CORS
     builder.Services.AddCustomCors();
 
     // Configurar Swagger (nativo de .NET 9)
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth Service API", Version = "v1" });
-
-    // Configuración para utilizar JWT en Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "JWT Authorization header using the Bearer scheme.",
-    });
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth Service API", Version = "v1" });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
+        // Configuración para utilizar JWT en Swagger
+        c.AddSecurityDefinition(
+            "Bearer",
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "Bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "JWT Authorization header using the Bearer scheme.",
+            }
+        );
+
+        c.AddSecurityRequirement(
+            new OpenApiSecurityRequirement
+            {
                 {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer",
+                        },
+                    },
+                    new string[] { }
+                },
+            }
+        );
     });
-});
 
     // Configurar JWT
     builder.Services.AddJwtAuth(builder.Configuration);
 
-     // Configurar caché en memoria en lugar de Redis
+    // Configurar caché en memoria en lugar de Redis
     builder.Services.AddSessionCache();
 
-    builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", opts =>
-    {
-        var cfg = builder.Configuration.GetSection("JwtSettings");
-        opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
-    });
+    builder
+        .Services.AddAuthentication("Bearer")
+        .AddJwtBearer(
+            "Bearer",
+            opts =>
+            {
+                var cfg = builder.Configuration.GetSection("JwtSettings");
+                opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+            }
+        );
 
     builder.Services.AddAuthorization();
 
@@ -100,7 +110,8 @@ try
 
     var objetoConexion = new ConnectionApp();
 
-    var connectionString = $"Server={objetoConexion.Server};Database=AuthDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+    var connectionString =
+        $"Server={objetoConexion.Server};Database=AuthDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
     // Configurar DbContext
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
@@ -118,9 +129,8 @@ try
     app.UseSwaggerUI(opt =>
     {
         opt.SwaggerEndpoint("/swagger/v1/swagger.json", "Services TaxCloud V1");
-        opt.RoutePrefix = "swagger";        // =>  http://localhost:5092/swagger
+        opt.RoutePrefix = "swagger"; // =>  http://localhost:5092/swagger
     });
-
 
     // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
     app.UseHttpsRedirection();

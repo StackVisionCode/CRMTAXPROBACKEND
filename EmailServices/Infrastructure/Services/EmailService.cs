@@ -10,10 +10,16 @@ using Microsoft.EntityFrameworkCore;
 
 public class EmailService : IEmailService
 {
-    private readonly EmailContext _context;  // contexto de base de datos (inyectado)
+    private readonly EmailContext _context; // contexto de base de datos (inyectado)
     private readonly ILogger<EmailService> _logger;
+
     // Allowed domains for recipients (could also come from config or database)
-    private readonly string[] _allowedDomains = new string[] { "gmail.com", "outlook.com", "empresa.com" };
+    private readonly string[] _allowedDomains = new string[]
+    {
+        "gmail.com",
+        "outlook.com",
+        "empresa.com",
+    };
 
     public EmailService(EmailContext context, ILogger<EmailService> logger)
     {
@@ -25,10 +31,12 @@ public class EmailService : IEmailService
     {
         // Validation: daily sending limit
         DateTime today = DateTime.UtcNow.Date;
-        int sentCountToday = await _context.Emails.CountAsync(e => e.ConfigId == config.Id 
-                                                    && e.SentOn != null 
-                                                    && e.SentOn.Value.Date == today 
-                                                    && e.Status == EmailStatus.Sent);
+        int sentCountToday = await _context.Emails.CountAsync(e =>
+            e.ConfigId == config.Id
+            && e.SentOn != null
+            && e.SentOn.Value.Date == today
+            && e.Status == EmailStatus.Sent
+        );
         if (sentCountToday >= config.DailyLimit)
         {
             throw new InvalidOperationException("Daily email limit reached for this configuration");
@@ -38,11 +46,26 @@ public class EmailService : IEmailService
         // Combine To, Cc, Bcc into one list for validation
         var allRecipients = new System.Collections.Generic.List<string>();
         if (!string.IsNullOrWhiteSpace(email.ToAddresses))
-            allRecipients.AddRange(email.ToAddresses.Split(new char[]{';', ',', ' '}, StringSplitOptions.RemoveEmptyEntries));
+            allRecipients.AddRange(
+                email.ToAddresses.Split(
+                    new char[] { ';', ',', ' ' },
+                    StringSplitOptions.RemoveEmptyEntries
+                )
+            );
         if (!string.IsNullOrWhiteSpace(email.CcAddresses))
-            allRecipients.AddRange(email.CcAddresses.Split(new char[]{';', ',', ' '}, StringSplitOptions.RemoveEmptyEntries));
+            allRecipients.AddRange(
+                email.CcAddresses.Split(
+                    new char[] { ';', ',', ' ' },
+                    StringSplitOptions.RemoveEmptyEntries
+                )
+            );
         if (!string.IsNullOrWhiteSpace(email.BccAddresses))
-            allRecipients.AddRange(email.BccAddresses.Split(new char[]{';', ',', ' '}, StringSplitOptions.RemoveEmptyEntries));
+            allRecipients.AddRange(
+                email.BccAddresses.Split(
+                    new char[] { ';', ',', ' ' },
+                    StringSplitOptions.RemoveEmptyEntries
+                )
+            );
         foreach (string addr in allRecipients)
         {
             try
@@ -63,8 +86,8 @@ public class EmailService : IEmailService
         // Ensure From address is set (use config's email if not provided)
         if (string.IsNullOrEmpty(email.FromAddress))
         {
-            email.FromAddress = (config.ProviderType == "Gmail") ? config.GmailEmailAddress 
-                                                                : config.SmtpUsername;
+            email.FromAddress =
+                (config.ProviderType == "Gmail") ? config.GmailEmailAddress : config.SmtpUsername;
         }
 
         // Attempt sending based on provider type
@@ -75,31 +98,49 @@ public class EmailService : IEmailService
             using (var message = new MailMessage())
             {
                 smtpClient.EnableSsl = config.EnableSsl ?? true;
-                smtpClient.Credentials = new NetworkCredential(config.SmtpUsername, config.SmtpPassword);
+                smtpClient.Credentials = new NetworkCredential(
+                    config.SmtpUsername,
+                    config.SmtpPassword
+                );
                 // Prepare MailMessage
                 message.From = new MailAddress(email.FromAddress);
                 // Add recipients
-                foreach (string to in email.ToAddresses.Split(new char[]{';', ',', ' '}, StringSplitOptions.RemoveEmptyEntries))
+                foreach (
+                    string to in email.ToAddresses.Split(
+                        new char[] { ';', ',', ' ' },
+                        StringSplitOptions.RemoveEmptyEntries
+                    )
+                )
                 {
                     message.To.Add(to.Trim());
                 }
                 if (!string.IsNullOrWhiteSpace(email.CcAddresses))
                 {
-                    foreach (string cc in email.CcAddresses.Split(new char[]{';', ',', ' '}, StringSplitOptions.RemoveEmptyEntries))
+                    foreach (
+                        string cc in email.CcAddresses.Split(
+                            new char[] { ';', ',', ' ' },
+                            StringSplitOptions.RemoveEmptyEntries
+                        )
+                    )
                     {
                         message.CC.Add(cc.Trim());
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(email.BccAddresses))
                 {
-                    foreach (string bcc in email.BccAddresses.Split(new char[]{';', ',', ' '}, StringSplitOptions.RemoveEmptyEntries))
+                    foreach (
+                        string bcc in email.BccAddresses.Split(
+                            new char[] { ';', ',', ' ' },
+                            StringSplitOptions.RemoveEmptyEntries
+                        )
+                    )
                     {
                         message.Bcc.Add(bcc.Trim());
                     }
                 }
                 message.Subject = email.Subject;
                 message.Body = email.Body;
-                message.IsBodyHtml = false;  // assume plain text body for now
+                message.IsBodyHtml = false; // assume plain text body for now
 
                 int attempt = 0;
                 bool sent = false;
@@ -109,19 +150,25 @@ public class EmailService : IEmailService
                     attempt++;
                     try
                     {
-                        _logger.LogInformation($"Sending Email Id={email.Id} via SMTP (attempt {attempt})...");
+                        _logger.LogInformation(
+                            $"Sending Email Id={email.Id} via SMTP (attempt {attempt})..."
+                        );
                         await smtpClient.SendMailAsync(message);
                         sent = true;
                     }
                     catch (SmtpException ex)
                     {
                         lastError = ex;
-                        _logger.LogWarning($"SMTP send attempt {attempt} failed: {ex.StatusCode} - {ex.Message}");
+                        _logger.LogWarning(
+                            $"SMTP send attempt {attempt} failed: {ex.StatusCode} - {ex.Message}"
+                        );
                         // Only retry on certain transient errors
-                        if (ex.StatusCode == SmtpStatusCode.MailboxBusy ||
-                            ex.StatusCode == SmtpStatusCode.MailboxUnavailable ||
-                            ex.StatusCode == SmtpStatusCode.TransactionFailed ||
-                            ex.StatusCode == SmtpStatusCode.ServiceNotAvailable)
+                        if (
+                            ex.StatusCode == SmtpStatusCode.MailboxBusy
+                            || ex.StatusCode == SmtpStatusCode.MailboxUnavailable
+                            || ex.StatusCode == SmtpStatusCode.TransactionFailed
+                            || ex.StatusCode == SmtpStatusCode.ServiceNotAvailable
+                        )
                         {
                             // Wait a bit and retry
                             await Task.Delay(2000);
@@ -146,41 +193,59 @@ public class EmailService : IEmailService
                     email.Status = EmailStatus.Failed;
                     email.ErrorMessage = lastError?.Message;
                     await _context.SaveChangesAsync();
-                    throw new InvalidOperationException($"Failed to send email via SMTP: {lastError?.Message}");
+                    throw new InvalidOperationException(
+                        $"Failed to send email via SMTP: {lastError?.Message}"
+                    );
                 }
             }
         }
         else if (config.ProviderType.Equals("Gmail", StringComparison.OrdinalIgnoreCase))
-{
-    /* ---------- Gmail API ---------- */
-    string accessToken = config.GmailAccessToken;
-
-    // ⇣⇣ NUEVO: calcula si el token falta o expiró
-    bool tokenExpired = string.IsNullOrEmpty(accessToken) ||
-                        !config.GmailTokenExpiry.HasValue ||
-                        DateTime.UtcNow >= config.GmailTokenExpiry.Value;
-    // ⇡⇡ ----------------------------------
-
-    if (tokenExpired)
-    {
-        _logger.LogInformation("Refreshing Gmail API access token...");
-        using var tokenClient = new HttpClient();
-
-        var content = new FormUrlEncodedContent(new[]
         {
-            new KeyValuePair<string,string>("client_id",     config.GmailClientId!),
-            new KeyValuePair<string,string>("client_secret", config.GmailClientSecret!),
-            new KeyValuePair<string,string>("refresh_token", config.GmailRefreshToken!),
-            new KeyValuePair<string,string>("grant_type",    "refresh_token")
-        });
+            /* ---------- Gmail API ---------- */
+            string accessToken = config.GmailAccessToken;
 
-        var tokenResponse = await tokenClient.PostAsync("https://oauth2.googleapis.com/token", content);
-        if (!tokenResponse.IsSuccessStatusCode)
-        {
-            var errorContent = await tokenResponse.Content.ReadAsStringAsync();
-            _logger.LogError($"Failed to refresh Gmail token: {tokenResponse.StatusCode}, Details: {errorContent}");
-            throw new InvalidOperationException($"Could not refresh Gmail access token: {errorContent}");
-        }
+            // ⇣⇣ NUEVO: calcula si el token falta o expiró
+            bool tokenExpired =
+                string.IsNullOrEmpty(accessToken)
+                || !config.GmailTokenExpiry.HasValue
+                || DateTime.UtcNow >= config.GmailTokenExpiry.Value;
+            // ⇡⇡ ----------------------------------
+
+            if (tokenExpired)
+            {
+                _logger.LogInformation("Refreshing Gmail API access token...");
+                using var tokenClient = new HttpClient();
+
+                var content = new FormUrlEncodedContent(
+                    new[]
+                    {
+                        new KeyValuePair<string, string>("client_id", config.GmailClientId!),
+                        new KeyValuePair<string, string>(
+                            "client_secret",
+                            config.GmailClientSecret!
+                        ),
+                        new KeyValuePair<string, string>(
+                            "refresh_token",
+                            config.GmailRefreshToken!
+                        ),
+                        new KeyValuePair<string, string>("grant_type", "refresh_token"),
+                    }
+                );
+
+                var tokenResponse = await tokenClient.PostAsync(
+                    "https://oauth2.googleapis.com/token",
+                    content
+                );
+                if (!tokenResponse.IsSuccessStatusCode)
+                {
+                    var errorContent = await tokenResponse.Content.ReadAsStringAsync();
+                    _logger.LogError(
+                        $"Failed to refresh Gmail token: {tokenResponse.StatusCode}, Details: {errorContent}"
+                    );
+                    throw new InvalidOperationException(
+                        $"Could not refresh Gmail access token: {errorContent}"
+                    );
+                }
                 var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(tokenJson);
                 accessToken = doc.RootElement.GetProperty("access_token").GetString();
@@ -190,8 +255,8 @@ public class EmailService : IEmailService
                 config.GmailAccessToken = accessToken;
                 config.GmailTokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn);
                 await _context.SaveChangesAsync();
-            }            
-            
+            }
+
             // Build raw MIME email content
             StringBuilder mimeBuilder = new StringBuilder();
             mimeBuilder.AppendLine($"From: {email.FromAddress}");
@@ -213,15 +278,25 @@ public class EmailService : IEmailService
             // Send via Gmail API
             using (var gmailClient = new HttpClient())
             {
-                gmailClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-                var gmailContent = new StringContent($"{{\"raw\":\"{base64Raw}\"}}", Encoding.UTF8, "application/json");
+                gmailClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                var gmailContent = new StringContent(
+                    $"{{\"raw\":\"{base64Raw}\"}}",
+                    Encoding.UTF8,
+                    "application/json"
+                );
                 _logger.LogInformation($"Sending Email Id={email.Id} via Gmail API...");
-                var gmailResponse = await gmailClient.PostAsync("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", gmailContent);
+                var gmailResponse = await gmailClient.PostAsync(
+                    "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+                    gmailContent
+                );
                 if (!gmailResponse.IsSuccessStatusCode)
                 {
                     if (gmailResponse.StatusCode == HttpStatusCode.Unauthorized)
                     {
-                        _logger.LogWarning("Gmail API returned 401 Unauthorized. Will refresh token and retry once.");
+                        _logger.LogWarning(
+                            "Gmail API returned 401 Unauthorized. Will refresh token and retry once."
+                        );
                         // Invalidate stored token and retry once
                         config.GmailAccessToken = null;
                         config.GmailTokenExpiry = null;
@@ -230,11 +305,15 @@ public class EmailService : IEmailService
                         return;
                     }
                     string errorDetail = await gmailResponse.Content.ReadAsStringAsync();
-                    _logger.LogError($"Gmail API send failed: {gmailResponse.StatusCode}, Details: {errorDetail}");
+                    _logger.LogError(
+                        $"Gmail API send failed: {gmailResponse.StatusCode}, Details: {errorDetail}"
+                    );
                     email.Status = EmailStatus.Failed;
                     email.ErrorMessage = $"Gmail send error: {gmailResponse.StatusCode}";
                     await _context.SaveChangesAsync();
-                    throw new InvalidOperationException($"Failed to send email via Gmail API: {gmailResponse.StatusCode}");
+                    throw new InvalidOperationException(
+                        $"Failed to send email via Gmail API: {gmailResponse.StatusCode}"
+                    );
                 }
             }
         }
