@@ -1,7 +1,10 @@
+using CompanyService.Application.Handlers.IntegrationEvents;
 using Infraestructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using SharedLibrary;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs;
 using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -74,6 +77,9 @@ builder.Services.AddJwtAuth(builder.Configuration);
 // Configurar caché en memoria en lugar de Redis
 builder.Services.AddSessionCache();
 
+// Configurar RabbitMQ
+builder.Services.AddEventBus(builder.Configuration);
+
 builder
     .Services.AddAuthentication("Bearer")
     .AddJwtBearer(
@@ -87,7 +93,12 @@ builder
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddScoped<IIntegrationEventHandler<UserCreatedEvent>, UserCreatedEventHandler>();
+
 var app = builder.Build();
+
+var bus = app.Services.GetRequiredService<IEventBus>();
+bus.Subscribe<UserCreatedEvent, UserCreatedEventHandler>();
 
 // Middlewares
 app.UseCors("AllowAll");

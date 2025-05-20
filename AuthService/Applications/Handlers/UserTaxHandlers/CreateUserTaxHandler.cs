@@ -8,7 +8,8 @@ using Common;
 using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using UserDTOS;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs;
 
 namespace Handlers.UserTaxHandlers;
 
@@ -18,12 +19,14 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
     private readonly IMapper _mapper;
     private readonly ILogger<CreateUserTaxHandler> _logger;
     private readonly IPasswordHash _passwordHash;
-    public CreateUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<CreateUserTaxHandler> logger, IPasswordHash passwordHash)
+    private readonly IEventBus _eventBus;
+    public CreateUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<CreateUserTaxHandler> logger, IPasswordHash passwordHash, IEventBus eventBus)
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
         _passwordHash = passwordHash;
+        _eventBus = eventBus;
     }
 
     public async Task<ApiResponse<bool>> Handle(CreateTaxUserCommands request, CancellationToken cancellationToken)
@@ -36,7 +39,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
                 _logger.LogWarning("User already exists: {Email}", request.Usertax.Email);
                 return new ApiResponse<bool>(false, "User already exists", false);
             }
-            
+
             request.Usertax.Password = _passwordHash.HashPassword(request.Usertax.Password);
 
             var userTax = _mapper.Map<TaxUser>(request.Usertax);
@@ -45,6 +48,14 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
             userTax.CreatedAt = DateTime.UtcNow;
             await _dbContext.TaxUsers.AddAsync(userTax, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+            var integrationEvent = new UserCreatedEvent(
+                Guid.NewGuid(),
+                DateTime.UtcNow,
+                userTax.Id,
+                userTax.Email,
+                userTax.FullName);
+
+            _eventBus.Publish(integrationEvent);
             _logger.LogInformation("User tax created successfully: {UserTax}", userTax);
             return new ApiResponse<bool>(result, result ? "User tax created successfully" : "Failed to create user tax", result);
         }

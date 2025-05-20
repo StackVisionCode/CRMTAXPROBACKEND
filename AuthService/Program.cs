@@ -81,6 +81,9 @@ try
     // Configurar caché en memoria en lugar de Redis
     builder.Services.AddSessionCache();
 
+    // Configurar RabbitMQ
+    builder.Services.AddEventBus(builder.Configuration);
+
     builder
         .Services.AddAuthentication("Bearer")
         .AddJwtBearer(

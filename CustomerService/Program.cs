@@ -43,7 +43,14 @@ try
     // Configurar CORS
     builder.Services.AddCustomCors();
 
+    // Configurar caché en memoria en lugar de Redis
+    builder.Services.AddSessionCache();
+
+    // Configurar RabbitMQ
+    builder.Services.AddEventBus(builder.Configuration);
+
     // Add services to the container.
+    builder.Services.AddAuthorization();
 
     builder.Services.AddControllers();
 

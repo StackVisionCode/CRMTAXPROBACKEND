@@ -1,5 +1,17 @@
 services:
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks: 
+      - backend
+      
   apigateway:
     build:
       context: .
@@ -21,8 +33,11 @@ services:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
+      DB_USER: sa
       DB_PASSWORD: "YourPassword"
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
     networks:
       - backend
 
@@ -34,8 +49,11 @@ services:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
+      DB_USER: sa
       DB_PASSWORD: "YourPassword"
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
     networks:
       - backend
 
@@ -47,8 +65,11 @@ services:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
+      DB_USER: sa
       DB_PASSWORD: "YourPassword"
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
     networks:
       - backend
 
@@ -60,8 +81,11 @@ services:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
+      DB_USER: sa
       DB_PASSWORD: "YourPassword"
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
     networks:
       - backend
 
@@ -73,8 +97,11 @@ services:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       DB_SERVER: host.docker.internal,1433
-      DB_USER: ccastillo
+      DB_USER: sa
       DB_PASSWORD: "YourPassword"
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
     networks:
       - backend
 
