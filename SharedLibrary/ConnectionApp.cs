@@ -7,9 +7,9 @@ public class ConnectionApp
     public string Password { get; }
 
     public ConnectionApp(
-        string server = "DESKTOP-S0SEBP1",
-        string user = "ccastillo",
-        string password = "Murasaki2527@"
+        string server = "dev001",
+        string user = "sa",
+        string password = "Brittany040238."
     )
     {
         Server = server;
