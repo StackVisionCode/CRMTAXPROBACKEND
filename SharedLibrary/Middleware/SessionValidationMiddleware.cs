@@ -17,7 +17,8 @@ public sealed class SessionValidationMiddleware
         RequestDelegate next,
         IHttpClientFactory factory,
         ILogger<SessionValidationMiddleware> logger,
-        IMemoryCache cache)
+        IMemoryCache cache
+    )
     {
         _next = next;
         _factory = factory;
@@ -36,8 +37,9 @@ public sealed class SessionValidationMiddleware
 
         var token = bearer["Bearer ".Length..];
         var sid = new JwtSecurityTokenHandler()
-                    .ReadJwtToken(token)
-                    .Claims.FirstOrDefault(c => c.Type == "sid")?.Value;
+            .ReadJwtToken(token)
+            .Claims.FirstOrDefault(c => c.Type == "sid")
+            ?.Value;
 
         if (sid is null)
         {
@@ -47,29 +49,36 @@ public sealed class SessionValidationMiddleware
         }
 
         string cacheKey = $"sid:{sid}";
-        
+
         // Intentar obtener del caché
         if (!_cache.TryGetValue(cacheKey, out string? cachedResult))
         {
             try
             {
-                _logger.LogDebug("Cache miss for {CacheKey}, validating with auth service", cacheKey);
+                _logger.LogDebug(
+                    "Cache miss for {CacheKey}, validating with auth service",
+                    cacheKey
+                );
                 var client = _factory.CreateClient("Auth");
                 var resp = await client.GetAsync($"/api/Session/IsValid?sid={sid}");
                 cachedResult = resp.IsSuccessStatusCode ? bool.TrueString : bool.FalseString;
-                
+
                 // Guardar en caché con expiración
                 var cacheOptions = new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(2),
-                    Size = 1 // Para control de tamaño de caché si se implementa límite
+                    Size = 1, // Para control de tamaño de caché si se implementa límite
                 };
-                
+
                 _cache.Set(cacheKey, cachedResult, cacheOptions);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error validating session with auth service for SID {SessionId}", sid);
+                _logger.LogError(
+                    ex,
+                    "Error validating session with auth service for SID {SessionId}",
+                    sid
+                );
                 ctx.Response.StatusCode = 500;
                 await ctx.Response.WriteAsync("Error validando sesión");
                 return;
@@ -100,7 +109,7 @@ public sealed class SessionValidationMiddleware
             {
                 identity.RemoveClaim(existingClaim);
             }
-            
+
             // Añadir el claim
             identity.AddClaim(new System.Security.Claims.Claim("sid", sid));
         }

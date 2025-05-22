@@ -5,8 +5,6 @@ using Serilog;
 using SharedLibrary;
 using SharedLibrary.Extensions;
 
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Configurar logs con Serilog
@@ -22,7 +20,8 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(
         Path.Combine(logFolderPath, "LogsApplication-.txt"),
         rollingInterval: RollingInterval.Day
-    ).Enrich.FromLogContext()
+    )
+    .Enrich.FromLogContext()
     .CreateLogger();
 
 try
@@ -30,17 +29,28 @@ try
     Log.Information("Starting up the application");
 
     builder.Services.AddJwtAuth(builder.Configuration);
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer("Bearer", opts =>
+    builder
+        .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(
+            "Bearer",
+            opts =>
             {
                 var cfg = builder.Configuration.GetSection("JwtSettings");
                 opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
-            });
+            }
+        );
 
     // Configurar CORS
     builder.Services.AddCustomCors();
 
+    // Configurar caché en memoria en lugar de Redis
+    builder.Services.AddSessionCache();
+
+    // Configurar RabbitMQ
+    builder.Services.AddEventBus(builder.Configuration);
+
     // Add services to the container.
+    builder.Services.AddAuthorization();
 
     builder.Services.AddControllers();
 
@@ -59,7 +69,8 @@ try
     builder.Services.AddSwaggerGen();
     var objetoConexion = new ConnectionApp();
 
-    var connectionString = $"Server={objetoConexion.Server};Database=CustomerDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+    var connectionString =
+        $"Server={objetoConexion.Server};Database=CustomerDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
     // Configurar DbContext
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
@@ -86,7 +97,6 @@ try
     app.MapControllers();
 
     app.Run();
-
 }
 catch (Exception ex)
 {

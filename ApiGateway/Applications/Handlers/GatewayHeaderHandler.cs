@@ -1,4 +1,4 @@
-namespace ApiGateway.Applications.Handlers;   // cambia al namespace del proyecto
+namespace ApiGateway.Applications.Handlers; // cambia al namespace del proyecto
 
 /// <summary>
 /// Inyecta la cabecera 'X-From-Gateway: Api-Gateway' a todas las
@@ -7,7 +7,9 @@ namespace ApiGateway.Applications.Handlers;   // cambia al namespace del proyect
 public class GatewayHeaderHandler : DelegatingHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, CancellationToken cancellationToken)
+        HttpRequestMessage request,
+        CancellationToken cancellationToken
+    )
     {
         if (!request.Headers.Contains("X-From-Gateway"))
         {

@@ -4,4 +4,5 @@ using MediatR;
 
 namespace Commands.PermissionCommands;
 
-public record class UpdatePermissionCommands(PermissionDTO Permission) : IRequest<ApiResponse<bool>>;
+public record class UpdatePermissionCommands(PermissionDTO Permission)
+    : IRequest<ApiResponse<bool>>;
