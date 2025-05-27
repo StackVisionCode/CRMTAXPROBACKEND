@@ -67,10 +67,15 @@ builder.Services.AddAutoMapper(typeof(Program));
 
 builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventHandler>();
 
+builder.Services.AddScoped<UserLoginEventHandler>();
+
 var app = builder.Build();
 
-var bus = app.Services.GetRequiredService<IEventBus>();
-bus.Subscribe<UserLoginEvent, UserLoginEventHandler>();
+using (var scope = app.Services.CreateScope())
+{
+    var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+    bus.Subscribe<UserLoginEvent, UserLoginEventHandler>();
+}
 
 app.UseCors("AllowAll");
 
