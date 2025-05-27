@@ -8,10 +8,10 @@ public class ConnectionApp
 
     public ConnectionApp()
     {
-        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "Your Hostname";
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "TIC-LAP-09\\SQLEXPRESS";
 
         User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 
-        Password = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "YourPassword";
+        Password = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "540Epsinf**";
     }
 }

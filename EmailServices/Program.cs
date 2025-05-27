@@ -1,9 +1,12 @@
 using Application.Validation;
+using EmailServices.Services;
 using Infrastructure.Context;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using SharedLibrary;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs;
 using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,10 +31,14 @@ Log.Information("Starting up the application");
 
 builder.Services.AddCustomCors();
 
+builder.Services.AddEventBus(builder.Configuration);
+
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailConfigValidator, EmailConfigValidator>();
+builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
 
 builder.Services.AddAutoMapper(typeof(Program));
 
@@ -58,7 +65,12 @@ builder.Services.AddDbContext<EmailContext>(options =>
 
 builder.Services.AddAutoMapper(typeof(Program));
 
+builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventHandler>();
+
 var app = builder.Build();
+
+var bus = app.Services.GetRequiredService<IEventBus>();
+bus.Subscribe<UserLoginEvent, UserLoginEventHandler>();
 
 app.UseCors("AllowAll");
 

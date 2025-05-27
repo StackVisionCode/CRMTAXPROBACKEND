@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #fafafa;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="
+        background: #ffffff;
+        max-width: 600px;
+        margin: auto;
+        border-collapse: collapse;
+        border: 1px solid #e0e0e0;
+      "
+    >
+      <tr>
+        <td style="padding: 20px 30px; text-align: center">
+          <img
+            src="cid:logo_cid"
+            alt="Logo"
+            style="max-width: 120px; height: auto"
+          />
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 20px 30px; color: #333333">
+          <h2 style="margin-top: 0">¡Hola {{FullName}}!</h2>
+          <p>
+            Se ha detectado un nuevo inicio de sesión en tu cuenta
+            (<strong>{{Email}}</strong>) el <strong>{{LoginTime}}</strong>.
+          </p>
+          <p style="margin: 0">
+            Dirección IP: {{IpAddress}}<br />
+            Dispositivo: {{Device}}
+          </p>
+          <p style="margin-top: 20px">
+            Si fuiste tú, no necesitas hacer nada. Si no reconoces esta
+            actividad, cambia tu contraseña inmediatamente.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td
+          style="
+            padding: 15px 30px;
+            background: #f0f0f0;
+            color: #777;
+            font-size: 12px;
+            text-align: center;
+          "
+        >
+          © {{Year}} Tu Compañía – Todos los derechos reservados
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
