@@ -5,6 +5,7 @@ EXPOSE 80
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY ["AuthService/AuthService.csproj", "AuthService/"]
+COPY ["SharedLibrary/SharedLibrary.csproj", "SharedLibrary/"]
 RUN dotnet restore "AuthService/AuthService.csproj"
 COPY . .
 WORKDIR "/src/AuthService"
