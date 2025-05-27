@@ -21,13 +21,13 @@ public sealed class DefaultRabbitMQPersistentConnection(
 
   public IModel CreateModel()
   {
-    if (!IsConnected) throw new InvalidOperationException("RabbitMQ no disponible");
+    if (!IsConnected) throw new InvalidOperationException("Services Broker no disponible");
     return _connection!.CreateModel();
   }
 
   public bool TryConnect()
   {
-    logger.LogInformation("RabbitMQ: intentando conectar…");
+    logger.LogInformation("Services Broker: intentando conectar…");
 
     lock (_syncRoot)
     {
@@ -43,7 +43,7 @@ public sealed class DefaultRabbitMQPersistentConnection(
       if (IsConnected)
       {
         _connection!.ConnectionShutdown += (_, _) => TryConnect();
-        logger.LogInformation("RabbitMQ: conexión establecida a {Host}", options.Value.HostName);
+        logger.LogInformation("Services Broker: conexión establecida a {Host}", options.Value.HostName);
         return true;
       }
 

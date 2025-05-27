@@ -81,11 +81,11 @@ public sealed class EventBusRabbitMQ(
     if (!subsManager.HasSubscriptionsForEvent(eventName))
     {
       _channel.QueueUnbind(_queue, _exchange, eventName);
-      logger.LogInformation("❌  Unbound {EventName} de la cola", eventName);
+      logger.LogInformation("Unbound {EventName} de la cola", eventName);
     }
     else
     {
-      logger.LogInformation("🛈  Handler {Handler} eliminado de {EventName}",
+      logger.LogInformation("Handler {Handler} eliminado de {EventName}",
                             typeof(THandler).Name, eventName);
     }
   }
