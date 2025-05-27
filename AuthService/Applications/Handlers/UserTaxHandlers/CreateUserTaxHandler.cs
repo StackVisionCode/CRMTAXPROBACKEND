@@ -54,7 +54,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
                 userTax.Id,
                 userTax.Email,
                 userTax.FullName);
-
+            
             _eventBus.Publish(integrationEvent);
             _logger.LogInformation("User tax created successfully: {UserTax}", userTax);
             return new ApiResponse<bool>(result, result ? "User tax created successfully" : "Failed to create user tax", result);

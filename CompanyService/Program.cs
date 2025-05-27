@@ -37,7 +37,7 @@ builder.Services.AddCustomCors();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth Service API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Compay Service API", Version = "v1" });
 
     // Configuración para utilizar JWT en Swagger
     c.AddSecurityDefinition(
@@ -94,11 +94,15 @@ builder
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IIntegrationEventHandler<UserCreatedEvent>, UserCreatedEventHandler>();
+builder.Services.AddScoped<UserCreatedEventHandler>();
 
 var app = builder.Build();
 
-var bus = app.Services.GetRequiredService<IEventBus>();
-bus.Subscribe<UserCreatedEvent, UserCreatedEventHandler>();
+using (var scope = app.Services.CreateScope())
+{
+    var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+    bus.Subscribe<UserCreatedEvent, UserCreatedEventHandler>();
+}
 
 // Middlewares
 app.UseCors("AllowAll");

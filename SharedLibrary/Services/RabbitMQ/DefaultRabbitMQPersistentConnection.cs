@@ -7,60 +7,130 @@ using System.Net.Sockets;
 
 namespace SharedLibrary.Services.RabbitMQ;
 
-public sealed class DefaultRabbitMQPersistentConnection(
+public sealed class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentConnection
+{
+    private readonly IConnectionFactory _factory;
+    private readonly ILogger<DefaultRabbitMQPersistentConnection> _logger;
+    private readonly RabbitMQOptions _options;
+    private readonly object _syncRoot = new();
+    private IConnection? _connection;
+    private bool _disposed = false;
+
+    public DefaultRabbitMQPersistentConnection(
         IConnectionFactory factory,
         ILogger<DefaultRabbitMQPersistentConnection> logger,
-        IOptions<RabbitMQOptions> options) : IRabbitMQPersistentConnection
-{
-  private readonly object _syncRoot = new();
-  private IConnection? _connection;
-  private readonly int _retryCount = options.Value.RetryCount;
-
-  public bool IsConnected =>
-      _connection is { IsOpen: true };
-
-  public IModel CreateModel()
-  {
-    if (!IsConnected) throw new InvalidOperationException("RabbitMQ no disponible");
-    return _connection!.CreateModel();
-  }
-
-  public bool TryConnect()
-  {
-    logger.LogInformation("RabbitMQ: intentando conectar…");
-
-    lock (_syncRoot)
+        IOptions<RabbitMQOptions> options)
     {
-      var policy = Policy
-          .Handle<SocketException>()
-          .Or<BrokerUnreachableException>()
-          .WaitAndRetry(_retryCount,
-                        retry => TimeSpan.FromSeconds(Math.Pow(2, retry)),
-                        (ex, ts) => logger.LogWarning(ex, "Reintentando en {Delay}s", ts.TotalSeconds));
-
-      policy.Execute(() => _connection = factory.CreateConnection());
-
-      if (IsConnected)
-      {
-        _connection!.ConnectionShutdown += (_, _) => TryConnect();
-        logger.LogInformation("RabbitMQ: conexión establecida a {Host}", options.Value.HostName);
-        return true;
-      }
-
-      logger.LogCritical("RabbitMQ: NO se pudo conectar.");
-      return false;
+        _factory = factory;
+        _logger = logger;
+        _options = options.Value;
     }
-  }
 
-  public void Dispose() => _connection?.Dispose();
-}
+    public bool IsConnected =>
+        _connection is { IsOpen: true } && !_disposed;
 
-public sealed class RabbitMQOptions
-{
-  public string HostName { get; init; } = "rabbitmq";
-  public int Port { get; init; } = 5672;
-  public string UserName { get; init; } = "guest";
-  public string Password { get; init; } = "guest";
-  public int RetryCount { get; init; } = 5;
-  public string ExchangeName { get; init; } = "EventBusExchange";
+    public IModel CreateModel()
+    {
+        if (!IsConnected)
+        {
+            _logger.LogError("Cannot create RabbitMQ model - no connection available");
+            throw new InvalidOperationException("Services Broker no disponible para crear modelo");
+        }
+        
+        var model = _connection!.CreateModel();
+        
+        // Configurar QoS para el canal
+        model.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+        
+        return model;
+    }
+
+    public bool TryConnect()
+    {
+        _logger.LogInformation("Services Broker: intentando conectar a {HostName}:{Port}...", 
+            _options.HostName, _options.Port);
+
+        lock (_syncRoot)
+        {
+            if (_disposed)
+            {
+                _logger.LogWarning("Attempt to connect on disposed connection");
+                return false;
+            }
+
+            var policy = Policy
+                .Handle<SocketException>()
+                .Or<BrokerUnreachableException>()
+                .Or<ConnectFailureException>()
+                .WaitAndRetry(
+                    _options.RetryCount,
+                    retry => TimeSpan.FromSeconds(Math.Pow(2, retry)),
+                    (ex, delay, retryCount, context) =>
+                    {
+                        _logger.LogWarning(ex, 
+                            "RabbitMQ connection attempt {RetryCount}/{MaxRetries} failed. Reintentando en {Delay}s", 
+                            retryCount, _options.RetryCount, delay.TotalSeconds);
+                    });
+
+            try
+            {
+                policy.Execute(() =>
+                {
+                    _connection?.Dispose();
+                    _connection = _factory.CreateConnection($"{AppDomain.CurrentDomain.FriendlyName}-Connection");
+                });
+
+                if (IsConnected)
+                {
+                    _connection!.ConnectionShutdown += OnConnectionShutdown;
+                    
+                    _logger.LogInformation("Services Broker: conexión establecida a {HostName}:{Port}", 
+                        _options.HostName, _options.Port);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, "RabbitMQ: NO se pudo conectar después de {RetryCount} intentos", 
+                    _options.RetryCount);
+                return false;
+            }
+
+            _logger.LogCritical("RabbitMQ: NO se pudo conectar - conexión no disponible");
+            return false;
+        }
+    }
+
+    private void OnConnectionShutdown(object? sender, ShutdownEventArgs args)
+    {
+        if (_disposed) return;
+        
+        _logger.LogWarning("RabbitMQ connection shutdown: {Reason}", args.ReplyText);
+        
+        // Intentar reconectar en un hilo separado
+        Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            if (!_disposed)
+            {
+                TryConnect();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+        
+        try
+        {
+            _connection?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error disposing RabbitMQ connection");
+        }
+    }
 }

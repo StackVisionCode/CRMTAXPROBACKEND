@@ -5,6 +5,7 @@ EXPOSE 80
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY ["EmailServices/EmailServices.csproj", "EmailServices/"]
+COPY ["SharedLibrary/SharedLibrary.csproj", "SharedLibrary/"]
 RUN dotnet restore "EmailServices/EmailServices.csproj"
 COPY . .
 WORKDIR "/src/EmailServices"

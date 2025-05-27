@@ -5,6 +5,7 @@ EXPOSE 80
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY ["CustomerService/CustomerService.csproj", "CustomerService/"]
+COPY ["SharedLibrary/SharedLibrary.csproj", "SharedLibrary/"]
 RUN dotnet restore "CustomerService/CustomerService.csproj"
 COPY . .
 WORKDIR "/src/CustomerService"
