@@ -35,7 +35,7 @@ namespace AuthService.Controllers
     }
 
     [HttpDelete("Delete")]
-    public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+    public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
     {
       var command = new DeleteRolePermissionCommands(id);
       var result = await _mediator.Send(command);
@@ -54,7 +54,7 @@ namespace AuthService.Controllers
     }
 
     [HttpGet("GetById")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(Guid id)
     {
       var command = new GetRolePermissionByIdQuery(id);
       var result = await _mediator.Send(command);

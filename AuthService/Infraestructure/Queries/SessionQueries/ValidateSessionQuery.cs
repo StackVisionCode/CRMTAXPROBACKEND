@@ -1,5 +1,4 @@
 using MediatR;
 
 namespace Queries.SessionQueries;
-
-public record ValidateSessionQuery(string SessionUid) : IRequest<bool>;
+public record ValidateSessionQuery(Guid SessionId) : IRequest<bool>;

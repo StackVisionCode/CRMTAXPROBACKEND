@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Queries.RoleQueries;
 
-public record class GetRoleByIdQuery(int RoleId) : IRequest<ApiResponse<RoleDTO>>;
+public record class GetRoleByIdQuery(Guid RoleId) : IRequest<ApiResponse<RoleDTO>>;

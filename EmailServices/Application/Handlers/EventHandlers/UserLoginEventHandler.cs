@@ -25,14 +25,33 @@ public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEv
 
     public async Task Handle(UserLoginEvent evt)
     {
-        // 1. Renderizar HTML
-        string tplPath = Path.Combine(_env.ContentRootPath, "Templates", "Auth", "Login.html");
-        string bodyHtml = _renderer.RenderTemplate(tplPath, evt);
+        // 1. Crear un objeto expandido con FullName calculado
+        var templateData = new
+        {
+            evt.Id,
+            evt.OccurredOn,
+            evt.UserId,
+            evt.Email,
+            evt.Name,
+            evt.LastName,
+            evt.LoginTime,
+            evt.IpAddress,
+            evt.Device,
+            evt.CompanyId,
+            evt.CompanyName,
+            // Lógica para determinar FullName
+            FullName = DetermineDisplayName(evt),
+            Year = DateTime.Now.Year
+        };
 
-        // 2. Obtener config SMTP
+        // 2. Renderizar HTML
+        string tplPath = Path.Combine(_env.ContentRootPath, "Templates", "Auth", "Login.html");
+        string bodyHtml = _renderer.RenderTemplate(tplPath, templateData);
+
+        // 3. Obtener config SMTP
         var cfg = _cfgProvider.GetConfigForEvent(evt);
 
-        // 3. Construir mensaje
+        // 4. Construir mensaje
         var msg = new MailMessage
         {
             From = new MailAddress(cfg.FromAddress, cfg.FromName),
@@ -80,5 +99,31 @@ public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEv
             _log.LogError(ex, "Fallo al enviar correo de login a {Email}", evt.Email);
             // Aquí podrías reintentar o guardar en base de datos para reenvío posterior
         }
+    }
+
+    private static string DetermineDisplayName(UserLoginEvent evt)
+    {
+        // Si tiene CompanyName y no tiene Name/LastName (usuario de oficina)
+        if (!string.IsNullOrWhiteSpace(evt.CompanyName) &&
+            string.IsNullOrWhiteSpace(evt.Name) &&
+            string.IsNullOrWhiteSpace(evt.LastName))
+        {
+            return evt.CompanyName;
+        }
+
+        // Si tiene Name o LastName (usuario individual)
+        if (!string.IsNullOrWhiteSpace(evt.Name) || !string.IsNullOrWhiteSpace(evt.LastName))
+        {
+            return $"{evt.Name} {evt.LastName}".Trim();
+        }
+
+        // Fallback: usar CompanyName si existe
+        if (!string.IsNullOrWhiteSpace(evt.CompanyName))
+        {
+            return evt.CompanyName;
+        }
+
+        // Último fallback: usar email
+        return evt.Email;
     }
 }

@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Queries.UserQueries;
 
-public record GetTaxUserProfileQuery(int UserId) : IRequest<ApiResponse<UserProfileDTO>>;
+public record GetTaxUserProfileQuery(Guid UserId) : IRequest<ApiResponse<UserProfileDTO>>;
