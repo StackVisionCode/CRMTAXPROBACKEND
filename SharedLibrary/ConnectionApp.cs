@@ -10,7 +10,7 @@ public class ConnectionApp
     {
         Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "";
 
-        User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
+        User = Environment.GetEnvironmentVariable("DB_USER") ?? "";
 
         Password = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "Brittany040238.";
     }
