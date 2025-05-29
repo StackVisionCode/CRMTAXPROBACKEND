@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Queries.SessionQueries;
 
-public record class GetSessionByIdQuery(int SessionId) : IRequest<ApiResponse<SessionDTO>>;
+public record class GetSessionByIdQuery(Guid SessionId) : IRequest<ApiResponse<SessionDTO>>;

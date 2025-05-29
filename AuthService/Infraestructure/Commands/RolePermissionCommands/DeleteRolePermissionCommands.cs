@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Commands.RolePermissionCommands;
 
-public record class DeleteRolePermissionCommands(int RolePermissionId) : IRequest<ApiResponse<bool>>;
+public record class DeleteRolePermissionCommands(Guid RolePermissionId) : IRequest<ApiResponse<bool>>;

@@ -6,8 +6,7 @@ namespace AuthService.Domains.Sessions;
 
 public class Session : BaseEntity
 {
-    public required string SessionUid { get; set; }
-    public int TaxUserId { get; set; }
+    public Guid TaxUserId { get; set; }
     public required string TokenRequest { get; set; }
     public required DateTime ExpireTokenRequest { get; set; }
     public string? TokenRefresh { get; set; }  

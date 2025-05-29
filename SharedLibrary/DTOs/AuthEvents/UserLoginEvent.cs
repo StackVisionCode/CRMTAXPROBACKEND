@@ -3,11 +3,15 @@ namespace SharedLibrary.DTOs;
 public sealed record UserLoginEvent(
     Guid Id,
     DateTime OccurredOn,
-    int UserId,
+    Guid UserId,
     string Email,
-    string FullName,
+    string Name,
+    string LastName,
     DateTime LoginTime,
     string IpAddress,
     string Device,
-    int CompanyId)
-  : IntegrationEvent(Id, OccurredOn);
+    Guid CompanyId,
+    string CompanyName,
+    string FullName,
+    int Year
+) : IntegrationEvent(Id, OccurredOn);

@@ -11,9 +11,11 @@ public sealed class RequireGatewayHeaderMiddleware(RequestDelegate next)
     {
         "/api/Session/Login",
         "/api/TaxUser/Create",
+        "/api/taxcompany/register",
         "/api/Session/IsValid",
         "/api/auth/login",
         "/api/taxuser/register",
+        "/api/taxcompany/register",
     };
 
     public async Task InvokeAsync(HttpContext ctx)

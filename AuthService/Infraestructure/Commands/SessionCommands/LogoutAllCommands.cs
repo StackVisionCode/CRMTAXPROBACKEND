@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Commands.SessionCommands;
 
-public record class LogoutAllCommands(int UserId) : IRequest<ApiResponse<bool>>;
+public record class LogoutAllCommands(Guid UserId) : IRequest<ApiResponse<bool>>;

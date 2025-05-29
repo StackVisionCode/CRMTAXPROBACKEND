@@ -20,14 +20,14 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
     {
                 try
                 {
-                    var userTax = await _dbContext.TaxUsers.Include(u => u.Session)
+                    var userTax = await _dbContext.TaxUsers.Include(u => u.Sessions)
                                                             .FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken);
                     if (userTax == null)
                     {
                         return new ApiResponse<bool>(false, "User tax not found", false);
                     }
 
-                    _dbContext.RemoveRange(userTax.Session);
+                    _dbContext.RemoveRange(userTax.Sessions);
                     _dbContext.TaxUsers.Remove(userTax);
                     var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0 ? true : false;
                     _logger.LogInformation("User tax deleted successfully: {Id}", request.Id);

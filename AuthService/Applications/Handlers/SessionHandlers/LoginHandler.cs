@@ -33,43 +33,57 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         {
             // 1. Validamos credenciales
             var user = await _context.TaxUsers
-                                    .Include(s => s.Session)
-                                    .FirstOrDefaultAsync(x => x.Email == request.Email, cancellationToken);
+                                    .Include(u => u.TaxUserProfile)
+                                    .Include(u => u.Company)
+                                    .Include(s => s.Sessions)
+                                    .FirstOrDefaultAsync(x => x.Email == request.Petition.Email, cancellationToken);
 
-            if (user is null || !_passwordHasher.Verify(request.Password, user.Password))
+            if (user is null || !_passwordHasher.Verify(request.Petition.Password, user.Password))
             {
-                _logger.LogWarning("Login failed for user {Email}: Invalid credentials", request.Email);
+                _logger.LogWarning("Login failed for user {Email}: Invalid credentials", request.Petition.Email);
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
             }
 
             if (!user.IsActive)
             {
-                _logger.LogWarning("Login failed for user {Email}: User is inactive", request.Email);
+                _logger.LogWarning("Login failed for user {Email}: User is inactive", request.Petition.Email);
                 return new ApiResponse<LoginResponseDTO>(false, "User account is inactive");
             }
 
-            var sessionId = Guid.NewGuid().ToString();
+            var sessionId = Guid.NewGuid();
 
-            // Define the access token lifetime (e.g., 1 hour)
-            var accessTokenLifetime = TimeSpan.FromHours(1);
+            // 2. Objetos compuestos para el token 
+            var profile = user.TaxUserProfile;
+            var companyName = user.Company?.FullName;
+            var companyBrand = user.Company?.Brand;
 
-            var access = _tokenService.Generate(new TokenGenerationRequest(
-                    user.Id, user.Email, user.FullName ?? string.Empty, sessionId,
-                    accessTokenLifetime));
+            var userInfo = new UserInfo(
+                user.Id,
+                user.Email,
+                profile?.Name ?? string.Empty,
+                profile?.LastName ?? string.Empty,
+                profile?.Address ?? string.Empty,
+                profile?.PhotoUrl ?? string.Empty,
+                companyName ?? string.Empty,
+                companyBrand ?? string.Empty);
 
-            var refresh = _tokenService.Generate(new TokenGenerationRequest(
-                    user.Id, user.Email, user.FullName ?? string.Empty, sessionId,
-                    TimeSpan.FromDays(2)));
+            var sessionInfo = new SessionInfo(sessionId);
+
+            var access = _tokenService.Generate(
+                new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromHours(1)));
+
+            var refresh = _tokenService.Generate(
+                new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromDays(2)));
 
             // 3. Creamos sesión
             var session = new Session
             {
+                Id = sessionId, // Use the same sessionId as above
                 TaxUser = user,
                 TaxUserId = user.Id,
                 TokenRequest = access.AccessToken,
                 ExpireTokenRequest = access.ExpireAt,
                 TokenRefresh = refresh.AccessToken,
-                SessionUid = sessionId,
                 IpAddress = request.IpAddress,
                 Device = request.Device,
                 IsRevoke = false,
@@ -78,18 +92,25 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
 
             _context.Sessions.Add(session);
             await _context.SaveChangesAsync(cancellationToken);
-            
+
+            // Determinar el nombre a mostrar
+            string displayName = DetermineDisplayName(profile?.Name, profile?.LastName, companyName);
+
             // 3.5 Publicamos un evento de sesión creada
             var loginEvent = new UserLoginEvent(
-                Guid.NewGuid(), // Id
-                DateTime.UtcNow, // EventTime or CreatedAt
-                user.Id, // UserId
-                user.Email, // Email
-                user.FullName ?? string.Empty, // FullName
-                DateTime.UtcNow, // LoginTime
-                request.IpAddress, // IpAddress
-                request.Device, // Device
-                user.CompanyId ?? 0 // CompanyId, 
+                Guid.NewGuid(),
+                DateTime.UtcNow,
+                user.Id,
+                user.Email,
+                profile?.Name ?? string.Empty,
+                profile?.LastName ?? string.Empty,
+                DateTime.UtcNow,
+                request.IpAddress,
+                request.Device,
+                user.CompanyId ?? Guid.Empty,
+                companyName ?? string.Empty,
+                displayName,  // <-- FullName calculado
+                DateTime.Now.Year
             );
 
             _eventBus.Publish(loginEvent);
@@ -107,8 +128,26 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login process for {Email}", request.Email);
+            _logger.LogError(ex, "Error during login process for {Email}", request.Petition.Email);
             return new ApiResponse<LoginResponseDTO>(false, "An error occurred during login");
         }
+    }
+
+    private static string DetermineDisplayName(string? name, string? lastName, string? companyName)
+    {
+        // Si es un usuario individual (tiene nombre o apellido)
+        if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(lastName))
+        {
+            return $"{name} {lastName}".Trim();
+        }
+
+        // Si es una oficina/empresa (solo tiene companyName)
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            return companyName;
+        }
+
+        // Fallback
+        return "Usuario";
     }
 }
