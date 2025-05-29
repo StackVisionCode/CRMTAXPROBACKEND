@@ -36,7 +36,7 @@ public class RoleController : ControllerBase
   }
 
   [HttpDelete("Delete")]
-  public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+  public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
   {
     var command = new DeleteRoleCommands(id);
     var result = await _mediator.Send(command);
@@ -56,7 +56,7 @@ public class RoleController : ControllerBase
   }
 
   [HttpGet("GetById")]
-  public async Task<IActionResult> GetById(int id)
+  public async Task<IActionResult> GetById(Guid id)
   {
     var command = new GetRoleByIdQuery(id);
     var result = await _mediator.Send(command);

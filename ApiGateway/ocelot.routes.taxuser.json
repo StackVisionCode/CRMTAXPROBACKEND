@@ -18,6 +18,23 @@
       "SwaggerKey": "taxuser"
     },
     {
+      "DownstreamPathTemplate": "/api/TaxUser/CreateCompany",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5092
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxcompany/register",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "taxuser"
+    },
+    {
       "DownstreamPathTemplate": "/api/TaxUser/Update",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

@@ -1,5 +1,6 @@
-
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using AuthService.Applications.DTOs.CompanyDTOs;
 using AuthService.DTOs.UserDTOs;
 using Commands.UserCommands;
 using Common;
@@ -26,7 +27,17 @@ namespace AuthService.Controllers
       // Mapeas el DTO al Command (usando AutoMapper)
       var command = new CreateTaxUserCommands(userDto);
       var result = await _mediator.Send(command);
-      if (result==null) return BadRequest(new { message = "Failed to create user" });      
+      if (result == null) return BadRequest(new { message = "Failed to create user" });
+      return Ok(result);
+    }
+
+    [HttpPost("CreateCompany")]
+    public async Task<ActionResult<ApiResponse<bool>>> CreateCompany([FromBody] NewCompanyDTO companyDto)
+    {
+      // Mapeas el DTO al Command (usando AutoMapper)
+      var command = new CreateTaxCompanyCommands(companyDto);
+      var result = await _mediator.Send(command);
+      if (result == null) return BadRequest(new { message = "Failed to create company" });
       return Ok(result);
     }
 
@@ -35,16 +46,16 @@ namespace AuthService.Controllers
     {
       var command = new UpdateTaxUserCommands(userDto);
       var result = await _mediator.Send(command);
-      if (result==null) return BadRequest(new { message = "Failed to update user" });
+      if (result == null) return BadRequest(new { message = "Failed to update user" });
       return Ok(result);
     }
 
     [HttpDelete("Delete")]
-    public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
+    public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
     {
       var command = new DeleteTaxUserCommands(id);
       var result = await _mediator.Send(command);
-      if (result==null) return BadRequest(new { message = "Failed to delete user" });
+      if (result == null) return BadRequest(new { message = "Failed to delete user" });
       return Ok(result);
     }
 
@@ -55,11 +66,11 @@ namespace AuthService.Controllers
 
       if (result.Success == false) return BadRequest(new { result });
 
-      return Ok(result);      
+      return Ok(result);
     }
 
     [HttpGet("GetByUserId")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(Guid id)
     {
       var command = new GetTaxUserByIdQuery(id);
       var result = await _mediator.Send(command);
@@ -71,13 +82,36 @@ namespace AuthService.Controllers
     [HttpGet("Profile")]
     public async Task<ActionResult<ApiResponse<UserProfileDTO>>> GetProfile()
     {
-        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(idClaim, out var userId))
-            return Unauthorized(new ApiResponse<UserProfileDTO>(false, "Invalid session"));
+      var idRaw = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+              ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        var command = new GetTaxUserByIdQuery(userId);
-        var result = await _mediator.Send(command);
-        return result.Success == true ? Ok(result) : BadRequest(result);
+      if (!Guid.TryParse(idRaw, out var userId))
+        return Unauthorized(new ApiResponse<UserProfileDTO>(false, "Invalid session"));
+
+      var command = new GetTaxUserProfileQuery(userId);
+      var result = await _mediator.Send(command);
+
+      if (result.Success != true || result.Data == null)
+        return BadRequest(result);
+
+      // Enriquecer con datos del JWT cuando estén vacíos en BD
+      var profileDto = result.Data;
+
+      // Si name/lastName están vacíos, usar los del JWT
+      if (string.IsNullOrWhiteSpace(profileDto.Name))
+      {
+        profileDto.Name = User.FindFirst(ClaimTypes.GivenName)?.Value;
+      }
+
+      if (string.IsNullOrWhiteSpace(profileDto.LastName))
+      {
+        profileDto.LastName = User.FindFirst(ClaimTypes.Surname)?.Value;
+      }
+
+      // Crear respuesta enriquecida
+      var enrichedResponse = new ApiResponse<UserProfileDTO>(true, "Ok", profileDto);
+
+      return Ok(enrichedResponse);
     }
   }
 }

@@ -21,13 +21,13 @@ public class ValidateSessionHandler : IRequestHandler<ValidateSessionQuery, bool
         try
         {
             return await _context.Sessions
-            .AnyAsync(s => s.SessionUid == request.SessionUid &&
+            .AnyAsync(s => s.Id == request.SessionId &&
                         !s.IsRevoke &&
                         s.ExpireTokenRequest > DateTime.UtcNow, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating session with UID: {SessionUid}", request.SessionUid);
+            _logger.LogError(ex, "Error validating session with UID: {SessionId}", request.SessionId);
             return false;
         }
     }

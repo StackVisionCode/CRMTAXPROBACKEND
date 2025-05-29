@@ -1,15 +1,12 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AuthService.DTOs.SessionDTOs;
 
 public class SessionDTO
 {
-  [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
   [Key]
-  public int Id { get; set; }
-  public required string SessionUid { get; set; }
-  public required int TaxUserId { get; set; }
+  public Guid Id { get; set; }
+  public required Guid TaxUserId { get; set; }
   public required string TokenRequest { get; set; } 
   public DateTime ExpireTokenRequest { get; set; }
   public string? TokenRefresh { get; set; } 

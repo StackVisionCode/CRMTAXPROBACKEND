@@ -22,12 +22,12 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, ApiResponse<bool>>
         try
         {
             var session = await _context.Sessions
-                .FirstOrDefaultAsync(s => s.SessionUid == request.SessionUid
-                                && s.TaxUserId  == request.UserId, cancellationToken);
+                .FirstOrDefaultAsync(s => s.Id == request.SessionId 
+                                && s.TaxUserId == request.UserId, cancellationToken);
 
             if (session == null)
             {
-                _logger.LogWarning("Logout failed: Session {SessionId} not found for user {UserId}", request.SessionUid, request.UserId);
+                _logger.LogWarning("Logout failed: Session {Session} not found for user {User}", request.SessionId, request.UserId);
                 return new ApiResponse<bool>(false, "Session not found");
             }
 
@@ -37,12 +37,12 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, ApiResponse<bool>>
             
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} logged out. Session {SessionId} revoked", request.UserId, request.SessionUid);
+            _logger.LogInformation("User {User} logged out. Session {Session} revoked", request.UserId, request.SessionId);
             return new ApiResponse<bool>(true, "Logout successful", true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during logout process for user {UserId}", request.UserId);
+            _logger.LogError(ex, "Error during logout process for user {User}", request.UserId);
             return new ApiResponse<bool>(false, "An error occurred during logout");
         }
     }

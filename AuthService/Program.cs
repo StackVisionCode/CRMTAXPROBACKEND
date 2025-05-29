@@ -92,6 +92,8 @@ try
             {
                 var cfg = builder.Configuration.GetSection("JwtSettings");
                 opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+                opts.MapInboundClaims = false;
+                JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
             }
         );
 

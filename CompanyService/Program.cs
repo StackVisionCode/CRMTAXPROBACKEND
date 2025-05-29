@@ -77,8 +77,8 @@ builder.Services.AddJwtAuth(builder.Configuration);
 // Configurar caché en memoria en lugar de Redis
 builder.Services.AddSessionCache();
 
-// Configurar RabbitMQ
-builder.Services.AddEventBus(builder.Configuration);
+// // Configurar RabbitMQ
+// builder.Services.AddEventBus(builder.Configuration);
 
 builder
     .Services.AddAuthentication("Bearer")
@@ -93,16 +93,16 @@ builder
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddScoped<IIntegrationEventHandler<UserCreatedEvent>, UserCreatedEventHandler>();
-builder.Services.AddScoped<UserCreatedEventHandler>();
+// builder.Services.AddScoped<IIntegrationEventHandler<UserCreatedEvent>, UserCreatedEventHandler>();
+// builder.Services.AddScoped<UserCreatedEventHandler>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
-    bus.Subscribe<UserCreatedEvent, UserCreatedEventHandler>();
-}
+// using (var scope = app.Services.CreateScope())
+// {
+//     var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+//     bus.Subscribe<UserCreatedEvent, UserCreatedEventHandler>();
+// }
 
 // Middlewares
 app.UseCors("AllowAll");

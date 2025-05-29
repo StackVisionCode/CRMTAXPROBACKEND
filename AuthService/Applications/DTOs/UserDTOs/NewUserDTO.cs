@@ -1,19 +1,24 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AuthService.DTOs.UserDTOs;
 
 public class NewUserDTO
 {
-  [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
   [Key]
-  public int Id { get; set; }
-  public required int TaxUserTypeId { get; set; }
-  public int? CompanyId { get; set; }
-  public required int RoleId { get; set; }
-  public required string FullName { get; set; }
-  public required string Email { get; set; }
-  public required string Password { get; set; }
+  public Guid Id { get; set; }
+  [Required]
+  public string Name { get; set; } = default!;
+  [Required]
+  public string LastName { get; set; } = default!;
+  [Required]
+  public string Phone { get; set; } = default!;
+  [Required, EmailAddress]
+  public string Email { get; set; } = default!;
+  [Required, MinLength(8)]
+  public string Password { get; set; } = default!;
+  public string? Address  { get; set; }
+  public string? PhotoUrl { get; set; }
+  public string? Domain { get; set; }
 }
 
 

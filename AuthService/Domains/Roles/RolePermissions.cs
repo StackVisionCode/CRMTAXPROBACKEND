@@ -5,8 +5,8 @@ namespace AuthService.Domains.Roles;
 
 public class RolePermissions : BaseEntity
 {
-    public required int RoleId { get; set; }
-    public required int PermissionsId { get; set; }
+    public required Guid RoleId { get; set; }
+    public required Guid PermissionsId { get; set; }
     public required virtual Role Role { get; set; }
     public required virtual Permission Permissions { get; set; }
 }

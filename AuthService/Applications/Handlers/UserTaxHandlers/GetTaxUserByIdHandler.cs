@@ -24,6 +24,8 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
     try
         {
             var user = await _dbContext.TaxUsers
+                                .Include(u => u.TaxUserProfile)
+                                .Include(u => u.Role) 
                                 .AsNoTracking()
                                 .FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken);
 

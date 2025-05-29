@@ -4,9 +4,9 @@ namespace UserDTOS;
 
 public class UserDTO : BaseEntity
 {
-  public int TaxUserTypeId { get; set; }
-  public int? CompanyId { get; set; }
-  public required int RoleId { get; set; }
+  public Guid TaxUserTypeId { get; set; }
+  public Guid? CompanyId { get; set; }
+  public required Guid RoleId { get; set; }
   public string? FullName { get; set; }
   public required string Email { get; set; }
   public required string Password { get; set; }

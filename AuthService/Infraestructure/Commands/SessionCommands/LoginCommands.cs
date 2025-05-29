@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Commands.SessionCommands;
 
-public record class LoginCommands(string Email, string Password, string IpAddress, string Device, bool RememberMe ) : IRequest<ApiResponse<LoginResponseDTO>>;
+public record class LoginCommands(LoginRequestDTO Petition, string IpAddress, string Device) : IRequest<ApiResponse<LoginResponseDTO>>;

@@ -4,7 +4,8 @@ namespace SharedLibrary.DTOs;
 public sealed record UserCreatedEvent(
         Guid Id,
         DateTime OccurredOn,
-        int UserId,
+        Guid UserId,
         string Email,
-        string FullName)
+        string Name,
+        string LastName)
     : IntegrationEvent(Id, OccurredOn);

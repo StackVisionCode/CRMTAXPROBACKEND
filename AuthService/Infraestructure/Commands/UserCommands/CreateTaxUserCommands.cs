@@ -5,4 +5,4 @@ using MediatR;
 
 namespace Commands.UserCommands;
 
-public record  class CreateTaxUserCommands(NewUserDTO Usertax): IRequest<ApiResponse<bool>>;
+public record class CreateTaxUserCommands(NewUserDTO Usertax): IRequest<ApiResponse<bool>>;
