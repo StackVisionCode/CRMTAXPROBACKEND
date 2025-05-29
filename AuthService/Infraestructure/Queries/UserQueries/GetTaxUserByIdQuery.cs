@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Queries.UserQueries;
 
-public record class GetTaxUserByIdQuery(int Id) : IRequest<ApiResponse<UserGetDTO>>;
+public record class GetTaxUserByIdQuery(Guid Id) : IRequest<ApiResponse<UserGetDTO>>;

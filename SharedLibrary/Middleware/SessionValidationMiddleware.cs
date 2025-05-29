@@ -96,7 +96,7 @@ public sealed class SessionValidationMiddleware
             return;
         }
 
-        ctx.Items["SessionUid"] = sid;
+        ctx.Items["SessionId"] = sid;
 
         // Añadir también SessionUid como claim en el User.Identity
         // Esto permitirá acceder al valor mediante User.FindFirst("sid")

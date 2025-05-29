@@ -1,3 +1,4 @@
+using AuthService.Domains.Users;
 using AuthService.DTOs.UserDTOs;
 using AutoMapper;
 using Common;
@@ -26,6 +27,8 @@ public class GetTaxUserProfileHandler : IRequestHandler<GetTaxUserProfileQuery, 
         try
         {
             var user = await _db.TaxUsers
+                        .Include(u => u.TaxUserProfile)
+                        .Include(u => u.Company)
                         .Include(u => u.Role)
                         .AsNoTracking()
                         .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

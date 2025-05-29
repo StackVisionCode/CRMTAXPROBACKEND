@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuthService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250518154658_AddSessionUidToSession")]
-    partial class AddSessionUidToSession
+    [Migration("20250529040206_InitialMigrations")]
+    partial class InitialMigrations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,13 +25,49 @@ namespace AuthService.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("AuthService.Domains.Permissions.Permission", b =>
+            modelBuilder.Entity("AuthService.Domains.Companies.Company", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Brand")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserLimit")
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.HasKey("Id");
+
+                    b.ToTable("Companies", (string)null);
+                });
+
+            modelBuilder.Entity("AuthService.Domains.Permissions.Permission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -56,38 +92,36 @@ namespace AuthService.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 1,
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655440001"),
                             Name = "Write"
                         },
                         new
                         {
-                            Id = 2,
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655440002"),
                             Name = "Reader"
                         },
                         new
                         {
-                            Id = 3,
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655440003"),
                             Name = "View"
                         },
                         new
                         {
-                            Id = 4,
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655440004"),
                             Name = "Delete"
                         },
                         new
                         {
-                            Id = 5,
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655440005"),
                             Name = "Update"
                         });
                 });
 
             modelBuilder.Entity("AuthService.Domains.Roles.Role", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -112,13 +146,13 @@ namespace AuthService.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 1,
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655441001"),
                             Description = "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
                             Name = "Administrator"
                         },
                         new
                         {
-                            Id = 2,
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655441002"),
                             Description = "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
                             Name = "User"
                         });
@@ -126,11 +160,9 @@ namespace AuthService.Migrations
 
             modelBuilder.Entity("AuthService.Domains.Roles.RolePermissions", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -138,11 +170,11 @@ namespace AuthService.Migrations
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PermissionsId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PermissionsId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -158,11 +190,9 @@ namespace AuthService.Migrations
 
             modelBuilder.Entity("AuthService.Domains.Sessions.Session", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -188,12 +218,8 @@ namespace AuthService.Migrations
                     b.Property<string>("Logintude")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("SessionUid")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TaxUserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("TokenRefresh")
                         .HasColumnType("nvarchar(max)");
@@ -214,14 +240,12 @@ namespace AuthService.Migrations
 
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool?>("Confirm")
                         .HasColumnType("bit");
@@ -235,16 +259,15 @@ namespace AuthService.Migrations
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Domain")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool?>("Factor2")
                         .HasColumnType("bit");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -265,31 +288,29 @@ namespace AuthService.Migrations
                     b.Property<string>("ResetPasswordToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TaxUserTypeId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("CompanyId");
 
-                    b.HasIndex("TaxUserTypeId");
+                    b.HasIndex("RoleId");
 
                     b.ToTable("TaxUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Users.TaxUserType", b =>
+            modelBuilder.Entity("AuthService.Domains.Users.TaxUserProfile", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -297,40 +318,30 @@ namespace AuthService.Migrations
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
+                    b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.ToTable("TaxUserTypes", (string)null);
+                    b.HasIndex("TaxUserId")
+                        .IsUnique();
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "SuperUsuario",
-                            Name = "Owner"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Cliente",
-                            Name = "Client"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "Empleado",
-                            Name = "Staff"
-                        });
+                    b.ToTable("TaxUserProfiles", (string)null);
                 });
 
             modelBuilder.Entity("AuthService.Domains.Roles.RolePermissions", b =>
@@ -355,7 +366,7 @@ namespace AuthService.Migrations
             modelBuilder.Entity("AuthService.Domains.Sessions.Session", b =>
                 {
                     b.HasOne("AuthService.Domains.Users.TaxUser", "TaxUser")
-                        .WithMany("Session")
+                        .WithMany("Sessions")
                         .HasForeignKey("TaxUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -365,21 +376,36 @@ namespace AuthService.Migrations
 
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
                 {
+                    b.HasOne("AuthService.Domains.Companies.Company", "Company")
+                        .WithMany("TaxUsers")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("AuthService.Domains.Roles.Role", "Role")
                         .WithMany()
                         .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Users.TaxUserType", "TaxUserType")
-                        .WithMany("TaxUser")
-                        .HasForeignKey("TaxUserTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Company");
 
                     b.Navigation("Role");
+                });
 
-                    b.Navigation("TaxUserType");
+            modelBuilder.Entity("AuthService.Domains.Users.TaxUserProfile", b =>
+                {
+                    b.HasOne("AuthService.Domains.Users.TaxUser", "TaxUser")
+                        .WithOne("TaxUserProfile")
+                        .HasForeignKey("AuthService.Domains.Users.TaxUserProfile", "TaxUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TaxUser");
+                });
+
+            modelBuilder.Entity("AuthService.Domains.Companies.Company", b =>
+                {
+                    b.Navigation("TaxUsers");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Permissions.Permission", b =>
@@ -389,12 +415,10 @@ namespace AuthService.Migrations
 
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>
                 {
-                    b.Navigation("Session");
-                });
+                    b.Navigation("Sessions");
 
-            modelBuilder.Entity("Users.TaxUserType", b =>
-                {
-                    b.Navigation("TaxUser");
+                    b.Navigation("TaxUserProfile")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
