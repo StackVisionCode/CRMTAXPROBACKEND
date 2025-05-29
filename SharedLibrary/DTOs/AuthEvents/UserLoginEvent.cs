@@ -5,10 +5,13 @@ public sealed record UserLoginEvent(
     DateTime OccurredOn,
     Guid UserId,
     string Email,
-    string FullName,
-    string V,
+    string Name,
+    string LastName,
     DateTime LoginTime,
     string IpAddress,
     string Device,
-    Guid CompanyId)
-  : IntegrationEvent(Id, OccurredOn);
+    Guid CompanyId,
+    string CompanyName,
+    string FullName,
+    int Year
+) : IntegrationEvent(Id, OccurredOn);

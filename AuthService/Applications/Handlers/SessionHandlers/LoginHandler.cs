@@ -58,9 +58,9 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             var companyBrand = user.Company?.Brand;
 
             var userInfo = new UserInfo(
-                user.Id, 
-                user.Email, 
-                profile?.Name ?? string.Empty, 
+                user.Id,
+                user.Email,
+                profile?.Name ?? string.Empty,
                 profile?.LastName ?? string.Empty,
                 profile?.Address ?? string.Empty,
                 profile?.PhotoUrl ?? string.Empty,
@@ -93,18 +93,24 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             _context.Sessions.Add(session);
             await _context.SaveChangesAsync(cancellationToken);
 
+            // Determinar el nombre a mostrar
+            string displayName = DetermineDisplayName(profile?.Name, profile?.LastName, companyName);
+
             // 3.5 Publicamos un evento de sesión creada
             var loginEvent = new UserLoginEvent(
-                Guid.NewGuid(), // Id
-                DateTime.UtcNow, // EventTime or CreatedAt
-                user.Id, // UserId
-                user.Email, // Email
-                user.TaxUserProfile?.Name ?? string.Empty,
-                user.TaxUserProfile?.LastName ?? string.Empty,
-                DateTime.UtcNow, // LoginTime
-                request.IpAddress, // IpAddress
-                request.Device, // Device
-                user.CompanyId ?? Guid.Empty // CompanyId, 
+                Guid.NewGuid(),
+                DateTime.UtcNow,
+                user.Id,
+                user.Email,
+                profile?.Name ?? string.Empty,
+                profile?.LastName ?? string.Empty,
+                DateTime.UtcNow,
+                request.IpAddress,
+                request.Device,
+                user.CompanyId ?? Guid.Empty,
+                companyName ?? string.Empty,
+                displayName,  // <-- FullName calculado
+                DateTime.Now.Year
             );
 
             _eventBus.Publish(loginEvent);
@@ -125,5 +131,23 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             _logger.LogError(ex, "Error during login process for {Email}", request.Petition.Email);
             return new ApiResponse<LoginResponseDTO>(false, "An error occurred during login");
         }
+    }
+
+    private static string DetermineDisplayName(string? name, string? lastName, string? companyName)
+    {
+        // Si es un usuario individual (tiene nombre o apellido)
+        if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(lastName))
+        {
+            return $"{name} {lastName}".Trim();
+        }
+
+        // Si es una oficina/empresa (solo tiene companyName)
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            return companyName;
+        }
+
+        // Fallback
+        return "Usuario";
     }
 }
