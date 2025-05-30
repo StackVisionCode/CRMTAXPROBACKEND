@@ -18,7 +18,7 @@ namespace CustomerService.Controllers.Customer
     }
 
     [HttpPost("Create")]
-    public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] CustomerDTO customerDto)
+    public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] CreateCustomerDTO customerDto)
     {
       var command = new CreateCustomerCommands(customerDto);
       var result = await _mediator.Send(command);

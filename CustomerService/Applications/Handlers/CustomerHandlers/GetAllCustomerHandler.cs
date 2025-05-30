@@ -1,5 +1,7 @@
+using System.Xml.Serialization;
 using AutoMapper;
 using Common;
+using CustomerService.Domains.Customers;
 using CustomerService.DTOs.CustomerDTOs;
 using CustomerService.Infrastructure.Context;
 using CustomerService.Queries.CustomerQueries;
@@ -8,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CustomerService.Handlers.CustomerHandlers;
 
-public class GetAllCustomerHandler : IRequestHandler<GetAllCustomerQueries, ApiResponse<List<CustomerDTO>>>
+public class GetAllCustomerHandler : IRequestHandler<GetAllCustomerQueries, ApiResponse<List<ReadCustomerDTO>>>
 {
   private readonly ApplicationDbContext _dbContext;
   private readonly IMapper _mapper;
@@ -19,24 +21,44 @@ public class GetAllCustomerHandler : IRequestHandler<GetAllCustomerQueries, ApiR
     _mapper = mapper;
     _logger = logger;
   }
-  public async Task<ApiResponse<List<CustomerDTO>>> Handle(GetAllCustomerQueries request, CancellationToken cancellationToken)
+  public async Task<ApiResponse<List<ReadCustomerDTO>>> Handle(GetAllCustomerQueries request, CancellationToken cancellationToken)
   {
     try
     {
-      var customers = await _dbContext.Customers.ToListAsync(cancellationToken);
-      if (customers == null || !customers.Any())
-      {
-        return new ApiResponse<List<CustomerDTO>>(false, "No customers found", null!);
-      }
+      var result = await (
+       from customer in _dbContext.Customers
+       join occupation in _dbContext.Occupations on customer.OccupationId equals occupation.Id
+       join maritalStatus in _dbContext.MaritalStatuses on customer.MaritalStatusId equals maritalStatus.Id
+       join contatInfo in _dbContext.ContactInfos on customer.Id equals contatInfo.CustomerId
 
-      var customerDtos = _mapper.Map<List<CustomerDTO>>(customers);
+       select new ReadCustomerDTO
+       {
+         Id = customer.Id,
+         FirstName = customer.FirstName,
+         LastName = customer.LastName,
+         MiddleName = customer.MiddleName,
+         DateOfBirth = customer.DateOfBirth,
+         SsnOrItin = customer.SsnOrItin,
+         IsActive = customer.IsActive,
+         IsLogin = contatInfo.IsLoggin,
+         Occupation = occupation.Name,
+         MaritalStatus = maritalStatus.Name
+       }
+   ).ToListAsync();
+      if (result is null || !result.Any())
+      {
+        _logger.LogInformation("No customers found.");
+        return new ApiResponse<List<ReadCustomerDTO>>(false, "No customers found", null!);
+      }
+   
+        var customerDtos = _mapper.Map<List<ReadCustomerDTO>>(result);
       _logger.LogInformation("Customers retrieved successfully: {Customers}", customerDtos);
-      return new ApiResponse<List<CustomerDTO>>(true, "Customers retrieved successfully", customerDtos);
+      return new ApiResponse<List<ReadCustomerDTO>>(true, "Customers retrieved successfully", customerDtos);
     }
     catch (Exception ex)
     {
       _logger.LogError(ex, "Error retrieving customers: {Message}", ex.Message);
-      return new ApiResponse<List<CustomerDTO>>(false, ex.Message, null!);
+      return new ApiResponse<List<ReadCustomerDTO>>(false, ex.Message, null!);
     }
   }
 }

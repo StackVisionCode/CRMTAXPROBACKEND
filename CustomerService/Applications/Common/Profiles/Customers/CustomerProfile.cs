@@ -8,6 +8,6 @@ public class CustomerProfile : Profile
 {
   public CustomerProfile()
   {
-    CreateMap<CustomerDTO, Customer>().ReverseMap();
+    CreateMap<CreateCustomerDTO, Customer>().ReverseMap();
   }
 }
