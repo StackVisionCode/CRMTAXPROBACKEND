@@ -38,8 +38,10 @@ namespace CustomerService.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
@@ -73,8 +75,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
@@ -118,8 +122,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
@@ -171,8 +177,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
@@ -208,8 +216,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -229,25 +239,25 @@ namespace CustomerService.Migrations
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Single"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "MarriedJoint"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "MarriedSeparate"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "HeadOfHousehold"
                         });
                 });
@@ -258,8 +268,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -279,25 +291,25 @@ namespace CustomerService.Migrations
                         new
                         {
                             Id = new Guid("30000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Single"
                         },
                         new
                         {
                             Id = new Guid("30000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Married"
                         },
                         new
                         {
                             Id = new Guid("30000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Divorced"
                         },
                         new
                         {
                             Id = new Guid("30000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Widowed"
                         });
                 });
@@ -308,8 +320,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -333,224 +347,224 @@ namespace CustomerService.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Designs and develops software applications.",
                             Name = "Software Developer"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Prepares and examines financial records.",
                             Name = "Accountant"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Instructs students at various educational levels.",
                             Name = "Teacher"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Provides medical care and support to patients.",
                             Name = "Nurse"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000005"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Diagnoses and treats illnesses and injuries.",
                             Name = "Doctor"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000006"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Installs and repairs electrical systems.",
                             Name = "Electrician"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000007"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Maintains and repairs water systems.",
                             Name = "Plumber"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000008"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Builds and repairs buildings and infrastructure.",
                             Name = "Construction Worker"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000009"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Enforces laws and protects citizens.",
                             Name = "Police Officer"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000010"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Responds to fire and rescue emergencies.",
                             Name = "Firefighter"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000011"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Transports goods over long distances.",
                             Name = "Truck Driver"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000012"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Prepares meals and manages kitchen staff.",
                             Name = "Chef"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000013"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Handles customer transactions at a store.",
                             Name = "Cashier"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000014"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Sells products or services to customers.",
                             Name = "Salesperson"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000015"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Monitors and protects property and people.",
                             Name = "Security Guard"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000016"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Cuts, colors, and styles hair.",
                             Name = "Hairdresser"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000017"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Repairs and maintains vehicles and machinery.",
                             Name = "Mechanic"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000018"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Cleans and maintains buildings.",
                             Name = "Janitor"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000019"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Manages front desk and greets visitors.",
                             Name = "Receptionist"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000020"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Handles administrative and clerical tasks.",
                             Name = "Secretary"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000021"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Designs and oversees projects in various fields.",
                             Name = "Engineer"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000022"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Builds and maintains websites and web apps.",
                             Name = "Web Developer"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000023"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Provides legal advice and representation.",
                             Name = "Lawyer"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000024"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Treats issues related to teeth and oral health.",
                             Name = "Dentist"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000025"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Captures images professionally.",
                             Name = "Photographer"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000026"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Drives clients using the Uber app.",
                             Name = "Uber Driver"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000027"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Drives clients using the Lyft platform.",
                             Name = "Lyft Driver"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000028"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Provides transport via digital platforms.",
                             Name = "Rideshare Driver"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000029"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Delivers food or packages locally.",
                             Name = "Delivery Driver"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000030"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Transports documents or items locally.",
                             Name = "Courier"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000031"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Works independently in various fields.",
                             Name = "Freelancer"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000032"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Runs their own business or services.",
                             Name = "Self-Employed"
                         });
@@ -562,8 +576,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -583,19 +599,19 @@ namespace CustomerService.Migrations
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Email"
                         },
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "SMS"
                         },
                         new
                         {
                             Id = new Guid("40000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Call"
                         });
                 });
@@ -606,8 +622,10 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -627,55 +645,55 @@ namespace CustomerService.Migrations
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Son"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Daughter"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Spouse"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Father"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000005"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Mother"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000006"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Brother"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000007"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Sister"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000008"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Grandparent"
                         },
                         new
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000009"),
-                            CreatedAt = new DateTime(2025, 5, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Other"
                         });
                 });
@@ -692,8 +710,10 @@ namespace CustomerService.Migrations
                     b.Property<string>("BankRoutingNumber")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");

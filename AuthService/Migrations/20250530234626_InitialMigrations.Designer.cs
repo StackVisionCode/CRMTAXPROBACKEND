@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuthService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250529040206_InitialMigrations")]
+    [Migration("20250530234626_InitialMigrations")]
     partial class InitialMigrations
     {
         /// <inheritdoc />
@@ -40,8 +40,10 @@ namespace AuthService.Migrations
                     b.Property<string>("CompanyName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -69,8 +71,10 @@ namespace AuthService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -93,26 +97,31 @@ namespace AuthService.Migrations
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440001"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Write"
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440002"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Reader"
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440003"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "View"
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440004"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Delete"
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440005"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Update"
                         });
                 });
@@ -123,8 +132,10 @@ namespace AuthService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -147,12 +158,14 @@ namespace AuthService.Migrations
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655441001"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
                             Name = "Administrator"
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655441002"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
                             Name = "User"
                         });
@@ -164,8 +177,10 @@ namespace AuthService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -194,8 +209,10 @@ namespace AuthService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -253,8 +270,10 @@ namespace AuthService.Migrations
                     b.Property<string>("ConfirmToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
@@ -312,8 +331,10 @@ namespace AuthService.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");

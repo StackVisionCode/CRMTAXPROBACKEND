@@ -24,7 +24,7 @@ namespace AuthService.Migrations
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserLimit = table.Column<int>(type: "int", nullable: false),
                     Brand = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -40,7 +40,7 @@ namespace AuthService.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -56,7 +56,7 @@ namespace AuthService.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -72,7 +72,7 @@ namespace AuthService.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     PermissionsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -111,7 +111,7 @@ namespace AuthService.Migrations
                     Factor2 = table.Column<bool>(type: "bit", nullable: true),
                     Otp = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     OtpExpires = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -146,7 +146,7 @@ namespace AuthService.Migrations
                     Logintude = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Device = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsRevoke = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -172,7 +172,7 @@ namespace AuthService.Migrations
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -189,23 +189,23 @@ namespace AuthService.Migrations
 
             migrationBuilder.InsertData(
                 table: "Permissions",
-                columns: new[] { "Id", "CreatedAt", "DeleteAt", "Description", "Name", "UpdatedAt" },
+                columns: new[] { "Id", "DeleteAt", "Description", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { new Guid("550e8400-e29b-41d4-a716-446655440001"), null, null, null, "Write", null },
-                    { new Guid("550e8400-e29b-41d4-a716-446655440002"), null, null, null, "Reader", null },
-                    { new Guid("550e8400-e29b-41d4-a716-446655440003"), null, null, null, "View", null },
-                    { new Guid("550e8400-e29b-41d4-a716-446655440004"), null, null, null, "Delete", null },
-                    { new Guid("550e8400-e29b-41d4-a716-446655440005"), null, null, null, "Update", null }
+                    { new Guid("550e8400-e29b-41d4-a716-446655440001"), null, null, "Write", null },
+                    { new Guid("550e8400-e29b-41d4-a716-446655440002"), null, null, "Reader", null },
+                    { new Guid("550e8400-e29b-41d4-a716-446655440003"), null, null, "View", null },
+                    { new Guid("550e8400-e29b-41d4-a716-446655440004"), null, null, "Delete", null },
+                    { new Guid("550e8400-e29b-41d4-a716-446655440005"), null, null, "Update", null }
                 });
 
             migrationBuilder.InsertData(
                 table: "Roles",
-                columns: new[] { "Id", "CreatedAt", "DeleteAt", "Description", "Name", "UpdatedAt" },
+                columns: new[] { "Id", "DeleteAt", "Description", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { new Guid("550e8400-e29b-41d4-a716-446655441001"), null, null, "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.", "Administrator", null },
-                    { new Guid("550e8400-e29b-41d4-a716-446655441002"), null, null, "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality", "User", null }
+                    { new Guid("550e8400-e29b-41d4-a716-446655441001"), null, "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.", "Administrator", null },
+                    { new Guid("550e8400-e29b-41d4-a716-446655441002"), null, "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality", "User", null }
                 });
 
             migrationBuilder.CreateIndex(
