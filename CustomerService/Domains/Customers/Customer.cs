@@ -4,7 +4,6 @@ namespace CustomerService.Domains.Customers;
 
 public class Customer : BaseEntity
 {
-
   // Personal
   public required Guid TaxUserId { get; set; }
   public required Guid OccupationId { get; set; }
@@ -17,18 +16,13 @@ public class Customer : BaseEntity
 
   public Guid MaritalStatusId { get; set; }
   public required bool IsActive { get; set; }
-  
-
-
 
   // Navegación
-
   public virtual MaritalStatus? MaritalStatus { get; set; }
   public virtual Address? Address { get; set; }
   public virtual ContactInfo? Contact { get; set; }
   public virtual List<Dependent>? Dependents { get; set; }
   public virtual TaxInformation? TaxInfo { get; set; }
-
   public virtual Occupation? Occupation { get; set; }
 
 }

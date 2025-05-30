@@ -9,7 +9,7 @@ public class ApplicationDbContext : DbContext
     {
 
     }
-// DbSets for each entity in the domain
+    // DbSets for each entity in the domain
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Occupation> Occupations { get; set; }
     public DbSet<ContactInfo> ContactInfos { get; set; }
@@ -22,7 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PreferredContact> PreferredContacts { get; set; }
 
 
-// Configuring the model relationships and constraints
+    // Configuring the model relationships and constraints
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -94,6 +94,10 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(c => c.PreferredContactId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // Configure decimal precision for TaxInformation.LastYearAGI
+        modelBuilder.Entity<TaxInformation>()
+            .Property(t => t.LastYearAGI)
+            .HasPrecision(18, 2); // 18 total digits, 2 decimal places
 
         // Configure table names and keys
 
@@ -118,82 +122,75 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<PreferredContact>().ToTable("PreferredContacts");
         modelBuilder.Entity<PreferredContact>().HasKey(p => p.Id);
 
-
+        // Seed data for initial values
+        var seedDate = new DateTime(2025, 5, 30, 0, 0, 0, DateTimeKind.Utc);
 
         // Seed data for initial values
-
         modelBuilder.Entity<PreferredContact>().HasData(
-    new PreferredContact { Id = Guid.Parse("40000000-0000-0000-0000-000000000001"), Name = "Email" },
-    new PreferredContact { Id = Guid.Parse("40000000-0000-0000-0000-000000000002"), Name = "SMS" },
-    new PreferredContact { Id = Guid.Parse("40000000-0000-0000-0000-000000000003"), Name = "Call" }
+    new PreferredContact { Id = Guid.Parse("40000000-0000-0000-0000-000000000001"), Name = "Email", CreatedAt = seedDate },
+    new PreferredContact { Id = Guid.Parse("40000000-0000-0000-0000-000000000002"), Name = "SMS", CreatedAt = seedDate },
+    new PreferredContact { Id = Guid.Parse("40000000-0000-0000-0000-000000000003"), Name = "Call", CreatedAt = seedDate }
 );
 
-
-
         modelBuilder.Entity<MaritalStatus>().HasData(
-            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000001"), Name = "Single" },
-            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000002"), Name = "Married" },
-            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000003"), Name = "Divorced" },
-            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000004"), Name = "Widowed" }
+            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000001"), Name = "Single", CreatedAt = seedDate },
+            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000002"), Name = "Married", CreatedAt = seedDate },
+            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000003"), Name = "Divorced", CreatedAt = seedDate },
+            new MaritalStatus { Id = Guid.Parse("30000000-0000-0000-0000-000000000004"), Name = "Widowed", CreatedAt = seedDate }
         );
 
-
         modelBuilder.Entity<FilingStatus>().HasData(
-            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000001"), Name = "Single" },
-            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000002"), Name = "MarriedJoint" },
-            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000003"), Name = "MarriedSeparate" },
-            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000004"), Name = "HeadOfHousehold" }
+            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000001"), Name = "Single", CreatedAt = seedDate },
+            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000002"), Name = "MarriedJoint", CreatedAt = seedDate },
+            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000003"), Name = "MarriedSeparate", CreatedAt = seedDate },
+            new FilingStatus { Id = Guid.Parse("20000000-0000-0000-0000-000000000004"), Name = "HeadOfHousehold", CreatedAt = seedDate }
         );
 
         modelBuilder.Entity<Relationship>().HasData(
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000001"), Name = "Son" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000002"), Name = "Daughter" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000003"), Name = "Spouse" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000004"), Name = "Father" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000005"), Name = "Mother" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000006"), Name = "Brother" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000007"), Name = "Sister" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000008"), Name = "Grandparent" },
-            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000009"), Name = "Other" }
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000001"), Name = "Son", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000002"), Name = "Daughter", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000003"), Name = "Spouse", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000004"), Name = "Father", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000005"), Name = "Mother", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000006"), Name = "Brother", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000007"), Name = "Sister", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000008"), Name = "Grandparent", CreatedAt = seedDate },
+            new Relationship { Id = Guid.Parse("10000000-0000-0000-0000-000000000009"), Name = "Other", CreatedAt = seedDate }
         );
 
-
         modelBuilder.Entity<Occupation>().HasData(
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Software Developer", Description = "Designs and develops software applications." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "Accountant", Description = "Prepares and examines financial records." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Teacher", Description = "Instructs students at various educational levels." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000004"), Name = "Nurse", Description = "Provides medical care and support to patients." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000005"), Name = "Doctor", Description = "Diagnoses and treats illnesses and injuries." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000006"), Name = "Electrician", Description = "Installs and repairs electrical systems." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000007"), Name = "Plumber", Description = "Maintains and repairs water systems." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000008"), Name = "Construction Worker", Description = "Builds and repairs buildings and infrastructure." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000009"), Name = "Police Officer", Description = "Enforces laws and protects citizens." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000010"), Name = "Firefighter", Description = "Responds to fire and rescue emergencies." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000011"), Name = "Truck Driver", Description = "Transports goods over long distances." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000012"), Name = "Chef", Description = "Prepares meals and manages kitchen staff." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000013"), Name = "Cashier", Description = "Handles customer transactions at a store." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000014"), Name = "Salesperson", Description = "Sells products or services to customers." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000015"), Name = "Security Guard", Description = "Monitors and protects property and people." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000016"), Name = "Hairdresser", Description = "Cuts, colors, and styles hair." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000017"), Name = "Mechanic", Description = "Repairs and maintains vehicles and machinery." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000018"), Name = "Janitor", Description = "Cleans and maintains buildings." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000019"), Name = "Receptionist", Description = "Manages front desk and greets visitors." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000020"), Name = "Secretary", Description = "Handles administrative and clerical tasks." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000021"), Name = "Engineer", Description = "Designs and oversees projects in various fields." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000022"), Name = "Web Developer", Description = "Builds and maintains websites and web apps." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000023"), Name = "Lawyer", Description = "Provides legal advice and representation." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000024"), Name = "Dentist", Description = "Treats issues related to teeth and oral health." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000025"), Name = "Photographer", Description = "Captures images professionally." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000026"), Name = "Uber Driver", Description = "Drives clients using the Uber app." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000027"), Name = "Lyft Driver", Description = "Drives clients using the Lyft platform." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000028"), Name = "Rideshare Driver", Description = "Provides transport via digital platforms." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000029"), Name = "Delivery Driver", Description = "Delivers food or packages locally." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000030"), Name = "Courier", Description = "Transports documents or items locally." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000031"), Name = "Freelancer", Description = "Works independently in various fields." },
-         new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000032"), Name = "Self-Employed", Description = "Runs their own business or services." }
-     );
-
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Software Developer", Description = "Designs and develops software applications.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "Accountant", Description = "Prepares and examines financial records.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Teacher", Description = "Instructs students at various educational levels.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000004"), Name = "Nurse", Description = "Provides medical care and support to patients.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000005"), Name = "Doctor", Description = "Diagnoses and treats illnesses and injuries.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000006"), Name = "Electrician", Description = "Installs and repairs electrical systems.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000007"), Name = "Plumber", Description = "Maintains and repairs water systems.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000008"), Name = "Construction Worker", Description = "Builds and repairs buildings and infrastructure.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000009"), Name = "Police Officer", Description = "Enforces laws and protects citizens.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000010"), Name = "Firefighter", Description = "Responds to fire and rescue emergencies.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000011"), Name = "Truck Driver", Description = "Transports goods over long distances.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000012"), Name = "Chef", Description = "Prepares meals and manages kitchen staff.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000013"), Name = "Cashier", Description = "Handles customer transactions at a store.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000014"), Name = "Salesperson", Description = "Sells products or services to customers.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000015"), Name = "Security Guard", Description = "Monitors and protects property and people.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000016"), Name = "Hairdresser", Description = "Cuts, colors, and styles hair.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000017"), Name = "Mechanic", Description = "Repairs and maintains vehicles and machinery.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000018"), Name = "Janitor", Description = "Cleans and maintains buildings.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000019"), Name = "Receptionist", Description = "Manages front desk and greets visitors.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000020"), Name = "Secretary", Description = "Handles administrative and clerical tasks.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000021"), Name = "Engineer", Description = "Designs and oversees projects in various fields.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000022"), Name = "Web Developer", Description = "Builds and maintains websites and web apps.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000023"), Name = "Lawyer", Description = "Provides legal advice and representation.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000024"), Name = "Dentist", Description = "Treats issues related to teeth and oral health.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000025"), Name = "Photographer", Description = "Captures images professionally.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000026"), Name = "Uber Driver", Description = "Drives clients using the Uber app.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000027"), Name = "Lyft Driver", Description = "Drives clients using the Lyft platform.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000028"), Name = "Rideshare Driver", Description = "Provides transport via digital platforms.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000029"), Name = "Delivery Driver", Description = "Delivers food or packages locally.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000030"), Name = "Courier", Description = "Transports documents or items locally.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000031"), Name = "Freelancer", Description = "Works independently in various fields.", CreatedAt = seedDate },
+        new Occupation { Id = Guid.Parse("00000000-0000-0000-0000-000000000032"), Name = "Self-Employed", Description = "Runs their own business or services.", CreatedAt = seedDate }
+    );
     }
-
-
 }
