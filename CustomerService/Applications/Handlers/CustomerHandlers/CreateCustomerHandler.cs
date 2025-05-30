@@ -3,6 +3,7 @@ using Common;
 using CustomerService.Commands.CustomerCommands;
 using CustomerService.Infrastructure.Context;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace CustomerService.Handlers.CustomerHandlers;
 
@@ -21,6 +22,14 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommands, Api
   {
     try
     {
+   var exists = await _dbContext.Customers
+            .AnyAsync(c => c.SsnOrItin == request.customer.SsnOrItin, cancellationToken);
+
+        if (exists)
+        {
+            _logger.LogWarning("Customer already exists with SSN/ITIN: {SsnOrItin}", request.customer.SsnOrItin);
+            return new ApiResponse<bool>(false, "Customer with this SSN or ITIN already exists.", false);
+        }
       var customer = _mapper.Map<Domains.Customers.Customer>(request.customer);
       customer.CreatedAt = DateTime.UtcNow;
       await _dbContext.Customers.AddAsync(customer, cancellationToken);

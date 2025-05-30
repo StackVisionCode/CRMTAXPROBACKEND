@@ -27,6 +27,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
         _passwordHash = passwordHash;
     }
 
+
     public async Task<ApiResponse<bool>> Handle(CreateTaxUserCommands request, CancellationToken cancellationToken)
     {
         // Usar transacción para asegurar atomicidad
@@ -92,6 +93,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
             return new ApiResponse<bool>(false, ex.Message, false);
         }
     }
+
 
     private async Task<bool> Exists(NewUserDTO userDTO)
     {

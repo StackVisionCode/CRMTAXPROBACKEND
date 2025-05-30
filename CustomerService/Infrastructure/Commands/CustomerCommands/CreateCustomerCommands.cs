@@ -4,4 +4,4 @@ using MediatR;
 
 namespace CustomerService.Commands.CustomerCommands;
 
-public record class CreateCustomerCommands(CustomerDTO customer) : IRequest<ApiResponse<bool>>;
+public record class CreateCustomerCommands(CreateCustomerDTO customer) : IRequest<ApiResponse<bool>>;
