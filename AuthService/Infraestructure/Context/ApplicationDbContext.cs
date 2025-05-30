@@ -71,6 +71,8 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(s => s.TaxUserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        var seedDate = new DateTime(2025, 5, 30, 0, 0, 0, DateTimeKind.Utc);
+
         //todo Permission data default
         modelBuilder.Entity<Permission>().HasData(
             new Permission
@@ -78,31 +80,31 @@ public class ApplicationDbContext : DbContext
                 Id = new Guid("550e8400-e29b-41d4-a716-446655440001"),
                 Name = "Write",
                 RolePermissions = new List<RolePermissions>(), // Initialize as an empty list or provide appropriate values
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = seedDate
             }, new Permission
             {
                 Id = new Guid("550e8400-e29b-41d4-a716-446655440002"),
                 Name = "Reader",
                 RolePermissions = new List<RolePermissions>(), // Initialize as an empty list or provide appropriate values
-                CreatedAt=DateTime.UtcNow
+                CreatedAt= seedDate
             }, new Permission
             {
                 Id = new Guid("550e8400-e29b-41d4-a716-446655440003"),
                 Name = "View",
                 RolePermissions = new List<RolePermissions>(), // Initialize as an empty list or provide appropriate values
-                CreatedAt=DateTime.UtcNow
+                CreatedAt= seedDate
             }, new Permission
             {
                 Id = new Guid("550e8400-e29b-41d4-a716-446655440004"),
                 Name = "Delete",
                 RolePermissions = new List<RolePermissions>(), // Initialize as an empty list or provide appropriate values
-                CreatedAt=DateTime.UtcNow
+                CreatedAt= seedDate
             }, new Permission
             {
                 Id = new Guid("550e8400-e29b-41d4-a716-446655440005"),
                 Name = "Update",
                 RolePermissions = new List<RolePermissions>(),
-                CreatedAt=DateTime.UtcNow
+                CreatedAt= seedDate
             });
 
         //todo Role data default
@@ -112,13 +114,13 @@ public class ApplicationDbContext : DbContext
             Id = new Guid("550e8400-e29b-41d4-a716-446655441001"),
             Name = "Administrator",
             Description = "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
-            CreatedAt= DateTime.UtcNow,
+            CreatedAt= seedDate,
         }, new Role
         {
             Id = new Guid("550e8400-e29b-41d4-a716-446655441002"),
             Name = "User",
             Description = "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = seedDate,
         });
     }
 }

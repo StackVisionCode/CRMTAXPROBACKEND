@@ -57,6 +57,9 @@ internal sealed class TokenService : ITokenService
             claims.Add(new Claim("picture", req.User.PhotoUrl));
 
         if (!string.IsNullOrWhiteSpace(req.User.CompanyName))
+            claims.Add(new Claim("companyId", req.User.CompanyId.ToString()));
+
+        if (!string.IsNullOrWhiteSpace(req.User.CompanyName))
             claims.Add(new Claim("companyName", req.User.CompanyName));
 
         if (!string.IsNullOrWhiteSpace(req.User.CompanyBrand))
@@ -68,7 +71,7 @@ internal sealed class TokenService : ITokenService
             Expires = DateTime.UtcNow.Add(req.LifeTime),
             Issuer = _cfg.Issuer,
             Audience = _cfg.Audience,
-            SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
+            SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512)
         });
 
         return new(handler.WriteToken(token), token.ValidTo);

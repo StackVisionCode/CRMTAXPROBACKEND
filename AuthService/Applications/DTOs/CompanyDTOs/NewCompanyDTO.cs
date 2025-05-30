@@ -12,6 +12,7 @@ public class NewCompanyDTO
   public string? Description { get; set; }
   [Range(1, int.MaxValue, ErrorMessage = "UserLimit must be greater than 0.")]
   public int UserLimit { get; set; } 
+  public string? Domain { get; set; }
   [EmailAddress]
   public required string? Email { get; set; }
   public string? Brand { get; set; }
