@@ -8,6 +8,7 @@ public class UserProfileDTO
     public string? LastName { get; set; }
     public string? Address { get; set; }
     public string? PhotoUrl { get; set; }
+    public string? Domain { get; set; }
     public Guid RoleId { get; set; }
     public string RoleName { get; set; } = string.Empty;
     public Guid CompanyId { get; set; }
