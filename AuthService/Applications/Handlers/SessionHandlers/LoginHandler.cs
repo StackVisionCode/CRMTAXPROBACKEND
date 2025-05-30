@@ -54,6 +54,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
 
             // 2. Objetos compuestos para el token 
             var profile = user.TaxUserProfile;
+            var companyId = user.Company?.Id;
             var companyName = user.Company?.FullName;
             var companyBrand = user.Company?.Brand;
 
@@ -64,6 +65,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 profile?.LastName ?? string.Empty,
                 profile?.Address ?? string.Empty,
                 profile?.PhotoUrl ?? string.Empty,
+                companyId ?? Guid.Empty,
                 companyName ?? string.Empty,
                 companyBrand ?? string.Empty);
 
