@@ -1,7 +1,18 @@
 namespace SharedLibrary.DTOs;
 
 /// Información del usuario que irá dentro del JWT
-public sealed record UserInfo(Guid UserId, string Email, string? Name, string? LastName, string? Address, string? PhotoUrl, Guid CompanyId, string? CompanyName, string? CompanyBrand);
+public sealed record UserInfo(
+    Guid UserId,
+    string Email,
+    string? Name,
+    string? LastName,
+    string? Address,
+    string? PhotoUrl,
+    Guid CompanyId,
+    string? CompanyName,
+    string? FullName,
+    string? CompanyBrand
+);
 
 /// Información de la sesión (podrían añadirse IP, device, etc.)
 public sealed record SessionInfo(Guid Id);
@@ -10,4 +21,4 @@ public sealed record SessionInfo(Guid Id);
 public sealed record TokenGenerationRequest(UserInfo User, SessionInfo Session, TimeSpan LifeTime);
 
 /// Resultado del token
-public sealed record TokenResult( string AccessToken, DateTime ExpireAt);
+public sealed record TokenResult(string AccessToken, DateTime ExpireAt);

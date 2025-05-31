@@ -12,6 +12,7 @@ public class UserProfileDTO
     public Guid RoleId { get; set; }
     public string RoleName { get; set; } = string.Empty;
     public Guid CompanyId { get; set; }
+    public string? FullName { get; set; }
     public string? CompanyName { get; set; }
     public string? CompanyBrand { get; set; }
 }

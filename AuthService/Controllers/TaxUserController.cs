@@ -118,6 +118,23 @@ namespace AuthService.Controllers
                 profileDto.LastName = User.FindFirst(ClaimTypes.Surname)?.Value;
             }
 
+            // AGREGAR: Si FullName está vacío, usar el del JWT
+            if (string.IsNullOrWhiteSpace(profileDto.FullName))
+            {
+                profileDto.FullName = User.FindFirst("fullName")?.Value;
+            }
+
+            // OPCIONAL: También puedes enriquecer otros campos si están vacíos
+            if (string.IsNullOrWhiteSpace(profileDto.CompanyName))
+            {
+                profileDto.CompanyName = User.FindFirst("companyName")?.Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(profileDto.CompanyBrand))
+            {
+                profileDto.CompanyBrand = User.FindFirst("companyBrand")?.Value;
+            }
+
             // Crear respuesta enriquecida
             var enrichedResponse = new ApiResponse<UserProfileDTO>(true, "Ok", profileDto);
 

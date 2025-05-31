@@ -13,5 +13,6 @@ public sealed record UserLoginEvent(
     Guid CompanyId,
     string CompanyName,
     string FullName,
+    string DisplayName,
     int Year
 ) : IntegrationEvent(Id, OccurredOn);

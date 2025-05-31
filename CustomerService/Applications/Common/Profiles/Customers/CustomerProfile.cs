@@ -10,7 +10,9 @@ public class CustomerProfile : Profile
     public CustomerProfile()
     {
         CreateMap<CreateCustomerDTO, Customer>().ReverseMap();
+        CreateMap<UpdateCustomerDTO, Customer>().ReverseMap();
         CreateMap<ReadCustomerDTO, Customer>().ReverseMap();
         CreateMap<CreateCustomerCommands, Customer>().ReverseMap();
+        CreateMap<UpdateCustomerCommands, Customer>().ReverseMap();
     }
 }

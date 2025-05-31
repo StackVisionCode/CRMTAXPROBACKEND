@@ -1,9 +1,9 @@
+using System.Net;
 using System.Net.Mail;
 using System.Net.Mime;
-using System.Net;
-using SharedLibrary.DTOs;
-using SharedLibrary.Contracts;
 using EmailServices.Services;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs;
 
 public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEvent>
 {
@@ -12,10 +12,12 @@ public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEv
     private readonly ILogger<UserLoginEventHandler> _log;
     private readonly IHostEnvironment _env;
 
-    public UserLoginEventHandler(IEmailTemplateRenderer renderer,
-                                IEmailConfigProvider cfgProvider,
-                                ILogger<UserLoginEventHandler> log,
-                                IHostEnvironment env)
+    public UserLoginEventHandler(
+        IEmailTemplateRenderer renderer,
+        IEmailConfigProvider cfgProvider,
+        ILogger<UserLoginEventHandler> log,
+        IHostEnvironment env
+    )
     {
         _renderer = renderer;
         _cfgProvider = cfgProvider;
@@ -39,9 +41,10 @@ public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEv
             evt.Device,
             evt.CompanyId,
             evt.CompanyName,
+            evt.FullName,
             // Lógica para determinar FullName
-            FullName = DetermineDisplayName(evt),
-            Year = DateTime.Now.Year
+            DisplayName = DetermineDisplayName(evt),
+            Year = DateTime.Now.Year,
         };
 
         // 2. Renderizar HTML
@@ -65,11 +68,15 @@ public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEv
         string logoPath = Path.Combine(assetsDir, "logo.png");
         if (File.Exists(logoPath))
         {
-            AlternateView avHtml = AlternateView.CreateAlternateViewFromString(bodyHtml, null, MediaTypeNames.Text.Html);
+            AlternateView avHtml = AlternateView.CreateAlternateViewFromString(
+                bodyHtml,
+                null,
+                MediaTypeNames.Text.Html
+            );
             LinkedResource logo = new(logoPath, MediaTypeNames.Image.Png)
             {
                 ContentId = "logo_cid",
-                TransferEncoding = TransferEncoding.Base64
+                TransferEncoding = TransferEncoding.Base64,
             };
             avHtml.LinkedResources.Add(logo);
             msg.AlternateViews.Add(avHtml);
@@ -82,15 +89,20 @@ public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEv
         // 4. Enviar
         using var smtp = new SmtpClient(cfg.Host, cfg.Port)
         {
-            EnableSsl = cfg.EnableSsl,   // true
+            EnableSsl = cfg.EnableSsl, // true
             DeliveryMethod = SmtpDeliveryMethod.Network,
             UseDefaultCredentials = false,
             Credentials = new NetworkCredential(cfg.User, cfg.Password),
-            Timeout = 15000
+            Timeout = 15000,
         };
         try
         {
-            _log.LogInformation("👉 Intentando enviar correo a {0} vía {1}:{2}", evt.Email, cfg.Host, cfg.Port);
+            _log.LogInformation(
+                "👉 Intentando enviar correo a {0} vía {1}:{2}",
+                evt.Email,
+                cfg.Host,
+                cfg.Port
+            );
             await smtp.SendMailAsync(msg);
             _log.LogInformation("✅ Correo enviado");
         }
@@ -104,9 +116,11 @@ public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEv
     private static string DetermineDisplayName(UserLoginEvent evt)
     {
         // Si tiene CompanyName y no tiene Name/LastName (usuario de oficina)
-        if (!string.IsNullOrWhiteSpace(evt.CompanyName) &&
-            string.IsNullOrWhiteSpace(evt.Name) &&
-            string.IsNullOrWhiteSpace(evt.LastName))
+        if (
+            !string.IsNullOrWhiteSpace(evt.CompanyName)
+            && string.IsNullOrWhiteSpace(evt.Name)
+            && string.IsNullOrWhiteSpace(evt.LastName)
+        )
         {
             return evt.CompanyName;
         }

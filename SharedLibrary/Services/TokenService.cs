@@ -21,27 +21,28 @@ internal sealed class TokenService : ITokenService
         _logger = logger;
     }
 
-
     public TokenResult Generate(TokenGenerationRequest req)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg.SecretKey));
         var handler = new JwtSecurityTokenHandler();
 
         // Construir nombre completo correctamente
-        var fullName = $"{req.User.Name} {req.User.LastName}".Trim();
+        var completeName = $"{req.User.Name} {req.User.LastName}".Trim();
 
         // Si viene CompanyName ⇒ ese será el ClaimTypes.Name
-        var displayName = string.IsNullOrWhiteSpace(req.User.CompanyName) ? fullName : req.User.CompanyName!;
+        var displayName = string.IsNullOrWhiteSpace(req.User.CompanyName)
+            ? completeName
+            : req.User.CompanyName!;
 
         var claims = new List<Claim>
-    {
-        new(JwtRegisteredClaimNames.Sub,  req.User.UserId.ToString()),
-        new(ClaimTypes.NameIdentifier,    req.User.UserId.ToString()),
-        new(ClaimTypes.Email,             req.User.Email),
-        new(ClaimTypes.Name,              displayName),
-        new(JwtRegisteredClaimNames.Jti,  Guid.NewGuid().ToString()),
-        new("sid",                        req.Session.Id.ToString())
-    };
+        {
+            new(JwtRegisteredClaimNames.Sub, req.User.UserId.ToString()),
+            new(ClaimTypes.NameIdentifier, req.User.UserId.ToString()),
+            new(ClaimTypes.Email, req.User.Email),
+            new(ClaimTypes.Name, displayName),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("sid", req.Session.Id.ToString()),
+        };
 
         // estándar + custom
         if (!string.IsNullOrWhiteSpace(req.User.Name))
@@ -56,23 +57,28 @@ internal sealed class TokenService : ITokenService
         if (!string.IsNullOrWhiteSpace(req.User.PhotoUrl))
             claims.Add(new Claim("picture", req.User.PhotoUrl));
 
-        if (!string.IsNullOrWhiteSpace(req.User.CompanyName))
+        if (req.User.CompanyId != Guid.Empty)
             claims.Add(new Claim("companyId", req.User.CompanyId.ToString()));
 
         if (!string.IsNullOrWhiteSpace(req.User.CompanyName))
             claims.Add(new Claim("companyName", req.User.CompanyName));
 
+        if (!string.IsNullOrWhiteSpace(req.User.FullName))
+            claims.Add(new Claim("fullName", req.User.FullName));
+
         if (!string.IsNullOrWhiteSpace(req.User.CompanyBrand))
             claims.Add(new Claim("companyBrand", req.User.CompanyBrand));
 
-        var token = handler.CreateToken(new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.Add(req.LifeTime),
-            Issuer = _cfg.Issuer,
-            Audience = _cfg.Audience,
-            SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512)
-        });
+        var token = handler.CreateToken(
+            new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.Add(req.LifeTime),
+                Issuer = _cfg.Issuer,
+                Audience = _cfg.Audience,
+                SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256),
+            }
+        );
 
         return new(handler.WriteToken(token), token.ValidTo);
     }

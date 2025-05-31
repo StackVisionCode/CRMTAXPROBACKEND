@@ -1,0 +1,19 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace CustomerService.DTOs.CustomerDTOs;
+
+public class UpdateCustomerDTO
+{
+    [Key]
+    public required Guid Id { get; set; }
+    public required Guid TaxUserId { get; set; }
+    public required Guid OccupationId { get; set; }
+    public required Guid MaritalStatusId { get; set; }
+    public required Guid CustomerTypeId { get; set; }
+    public required string FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? MiddleName { get; set; }
+    public DateTime DateOfBirth { get; set; }
+    public required string SsnOrItin { get; set; }
+    public required bool IsActive { get; set; }
+}
