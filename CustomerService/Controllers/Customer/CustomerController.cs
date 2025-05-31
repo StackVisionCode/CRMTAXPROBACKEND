@@ -7,43 +7,49 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CustomerService.Controllers.Customer
 {
-  [ApiController]
-  [Route("api/[controller]")]
-  public class CustomerController : ControllerBase
-  {
-    private readonly IMediator _mediator;
-    public CustomerController(IMediator mediator)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CustomerController : ControllerBase
     {
-      _mediator = mediator;
+        private readonly IMediator _mediator;
+
+        public CustomerController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpPost("Create")]
+        public async Task<ActionResult<ApiResponse<bool>>> Create(
+            [FromBody] CreateCustomerDTO customer
+        )
+        {
+            var command = new CreateCustomerCommands(customer);
+            var result = await _mediator.Send(command);
+            if (result == null)
+                return BadRequest(new { message = "Failed to create a customer" });
+            return Ok(result);
+        }
+
+        [HttpGet("GetAll")]
+        public async Task<ActionResult> GetAll()
+        {
+            var command = new GetAllCustomerQueries();
+            var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetById")]
+        public async Task<ActionResult> GetById(Guid Id)
+        {
+            var command = new GetByIdCustomerQueries(Id);
+            var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
     }
-
-    [HttpPost("Create")]
-    public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] CreateCustomerDTO customerDto)
-    {
-      var command = new CreateCustomerCommands(customerDto);
-      var result = await _mediator.Send(command);
-      if (result == null) return BadRequest(new { message = "Failed to create a customer" });
-      return Ok(result);
-    }
-
-    [HttpGet("GetAll")]
-    public async Task<ActionResult> GetAll()
-    {
-      var command = new GetAllCustomerQueries();
-      var result = await _mediator.Send(command);
-      if (result.Success == false) return BadRequest(new { result });
-
-      return Ok(result);
-    }
-
-    [HttpGet("GetById")]
-    public async Task<ActionResult> GetById(Guid Id)
-    {
-      var command = new GetByIdCustomerQueries(Id);
-      var result = await _mediator.Send(command);
-      if (result.Success == false) return BadRequest(new { result });
-
-      return Ok(result);
-    }
-  }
 }

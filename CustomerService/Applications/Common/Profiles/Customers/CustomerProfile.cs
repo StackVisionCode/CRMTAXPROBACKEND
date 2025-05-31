@@ -7,10 +7,10 @@ namespace CustomerService.Profiles.Customers;
 
 public class CustomerProfile : Profile
 {
-  public CustomerProfile()
-  {
-    CreateMap<CreateCustomerDTO, Customer>().ReverseMap();
-    CreateMap<ReadCustomerDTO, Customer>().ReverseMap();
-    CreateMap<CreateCustomerCommands, Customer>().ReverseMap();
-  }
+    public CustomerProfile()
+    {
+        CreateMap<CreateCustomerDTO, Customer>().ReverseMap();
+        CreateMap<ReadCustomerDTO, Customer>().ReverseMap();
+        CreateMap<CreateCustomerCommands, Customer>().ReverseMap();
+    }
 }

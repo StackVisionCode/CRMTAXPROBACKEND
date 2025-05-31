@@ -32,10 +32,10 @@ public class CreateContactInfoHandler
     {
         try
         {
+            var emailNorm = request.contactInfo.Email.Trim().ToUpperInvariant();
+
             var exists = await _dbContext.ContactInfos.AnyAsync(
-                c =>
-                    c.Email == request.contactInfo.Email
-                    && c.CustomerId == request.contactInfo.CustomerId,
+                c => c.Email == emailNorm && c.CustomerId == request.contactInfo.CustomerId,
                 cancellationToken
             );
 
