@@ -11,107 +11,117 @@ using Queries.UserQueries;
 
 namespace AuthService.Controllers
 {
-  [ApiController]
-  [Route("api/[controller]")]
-  public class TaxUserController : ControllerBase
-  {
-    private readonly IMediator _mediator;
-    public TaxUserController(IMediator mediator)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TaxUserController : ControllerBase
     {
-      _mediator = mediator;
+        private readonly IMediator _mediator;
+
+        public TaxUserController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpPost("Create")]
+        public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] NewUserDTO userDto)
+        {
+            // Mapeas el DTO al Command (usando AutoMapper)
+            var command = new CreateTaxUserCommands(userDto);
+            var result = await _mediator.Send(command);
+            if (result == null)
+                return BadRequest(new { message = "Failed to create user" });
+            return Ok(result);
+        }
+
+        [HttpPost("CreateCompany")]
+        public async Task<ActionResult<ApiResponse<bool>>> CreateCompany(
+            [FromBody] NewCompanyDTO companyDto
+        )
+        {
+            // Mapeas el DTO al Command (usando AutoMapper)
+            var command = new CreateTaxCompanyCommands(companyDto);
+            var result = await _mediator.Send(command);
+            if (result == null)
+                return BadRequest(new { message = "Failed to create company" });
+            return Ok(result);
+        }
+
+        [HttpPut("Update")]
+        public async Task<ActionResult<ApiResponse<bool>>> Update([FromBody] UpdateUserDTO userDto)
+        {
+            var command = new UpdateTaxUserCommands(userDto);
+            var result = await _mediator.Send(command);
+            if (result == null)
+                return BadRequest(new { message = "Failed to update user" });
+            return Ok(result);
+        }
+
+        [HttpDelete("Delete")]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        {
+            var command = new DeleteTaxUserCommands(id);
+            var result = await _mediator.Send(command);
+            if (result == null)
+                return BadRequest(new { message = "Failed to delete user" });
+            return Ok(result);
+        }
+
+        [HttpGet("GetAll")]
+        public async Task<ActionResult<ApiResponse<UserGetDTO[]>>> GetAll()
+        {
+            var result = await _mediator.Send(new GetAllUserQuery());
+
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetByUserId")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var command = new GetTaxUserByIdQuery(id);
+            var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
+
+        [HttpGet("Profile")]
+        public async Task<ActionResult<ApiResponse<UserProfileDTO>>> GetProfile()
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized(new ApiResponse<UserProfileDTO>(false, "Invalid session"));
+
+            var command = new GetTaxUserProfileQuery(userId);
+            var result = await _mediator.Send(command);
+
+            if (result.Success != true || result.Data == null)
+                return BadRequest(result);
+
+            // Enriquecer con datos del JWT cuando estén vacíos en BD
+            var profileDto = result.Data;
+
+            // Si name/lastName están vacíos, usar los del JWT
+            if (string.IsNullOrWhiteSpace(profileDto.Name))
+            {
+                profileDto.Name = User.FindFirst(ClaimTypes.GivenName)?.Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(profileDto.LastName))
+            {
+                profileDto.LastName = User.FindFirst(ClaimTypes.Surname)?.Value;
+            }
+
+            // Crear respuesta enriquecida
+            var enrichedResponse = new ApiResponse<UserProfileDTO>(true, "Ok", profileDto);
+
+            return Ok(enrichedResponse);
+        }
     }
-
-    [HttpPost("Create")]
-    public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] NewUserDTO userDto)
-    {
-      // Mapeas el DTO al Command (usando AutoMapper)
-      var command = new CreateTaxUserCommands(userDto);
-      var result = await _mediator.Send(command);
-      if (result == null) return BadRequest(new { message = "Failed to create user" });
-      return Ok(result);
-    }
-
-    [HttpPost("CreateCompany")]
-    public async Task<ActionResult<ApiResponse<bool>>> CreateCompany([FromBody] NewCompanyDTO companyDto)
-    {
-      // Mapeas el DTO al Command (usando AutoMapper)
-      var command = new CreateTaxCompanyCommands(companyDto);
-      var result = await _mediator.Send(command);
-      if (result == null) return BadRequest(new { message = "Failed to create company" });
-      return Ok(result);
-    }
-
-    [HttpPut("Update")]
-    public async Task<ActionResult<ApiResponse<bool>>> Update([FromBody] UpdateUserDTO userDto)
-    {
-      var command = new UpdateTaxUserCommands(userDto);
-      var result = await _mediator.Send(command);
-      if (result == null) return BadRequest(new { message = "Failed to update user" });
-      return Ok(result);
-    }
-
-    [HttpDelete("Delete")]
-    public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
-    {
-      var command = new DeleteTaxUserCommands(id);
-      var result = await _mediator.Send(command);
-      if (result == null) return BadRequest(new { message = "Failed to delete user" });
-      return Ok(result);
-    }
-
-    [HttpGet("GetAll")]
-    public async Task<ActionResult<ApiResponse<UserGetDTO[]>>> GetAll()
-    {
-      var result = await _mediator.Send(new GetAllUserQuery());
-
-      if (result.Success == false) return BadRequest(new { result });
-
-      return Ok(result);
-    }
-
-    [HttpGet("GetByUserId")]
-    public async Task<IActionResult> GetById(Guid id)
-    {
-      var command = new GetTaxUserByIdQuery(id);
-      var result = await _mediator.Send(command);
-      if (result.Success == false) return BadRequest(new { result });
-
-      return Ok(result);
-    }
-
-    [HttpGet("Profile")]
-    public async Task<ActionResult<ApiResponse<UserProfileDTO>>> GetProfile()
-    {
-      var idRaw = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-              ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-      if (!Guid.TryParse(idRaw, out var userId))
-        return Unauthorized(new ApiResponse<UserProfileDTO>(false, "Invalid session"));
-
-      var command = new GetTaxUserProfileQuery(userId);
-      var result = await _mediator.Send(command);
-
-      if (result.Success != true || result.Data == null)
-        return BadRequest(result);
-
-      // Enriquecer con datos del JWT cuando estén vacíos en BD
-      var profileDto = result.Data;
-
-      // Si name/lastName están vacíos, usar los del JWT
-      if (string.IsNullOrWhiteSpace(profileDto.Name))
-      {
-        profileDto.Name = User.FindFirst(ClaimTypes.GivenName)?.Value;
-      }
-
-      if (string.IsNullOrWhiteSpace(profileDto.LastName))
-      {
-        profileDto.LastName = User.FindFirst(ClaimTypes.Surname)?.Value;
-      }
-
-      // Crear respuesta enriquecida
-      var enrichedResponse = new ApiResponse<UserProfileDTO>(true, "Ok", profileDto);
-
-      return Ok(enrichedResponse);
-    }
-  }
 }
