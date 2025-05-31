@@ -85,7 +85,7 @@
       "SwaggerKey": "auth"
     },
     {
-      "DownstreamPathTemplate": "/api/Role/GetById",
+      "DownstreamPathTemplate": "/api/Role/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -93,7 +93,7 @@
           "Port": 5092
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/roles/getbyid",
+      "UpstreamPathTemplate": "/api/auth/roles/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",

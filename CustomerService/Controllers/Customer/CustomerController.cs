@@ -14,7 +14,7 @@ namespace CustomerService.Controllers.Customer
     private readonly IMediator _mediator;
     public CustomerController(IMediator mediator)
     {
-        _mediator = mediator;
+      _mediator = mediator;
     }
 
     [HttpPost("Create")]
@@ -30,6 +30,16 @@ namespace CustomerService.Controllers.Customer
     public async Task<ActionResult> GetAll()
     {
       var command = new GetAllCustomerQueries();
+      var result = await _mediator.Send(command);
+      if (result.Success == false) return BadRequest(new { result });
+
+      return Ok(result);
+    }
+
+    [HttpGet("GetById")]
+    public async Task<ActionResult> GetById(Guid Id)
+    {
+      var command = new GetByIdCustomerQueries(Id);
       var result = await _mediator.Send(command);
       if (result.Success == false) return BadRequest(new { result });
 

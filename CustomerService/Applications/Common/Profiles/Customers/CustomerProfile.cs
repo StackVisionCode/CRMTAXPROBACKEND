@@ -1,4 +1,5 @@
 using AutoMapper;
+using CustomerService.Commands.CustomerCommands;
 using CustomerService.Domains.Customers;
 using CustomerService.DTOs.CustomerDTOs;
 
@@ -9,5 +10,7 @@ public class CustomerProfile : Profile
   public CustomerProfile()
   {
     CreateMap<CreateCustomerDTO, Customer>().ReverseMap();
+    CreateMap<ReadCustomerDTO, Customer>().ReverseMap();
+    CreateMap<CreateCustomerCommands, Customer>().ReverseMap();
   }
 }

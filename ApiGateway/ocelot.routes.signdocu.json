@@ -138,12 +138,12 @@
       "SwaggerKey": "signdocu"
     },
     {
-      "DownstreamPathTemplate": "/api/Documents/GetById",
+      "DownstreamPathTemplate": "/api/Documents/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         { "Host": "localhost", "Port": 5066 }
       ],
-      "UpstreamPathTemplate": "/api/signdocu/documents/getbyid",
+      "UpstreamPathTemplate": "/api/signdocu/documents/{id}",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",

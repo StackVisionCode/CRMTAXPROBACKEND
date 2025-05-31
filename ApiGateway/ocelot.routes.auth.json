@@ -89,7 +89,7 @@
           "Port": 5092
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/sessions/{id}",
+      "UpstreamPathTemplate": "/api/auth/session/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
