@@ -98,7 +98,7 @@
       "SwaggerKey": "taxuser"
     },
     {
-      "DownstreamPathTemplate": "/api/TaxUser/GetByUserId",
+      "DownstreamPathTemplate": "/api/TaxUser/GetByUserId?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -106,7 +106,7 @@
           "Port": 5092
         }
       ],
-      "UpstreamPathTemplate": "/api/taxuser/getbyuserid",
+      "UpstreamPathTemplate": "/api/taxuser/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",

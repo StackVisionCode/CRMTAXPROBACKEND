@@ -17,19 +17,23 @@ public class GetSessionByIdHandler : IRequestHandler<GetSessionByIdQuery, ApiRes
     public GetSessionByIdHandler(
         ApplicationDbContext context,
         IMapper mapper,
-        ILogger<GetSessionByIdHandler> logger)
+        ILogger<GetSessionByIdHandler> logger
+    )
     {
         _context = context;
         _mapper = mapper;
         _logger = logger;
     }
 
-    public async Task<ApiResponse<SessionDTO>> Handle(GetSessionByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<SessionDTO>> Handle(
+        GetSessionByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            var session = await _context.Sessions
-                .Include(s => s.TaxUser) 
+            var session = await _context
+                .Sessions.Include(s => s.TaxUser)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
@@ -47,7 +51,10 @@ public class GetSessionByIdHandler : IRequestHandler<GetSessionByIdQuery, ApiRes
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving session {SessionId}", request.SessionId);
-            return new ApiResponse<SessionDTO>(false, "An error occurred while retrieving the session");
+            return new ApiResponse<SessionDTO>(
+                false,
+                "An error occurred while retrieving the session"
+            );
         }
     }
 }

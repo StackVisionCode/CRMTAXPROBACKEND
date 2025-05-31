@@ -12,17 +12,21 @@ namespace CustomerService.Controllers.Dependent
     public class DependentController : ControllerBase
     {
         private readonly IMediator _mediator;
+
         public DependentController(IMediator mediator)
         {
             _mediator = mediator;
         }
 
         [HttpPost("Create")]
-        public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] CreateDependentDTO dependentDto)
+        public async Task<ActionResult<ApiResponse<bool>>> Create(
+            [FromBody] CreateDependentDTO dependentDto
+        )
         {
             var command = new CreateDependentCommands(dependentDto);
             var result = await _mediator.Send(command);
-            if (result == null) return BadRequest(new { message = "Failed to create a dependent" });
+            if (result == null)
+                return BadRequest(new { message = "Failed to create a dependent" });
             return Ok(result);
         }
 
@@ -31,7 +35,8 @@ namespace CustomerService.Controllers.Dependent
         {
             var command = new GetAllDependentQueries();
             var result = await _mediator.Send(command);
-            if (result.Success == false) return BadRequest(new { result });
+            if (result.Success == false)
+                return BadRequest(new { result });
 
             return Ok(result);
         }
@@ -41,7 +46,8 @@ namespace CustomerService.Controllers.Dependent
         {
             var command = new GetByIdDependentQueries(Id);
             var result = await _mediator.Send(command);
-            if (result.Success == false) return BadRequest(new { result });
+            if (result.Success == false)
+                return BadRequest(new { result });
 
             return Ok(result);
         }

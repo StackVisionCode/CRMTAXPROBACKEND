@@ -7,10 +7,10 @@ namespace CustomerService.Profiles.ContactInfos;
 
 public class ContactInfoProfile : Profile
 {
-  public ContactInfoProfile()
-  {
-    CreateMap<CreateContactInfoDTOs, ContactInfo>().ReverseMap();
-    CreateMap<ReadContactInfoDTO, ContactInfo>().ReverseMap();
-    CreateMap<CreateContactInfoCommands, ContactInfo>().ReverseMap();
-  }
+    public ContactInfoProfile()
+    {
+        CreateMap<CreateContactInfoDTOs, ContactInfo>().ReverseMap();
+        CreateMap<ReadContactInfoDTO, ContactInfo>().ReverseMap();
+        CreateMap<CreateContactInfoCommands, ContactInfo>().ReverseMap();
+    }
 }

@@ -43,7 +43,7 @@
       "SwaggerKey": "customer"
     },
     {
-      "DownstreamPathTemplate": "/api/Customer/GetById",
+      "DownstreamPathTemplate": "/api/Customer/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -51,7 +51,7 @@
           "Port": 5094
         }
       ],
-      "UpstreamPathTemplate": "/api/customers/getbyid",
+      "UpstreamPathTemplate": "/api/customers/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -106,7 +106,7 @@
       "SwaggerKey": "customer"
     },
     {
-      "DownstreamPathTemplate": "/api/Address/GetById",
+      "DownstreamPathTemplate": "/api/Address/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -114,7 +114,7 @@
           "Port": 5094
         }
       ],
-      "UpstreamPathTemplate": "/api/address/getbyid",
+      "UpstreamPathTemplate": "/api/address/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -169,7 +169,7 @@
       "SwaggerKey": "customer"
     },
     {
-      "DownstreamPathTemplate": "/api/ContactInfo/GetById",
+      "DownstreamPathTemplate": "/api/ContactInfo/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -177,7 +177,7 @@
           "Port": 5094
         }
       ],
-      "UpstreamPathTemplate": "/api/contactinfo/getbyid",
+      "UpstreamPathTemplate": "/api/contactinfo/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -232,7 +232,7 @@
       "SwaggerKey": "customer"
     },
     {
-      "DownstreamPathTemplate": "/api/Dependent/GetById",
+      "DownstreamPathTemplate": "/api/Dependent/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -240,7 +240,7 @@
           "Port": 5094
         }
       ],
-      "UpstreamPathTemplate": "/api/dependent/getbyid",
+      "UpstreamPathTemplate": "/api/dependent/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -295,7 +295,7 @@
       "SwaggerKey": "customer"
     },
     {
-      "DownstreamPathTemplate": "/api/TaxInformation/GetById",
+      "DownstreamPathTemplate": "/api/TaxInformation/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -303,7 +303,322 @@
           "Port": 5094
         }
       ],
-      "UpstreamPathTemplate": "/api/taxinformation/getbyid",
+      "UpstreamPathTemplate": "/api/taxinformation/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/FilingStatus/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/filingstatus/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/FilingStatus/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/filingstatuses",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/FilingStatus/GetById?Id={id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/filingstatus/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/MaritalStatus/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/maritalstatus/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/MaritalStatus/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/maritalstatuses",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/MaritalStatus/GetById?Id={id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/maritalstatus/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Occupation/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/occupation/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Occupation/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/occupations",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Occupation/GetById?Id={id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/occupation/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/PreferredContact/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/preferredcontact/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/PreferredContact/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/preferredcontacts",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/PreferredContact/GetById?Id={id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/preferredcontact/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Relationship/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/relationship/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Relationship/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/relationships",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Relationship/GetById?Id={id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/relationship/{id}",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
