@@ -11,6 +11,7 @@ public class ApplicationDbContext : DbContext
 
     // DbSets for each entity in the domain
     public DbSet<Customer> Customers { get; set; }
+    public DbSet<CustomerType> CustomerTypes { get; set; }
     public DbSet<Occupation> Occupations { get; set; }
     public DbSet<ContactInfo> ContactInfos { get; set; }
     public DbSet<Address> Addresses { get; set; }
@@ -45,6 +46,12 @@ public class ApplicationDbContext : DbContext
             // DeleteAt/DeletedAt (opcional, por coherencia)
             modelBuilder.Entity(entity.Name).Property<DateTime?>("DeleteAt");
         }
+
+        // relación entre Customer y CustomerTypeAdd commentMore actions
+        modelBuilder.Entity<Customer>()
+            .HasOne(c => c.CustomerType)
+            .WithMany(ct => ct.Customers)
+            .HasForeignKey(c => c.CustomerTypeId);
 
         // Customer → Address (uno a uno)
         modelBuilder
@@ -129,6 +136,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Dependent>().HasKey(t => t.Id);
         modelBuilder.Entity<Occupation>().HasKey(t => t.Id);
         modelBuilder.Entity<Customer>().HasKey(t => t.Id);
+        modelBuilder.Entity<CustomerType>().ToTable("CustomerTypes");
+        modelBuilder.Entity<CustomerType>().HasKey(t => t.Id);
         modelBuilder.Entity<TaxInformation>().ToTable("TaxInformations");
         modelBuilder.Entity<TaxInformation>().HasKey(t => t.Id);
         modelBuilder.Entity<Relationship>().ToTable("Relationships");
@@ -139,6 +148,28 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<MaritalStatus>().HasKey(m => m.Id);
         modelBuilder.Entity<PreferredContact>().ToTable("PreferredContacts");
         modelBuilder.Entity<PreferredContact>().HasKey(p => p.Id);
+
+        // Seed CustomerType data defaultAdd commentMore actions
+        modelBuilder.Entity<CustomerType>().HasData(
+            new CustomerType
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000001"),
+                Name = "Individual",
+                Description = "Individual customer type"
+            },
+            new CustomerType
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000002"),
+                Name = "Company",
+                Description = "Company customer type"
+            },
+            new CustomerType
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000003"),
+                Name = "Other",
+                Description = "Other customer type"
+            }
+        );
 
         // Seed data for initial values
         modelBuilder

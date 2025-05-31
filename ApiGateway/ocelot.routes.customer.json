@@ -64,6 +64,48 @@
       "SwaggerKey": "customer"
     },
     {
+      "DownstreamPathTemplate": "/api/CustomerType/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customertypes",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomerType/GetById?Id={id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customertype/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
       "DownstreamPathTemplate": "/api/Address/Create",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

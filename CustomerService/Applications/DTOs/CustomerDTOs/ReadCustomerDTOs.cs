@@ -6,6 +6,8 @@ public class ReadCustomerDTO
 {
     [Key]
     public required Guid Id { get; set; }
+    public string? CustomerType { get; set; }
+    public string? CustomerTypeDescription{ get; set; }
     public string? Occupation { get; set; }
     public string? MaritalStatus { get; set; }
     public string? FirstName { get; set; }

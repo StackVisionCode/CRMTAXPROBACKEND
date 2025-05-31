@@ -35,6 +35,8 @@ public class GetAllCustomerHandler
         {
             var result = await (
                 from customer in _dbContext.Customers
+                join customerType in _dbContext.CustomerTypes
+                    on customer.CustomerTypeId equals customerType.Id
                 join occupation in _dbContext.Occupations
                     on customer.OccupationId equals occupation.Id
                 join maritalStatus in _dbContext.MaritalStatuses
@@ -45,6 +47,8 @@ public class GetAllCustomerHandler
                 select new ReadCustomerDTO
                 {
                     Id = customer.Id,
+                    CustomerType = customerType.Name,
+                    CustomerTypeDescription = customerType.Description,
                     FirstName = customer.FirstName,
                     LastName = customer.LastName,
                     MiddleName = customer.MiddleName,

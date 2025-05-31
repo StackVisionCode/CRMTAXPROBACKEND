@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CustomerService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250530234151_InitialMigration")]
+    [Migration("20250531160159_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -130,6 +130,9 @@ namespace CustomerService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<Guid>("CustomerTypeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
@@ -167,11 +170,65 @@ namespace CustomerService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CustomerTypeId");
+
                     b.HasIndex("MaritalStatusId");
 
                     b.HasIndex("OccupationId");
 
                     b.ToTable("Customers", (string)null);
+                });
+
+            modelBuilder.Entity("CustomerService.Domains.Customers.CustomerType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CustomerTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("50000000-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Individual customer type",
+                            Name = "Individual"
+                        },
+                        new
+                        {
+                            Id = new Guid("50000000-0000-0000-0000-000000000002"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Company customer type",
+                            Name = "Company"
+                        },
+                        new
+                        {
+                            Id = new Guid("50000000-0000-0000-0000-000000000003"),
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Other customer type",
+                            Name = "Other"
+                        });
                 });
 
             modelBuilder.Entity("CustomerService.Domains.Customers.Dependent", b =>
@@ -779,6 +836,12 @@ namespace CustomerService.Migrations
 
             modelBuilder.Entity("CustomerService.Domains.Customers.Customer", b =>
                 {
+                    b.HasOne("CustomerService.Domains.Customers.CustomerType", "CustomerType")
+                        .WithMany("Customers")
+                        .HasForeignKey("CustomerTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("CustomerService.Domains.Customers.MaritalStatus", "MaritalStatus")
                         .WithMany("Customers")
                         .HasForeignKey("MaritalStatusId")
@@ -790,6 +853,8 @@ namespace CustomerService.Migrations
                         .HasForeignKey("OccupationId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("CustomerType");
 
                     b.Navigation("MaritalStatus");
 
@@ -843,6 +908,11 @@ namespace CustomerService.Migrations
                     b.Navigation("Dependents");
 
                     b.Navigation("TaxInfo");
+                });
+
+            modelBuilder.Entity("CustomerService.Domains.Customers.CustomerType", b =>
+                {
+                    b.Navigation("Customers");
                 });
 
             modelBuilder.Entity("CustomerService.Domains.Customers.FilingStatus", b =>

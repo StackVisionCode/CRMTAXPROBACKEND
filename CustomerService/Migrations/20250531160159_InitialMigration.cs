@@ -14,6 +14,22 @@ namespace CustomerService.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "CustomerTypes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CustomerTypes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "FilingStatuses",
                 columns: table => new
                 {
@@ -96,6 +112,7 @@ namespace CustomerService.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TaxUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OccupationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CustomerTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     MiddleName = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -110,6 +127,12 @@ namespace CustomerService.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Customers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Customers_CustomerTypes_CustomerTypeId",
+                        column: x => x.CustomerTypeId,
+                        principalTable: "CustomerTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Customers_MaritalStatuses_MaritalStatusId",
                         column: x => x.MaritalStatusId,
@@ -238,6 +261,16 @@ namespace CustomerService.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "CustomerTypes",
+                columns: new[] { "Id", "DeleteAt", "Description", "Name", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { new Guid("50000000-0000-0000-0000-000000000001"), null, "Individual customer type", "Individual", null },
+                    { new Guid("50000000-0000-0000-0000-000000000002"), null, "Company customer type", "Company", null },
+                    { new Guid("50000000-0000-0000-0000-000000000003"), null, "Other customer type", "Other", null }
+                });
+
+            migrationBuilder.InsertData(
                 table: "FilingStatuses",
                 columns: new[] { "Id", "DeleteAt", "Name", "UpdatedAt" },
                 values: new object[,]
@@ -342,6 +375,11 @@ namespace CustomerService.Migrations
                 column: "PreferredContactId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Customers_CustomerTypeId",
+                table: "Customers",
+                column: "CustomerTypeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Customers_MaritalStatusId",
                 table: "Customers",
                 column: "MaritalStatusId");
@@ -399,6 +437,9 @@ namespace CustomerService.Migrations
 
             migrationBuilder.DropTable(
                 name: "FilingStatuses");
+
+            migrationBuilder.DropTable(
+                name: "CustomerTypes");
 
             migrationBuilder.DropTable(
                 name: "MaritalStatuses");
