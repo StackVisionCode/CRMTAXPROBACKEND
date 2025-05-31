@@ -8,7 +8,7 @@ public class ConnectionApp
 
     public ConnectionApp()
     {
-        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "";
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "SIP\\SQLEXPRESS";
 
         User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 
