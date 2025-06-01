@@ -92,14 +92,14 @@ jobs:
           Get-Content .env
 
       # 6. Verificar archivos antes de ejecutar Docker Compose
-      - name: Verify docker-compose.prod.yml existence
+      - name: Verify docker-compose.yml existence
         run: Get-ChildItem C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND -Force | Format-Table -AutoSize
 
       # 7. Pull y Up (sin --env-file, Compose v2 lee .env automáticamente)
       - name: Pull images
-        run: docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.prod.yml pull
+        run: docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.yml pull
 
       - name: Up / Update containers
         run: |
-          docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.prod.yml up -d --remove-orphans
+          docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.yml up -d --remove-orphans
           docker image prune -f
