@@ -9,15 +9,17 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# ---------- Variables globales ----------
+###############################################################################
+# Variables globales (no secretas)
+###############################################################################
 env:
   REGISTRY: docker.io
   REGISTRY_PREFIX: jturbi/crmtaxpro
   TAG: ${{ github.sha }}
 
-# ─────────────────────────────────────────────────────────────
-# 1) BUILD & PUSH  – Ubuntu runner (GitHub hospedado)
-# ─────────────────────────────────────────────────────────────
+###############################################################################
+# 1) BUILD & PUSH ── Runner Ubuntu hospedado por GitHub
+###############################################################################
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -48,13 +50,20 @@ jobs:
             docker push "$img" --all-tags
           done
 
-# ─────────────────────────────────────────────────────────────
-# 2) DEPLOY  – Runner self-hosted (Windows Server 2019)
-# ─────────────────────────────────────────────────────────────
+###############################################################################
+# 2) DEPLOY ── Runner self-hosted (Windows Server 2019)
+###############################################################################
   deploy:
     needs: build-and-push
-    runs-on: self-hosted          # WIN-MUKVKVN5NB1
+    runs-on: self-hosted
     timeout-minutes: 30
+
+    # Variables **dentro** del job para que lleguen a los pasos
+    env:
+      REGISTRY: ${{ env.REGISTRY }}
+      REGISTRY_PREFIX: ${{ env.REGISTRY_PREFIX }}
+      TAG: ${{ env.TAG }}
+      COMPOSE_PROJECT_NAME: crmtaxpro       # evita prefijo “crmtaxprobackend”
 
     defaults:
       run:
@@ -63,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 0️⃣  Asegurar Docker Compose v2
+      # 0️⃣  Garantizar Docker Compose v2
       - name: Ensure Docker Compose v2
         run: |
           $dest = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
@@ -71,35 +80,36 @@ jobs:
             iwr -Uri https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe -OutFile $dest
           }
 
-      # 1️⃣  Iniciar servicio Docker si está parado
+      # 1️⃣  Asegurar que el daemon Docker esté disponible
       - name: Ensure Docker service running
         run: |
           if ((Get-Service docker).Status -ne 'Running') {
             Start-Service docker
-            Start-Sleep -Seconds 5
+            Start-Sleep -Seconds 6
           }
 
-      # 2️⃣  Login a Docker Hub
+      # 2️⃣  Login Docker Hub
       - name: Docker login
         run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
-      # 3️⃣  Crear .env y exportar variables para Compose
-      - name: Create & export env vars
+      # 3️⃣  Crear .env y exportar VARIABLES al proceso
+      - name: Export vars & create .env
         run: |
-          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File .env -Encoding utf8
-          "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
-          # Exportar al entorno actual
           $Env:REGISTRY_PREFIX = "${{ env.REGISTRY_PREFIX }}"
           $Env:TAG             = "${{ env.TAG }}"
-          Write-Host ".env generado:"
+          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Set-Content .env -Encoding utf8
+          "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
+          Write-Host "🔧 Variables activas:"
+          Get-ChildItem Env:REGISTRY_PREFIX,Env:TAG
+          Write-Host ".env:"
           Get-Content .env
 
-      # 4️⃣  Pull imágenes (Compose encuentra docker-compose.yml y .env)
+      # 4️⃣  Descargar imágenes desde el registro
       - name: Pull images
         run: docker compose pull
 
       # 5️⃣  Levantar / actualizar contenedores
-      - name: Up / Update containers
+      - name: Up / update containers
         run: |
           docker compose up -d --remove-orphans
-          docker image prune -f        # limpieza opcional
+          docker image prune -f              # opcional: limpia basura
