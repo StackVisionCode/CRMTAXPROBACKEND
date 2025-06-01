@@ -9,11 +9,13 @@ namespace AuthService.Profiles.User;
 
 public class CompanyProfile : Profile
 {
-
-  public CompanyProfile()
-  {
-    CreateMap<NewCompanyDTO, Company>().ReverseMap();
-    CreateMap<NewCompanyDTO, NewUserDTO>().ReverseMap();
-    CreateMap<CreateTaxCompanyCommands, Company>().ReverseMap();
-  }
+    public CompanyProfile()
+    {
+        CreateMap<NewCompanyDTO, Company>().ReverseMap();
+        CreateMap<NewCompanyDTO, NewUserDTO>().ReverseMap();
+        CreateMap<UpdateCompanyDTO, Company>().ReverseMap();
+        CreateMap<UpdateCompanyDTO, UpdateUserDTO>().ReverseMap();
+        CreateMap<CreateTaxCompanyCommands, Company>().ReverseMap();
+        CreateMap<UpdateTaxCompanyCommands, Company>().ReverseMap();
+    }
 }

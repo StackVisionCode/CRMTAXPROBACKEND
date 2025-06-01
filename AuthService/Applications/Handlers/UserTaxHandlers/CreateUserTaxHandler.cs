@@ -1,4 +1,3 @@
-
 using AuthService.Domains.Roles;
 using AuthService.Domains.Users;
 using AuthService.DTOs.UserDTOs;
@@ -19,7 +18,12 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
     private readonly ILogger<CreateUserTaxHandler> _logger;
     private readonly IPasswordHash _passwordHash;
 
-    public CreateUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<CreateUserTaxHandler> logger, IPasswordHash passwordHash)
+    public CreateUserTaxHandler(
+        ApplicationDbContext dbContext,
+        IMapper mapper,
+        ILogger<CreateUserTaxHandler> logger,
+        IPasswordHash passwordHash
+    )
     {
         _dbContext = dbContext;
         _mapper = mapper;
@@ -27,8 +31,10 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
         _passwordHash = passwordHash;
     }
 
-
-    public async Task<ApiResponse<bool>> Handle(CreateTaxUserCommands request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<bool>> Handle(
+        CreateTaxUserCommands request,
+        CancellationToken cancellationToken
+    )
     {
         // Usar transacción para asegurar atomicidad
         using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -64,7 +70,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
                 Address = request.Usertax.Address,
                 PhotoUrl = request.Usertax.PhotoUrl,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
             };
 
             // Agregar solo el TaxUser - EF agregará automáticamente el TaxUserProfile
@@ -94,12 +100,12 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
         }
     }
 
-
     private async Task<bool> Exists(NewUserDTO userDTO)
     {
         try
         {
-            return await _dbContext.TaxUsers.FirstOrDefaultAsync(a => a.Email == userDTO.Email) != null;
+            return await _dbContext.TaxUsers.FirstOrDefaultAsync(a => a.Email == userDTO.Email)
+                != null;
         }
         catch (Exception ex)
         {
@@ -110,7 +116,10 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
 
     private async Task<Role> GetAllRoles()
     {
-        var result = await _dbContext.Roles.AsNoTracking().Where(a => a.Name.Contains("user")).FirstAsync();
+        var result = await _dbContext
+            .Roles.AsNoTracking()
+            .Where(a => a.Name.Contains("user"))
+            .FirstAsync();
         if (result is null)
         {
             return null!;

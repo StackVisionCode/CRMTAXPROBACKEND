@@ -4,5 +4,5 @@ using MediatR;
 
 namespace Commands.UserCommands;
 
-public record class CreateTaxCompanyCommands(NewCompanyDTO Companytax)
+public record class UpdateTaxCompanyCommands(UpdateCompanyDTO CompanyTax)
     : IRequest<ApiResponse<bool>>;

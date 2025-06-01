@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Commands.UserCommands;
 
-public record class UpdateTaxUserCommands(UpdateUserDTO Usertax) : IRequest<ApiResponse<bool>>;
+public record class UpdateTaxUserCommands(UpdateUserDTO UserTax) : IRequest<ApiResponse<bool>>;
