@@ -6,7 +6,7 @@ name: CI-CD Docker (.NET 9)
 
 on:
   push:
-    branches: [ main ]          # Cambia si tu rama principal es otra
+    branches: [ main ]          # Cámbialo si tu rama principal es otra
   workflow_dispatch:
 
 # ---------- Variables globales ----------
@@ -16,7 +16,7 @@ env:
   TAG: ${{ github.sha }}              # Versión única por commit
 
 # =============================================================
-# 1) Build & Push  (runner Ubuntu gestionado por GitHub)
+# 1) Build & Push  (runner Ubuntu hospedado por GitHub)
 # =============================================================
 jobs:
   build-and-push:
@@ -50,35 +50,40 @@ jobs:
           done
 
 # =============================================================
-# 2) Deploy (runner self-hosted Windows Server 2019)
+# 2) Deploy  (runner self-hosted Windows Server 2019)
 # =============================================================
   deploy:
     needs: build-and-push
-    runs-on: self-hosted         # ← solo esta etiqueta envía el job a tu runner
+    runs-on: self-hosted
     timeout-minutes: 30
 
     defaults:
       run:
-        shell: powershell        # Usa Windows PowerShell (no pwsh)
+        shell: powershell   # Windows PowerShell (v1)
 
     steps:
       - uses: actions/checkout@v4
 
+      # 1️⃣  Login a Docker Hub
       - name: Docker login
         run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
+      # 2️⃣  Crear archivo .env con versión y prefijo
       - name: Crear .env para Compose
         run: |
           "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File .env -Encoding utf8
           "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
           Get-Content .env
 
+      # 3️⃣  Descargar imágenes publicadas
       - name: Pull images
-        run: docker compose -f docker-compose.prod.yml --env-file .env pull
+        run: docker-compose --env-file .env -f docker-compose.prod.yml pull
 
+      # 4️⃣  Levantar / actualizar contenedores
       - name: Up / Update containers
         run: |
-          docker compose -f docker-compose.prod.yml --env-file .env up -d --remove-orphans
+          docker-compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
           docker image prune -f        # Limpieza opcional
+
 
 
