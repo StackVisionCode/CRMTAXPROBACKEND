@@ -1,18 +1,24 @@
 name: CI-CD Docker
+
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]      # Cambia si tu rama principal es otra
   workflow_dispatch:
 
+##############################################################################
+#  Variables comunes
+##############################################################################
+env:
+  REGISTRY: docker.io
+  REGISTRY_PREFIX: jturbi/crmtaxpro     # <-- usuario fijo
+  TAG: ${{ github.sha }}
+
+##############################################################################
+# 1) Build & Push
+##############################################################################
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
-    # ←–––––––––––––––––––––––––  AQUI: env dentro del job ––––––––––––––––––––>
-    env:
-      REGISTRY: docker.io
-      REGISTRY_PREFIX: ${{ secrets.DOCKERHUB_USERNAME }}/crmtaxpro
-      TAG: ${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +26,7 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & push microservice images
@@ -36,19 +42,20 @@ jobs:
           for svc in "${!DOCKERS[@]}"; do
             dockerfile="${DOCKERS[$svc]}"
             img="$REGISTRY/$REGISTRY_PREFIX-$svc"
+
             echo "🔨 Building $img ..."
             docker build -f "$dockerfile" -t "$img:$TAG" -t "$img:latest" .
+            echo "📤 Pushing $img ..."
             docker push "$img" --all-tags
           done
 
+##############################################################################
+# 2) Deploy en tu Windows Server 2019 (runner self-hosted)
+##############################################################################
   deploy:
     needs: build-and-push
     runs-on: [ self-hosted, Windows, X64 ]
-
-    env:
-      REGISTRY: docker.io
-      REGISTRY_PREFIX: ${{ secrets.DOCKERHUB_USERNAME }}/crmtaxpro
-      TAG: ${{ github.sha }}
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +64,7 @@ jobs:
         shell: pwsh
         run: |
           docker login $Env:REGISTRY `
-            --username "${{ secrets.DOCKERHUB_USERNAME }}" `
+            --username "jturbi" `
             --password "${{ secrets.DOCKERHUB_TOKEN }}"
 
       - name: Generate .env for Compose
