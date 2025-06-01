@@ -7,10 +7,12 @@ namespace CustomerService.Profiles.Dependents;
 
 public class DependentProfile : Profile
 {
-  public DependentProfile()
-  {
-    CreateMap<CreateDependentDTO, Dependent>().ReverseMap();
-    CreateMap<ReadDependentDTO, Dependent>().ReverseMap();
-    CreateMap<CreateDependentCommands, Dependent>().ReverseMap();
-  }
+    public DependentProfile()
+    {
+        CreateMap<CreateDependentDTO, Dependent>().ReverseMap();
+        CreateMap<UpdateDependentDTO, Dependent>().ReverseMap();
+        CreateMap<ReadDependentDTO, Dependent>().ReverseMap();
+        CreateMap<CreateDependentCommands, Dependent>().ReverseMap();
+        CreateMap<UpdateDependentCommands, Dependent>().ReverseMap();
+    }
 }

@@ -1,4 +1,6 @@
-# CI-CD ▸ Microservicios .NET 9 → Docker → Windows Server 2019
+# =============================================================
+#  CI-CD ▸ Microservicios .NET 9 → Docker → Windows Server 2019
+# =============================================================
 name: CI-CD Docker (.NET 9)
 
 on:
@@ -6,13 +8,16 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# ---------- Variables globales ----------
 env:
   REGISTRY: docker.io
   REGISTRY_PREFIX: jturbi/crmtaxpro
   TAG: ${{ github.sha }}
 
+###############################################################################
+# 1) BUILD & PUSH (Ubuntu runner)
+###############################################################################
 jobs:
-# ─────────────── BUILD & PUSH (idéntico) ───────────────
   build-and-push:
     runs-on: ubuntu-latest
     steps:
@@ -22,13 +27,14 @@ jobs:
         with:
           username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build & push images
+      - name: Build & push images (.NET 9)
         shell: bash
         run: |
           declare -A DF=(
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
             [customer-service]=CustomerService/Dockerfile
+            [company-service]=CompanyService/Dockerfile
             [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
           )
@@ -38,11 +44,17 @@ jobs:
             docker push "$img" --all-tags
           done
 
-# ─────────────── DEPLOY (Windows runner) ───────────────
+###############################################################################
+# 2) DEPLOY (self-hosted Windows runner)
+###############################################################################
   deploy:
     needs: build-and-push
     runs-on: self-hosted
     timeout-minutes: 30
+
+    # Sólo la variable extra que necesitamos
+    env:
+      COMPOSE_PROJECT_NAME: crmtaxpro
 
     defaults:
       run:
@@ -51,39 +63,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 0️⃣  Asegurar Docker Compose v2 (igual que antes)
+      # 0️⃣  Docker Compose v2
       - name: Ensure Docker Compose v2
         run: |
           $dest = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
           if (-not (Test-Path $dest)) {
-            iwr -Uri https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe -OutFile $dest
+            Invoke-WebRequest -Uri https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe -OutFile $dest
           }
 
-      # 1️⃣  Iniciar servicio Docker si está parado
+      # 1️⃣  Añadir NETWORK SERVICE a docker-users si falta
+      - name: Ensure permissions for runner account
+        run: |
+          $needsRestart = $false
+          $member = 'NT AUTHORITY\NETWORK SERVICE'
+          $group  = 'docker-users'
+          if (-not (Get-LocalGroupMember -Group $group -ErrorAction SilentlyContinue | Where-Object {$_.Name -eq $member})) {
+            net localgroup $group "$member" /add
+            $needsRestart = $true
+          }
+          if ($needsRestart) {
+            Restart-Service docker
+            Start-Sleep -Seconds 6
+          }
+
+      # 2️⃣  Asegurar daemon Docker activo
       - name: Ensure Docker service running
         run: |
           if ((Get-Service docker).Status -ne 'Running') {
             Start-Service docker
-            Start-Sleep -Seconds 5
-          }
-
-      # 2️⃣  Login Docker Hub
-      - name: Docker login
-        run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
-
-      # 3️⃣  Crear .env
-      - name: Create .env
-        run: |
-          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File .env -Encoding utf8
-          "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
-          Get-Content .env
-
-      # 4️⃣  Pull imágenes (usa --env-file)
-      - name: Pull images
-        run: docker compose --env-file .env pull
-
-      # 5️⃣  Up / Update
-      - name: Up containers
-        run: |
-          docker compose --env-file .env up -d --remove-orphans
-          docker image prune -f
+            Start-Sleep -Seconds 6
