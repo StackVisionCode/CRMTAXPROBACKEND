@@ -72,14 +72,12 @@ jobs:
           }
 
       # 1️⃣  Añadir NETWORK SERVICE a docker-users si falta
-      - name: Ensure permissions for runner account
+      - name: Ensure Docker service running
         run: |
-          $needsRestart = $false
-          $member = 'NT AUTHORITY\NETWORK SERVICE'
-          $group  = 'docker-users'
-          if (-not (Get-LocalGroupMember -Group $group -ErrorAction SilentlyContinue | Where-Object {$_.Name -eq $member})) {
-            net localgroup $group "$member" /add
-            $needsRestart = $true
+          $svc = Get-Service docker
+          if ($svc.Status -ne 'Running') {
+            Start-Service docker
+            Start-Sleep -Seconds 6
           }
           if ($needsRestart) {
             Restart-Service docker
