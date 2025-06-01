@@ -1,4 +1,7 @@
-# CI-CD ▸ Microservicios .NET 9 → Docker → Windows Server 2019
+# =============================================================
+#  CI-CD ▸ Microservicios .NET 9 → Docker → Windows Server 2019
+# =============================================================
+
 name: CI-CD Docker (.NET 9)
 
 on:
@@ -6,29 +9,36 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# ---------- Variables globales ----------
 env:
   REGISTRY: docker.io
   REGISTRY_PREFIX: jturbi/crmtaxpro
   TAG: ${{ github.sha }}
 
+# ─────────────────────────────────────────────────────────────
+# 1) BUILD & PUSH  – Ubuntu runner (GitHub hospedado)
+# ─────────────────────────────────────────────────────────────
 jobs:
-# ─────────────── BUILD & PUSH (idéntico) ───────────────
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+
       - uses: docker/login-action@v3
         with:
           username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build & push images
+
+      - name: Build & push images (.NET 9)
         shell: bash
         run: |
           declare -A DF=(
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
             [customer-service]=CustomerService/Dockerfile
+            [company-service]=CompanyService/Dockerfile
             [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
           )
@@ -38,10 +48,12 @@ jobs:
             docker push "$img" --all-tags
           done
 
-# ─────────────── DEPLOY (Windows runner) ───────────────
+# ─────────────────────────────────────────────────────────────
+# 2) DEPLOY  – Runner self-hosted (Windows Server 2019)
+# ─────────────────────────────────────────────────────────────
   deploy:
     needs: build-and-push
-    runs-on: self-hosted
+    runs-on: self-hosted          # WIN-MUKVKVN5NB1
     timeout-minutes: 30
 
     defaults:
@@ -51,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 0️⃣  Asegurar Docker Compose v2 (igual que antes)
+      # 0️⃣  Asegurar Docker Compose v2
       - name: Ensure Docker Compose v2
         run: |
           $dest = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
@@ -67,23 +79,27 @@ jobs:
             Start-Sleep -Seconds 5
           }
 
-      # 2️⃣  Login Docker Hub
+      # 2️⃣  Login a Docker Hub
       - name: Docker login
         run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
-      # 3️⃣  Crear .env
-      - name: Create .env
+      # 3️⃣  Crear .env y exportar variables para Compose
+      - name: Create & export env vars
         run: |
           "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File .env -Encoding utf8
           "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
+          # Exportar al entorno actual
+          $Env:REGISTRY_PREFIX = "${{ env.REGISTRY_PREFIX }}"
+          $Env:TAG             = "${{ env.TAG }}"
+          Write-Host ".env generado:"
           Get-Content .env
 
-      # 4️⃣  Pull imágenes (usa --env-file)
+      # 4️⃣  Pull imágenes (Compose encuentra docker-compose.yml y .env)
       - name: Pull images
-        run: docker compose --env-file .env pull
+        run: docker compose pull
 
-      # 5️⃣  Up / Update
-      - name: Up containers
+      # 5️⃣  Levantar / actualizar contenedores
+      - name: Up / Update containers
         run: |
-          docker compose --env-file .env up -d --remove-orphans
-          docker image prune -f
+          docker compose up -d --remove-orphans
+          docker image prune -f        # limpieza opcional
