@@ -1,19 +1,23 @@
-name: CI-CD Docker
+# =============================================================
+#  CI-CD ▸ Microservicios .NET 9 → Docker → Windows Server 2019
+# =============================================================
+
+name: CI-CD Docker (.NET 9)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]          # Cambia si tu rama principal es otra
   workflow_dispatch:
 
-# ───────── Variables comunes ─────────
+# ---------- Variables globales ----------
 env:
   REGISTRY: docker.io
-  REGISTRY_PREFIX: jturbi/crmtaxpro
-  TAG: ${{ github.sha }}
+  REGISTRY_PREFIX: jturbi/crmtaxpro   # docker.io/jturbi/crmtaxpro-<svc>
+  TAG: ${{ github.sha }}              # Versión única por commit
 
-# ============================================================
-# 1) Build & Push (Ubuntu runner)
-# ============================================================
+# =============================================================
+# 1) Build & Push  (runner Ubuntu gestionado por GitHub)
+# =============================================================
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -27,7 +31,7 @@ jobs:
           username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push microservice images
+      - name: Build & push images (.NET 9)
         shell: bash
         run: |
           declare -A DOCKERS=(
@@ -40,48 +44,41 @@ jobs:
           for svc in "${!DOCKERS[@]}"; do
             dockerfile="${DOCKERS[$svc]}"
             image="$REGISTRY/$REGISTRY_PREFIX-$svc"
-            echo "🔨 Construyendo la imagen $image ..."
+            echo "🔨 Building $image…"
             docker build -f "$dockerfile" -t "$image:$TAG" -t "$image:latest" .
             docker push "$image" --all-tags
           done
 
-# ============================================================
-# 2) Deploy (self-hosted Windows runner)
-# ============================================================
+# =============================================================
+# 2) Deploy (runner self-hosted Windows Server 2019)
+# =============================================================
   deploy:
     needs: build-and-push
-    runs-on: [ self-hosted, Windows, X64 ]
+    runs-on: self-hosted         # ← solo esta etiqueta envía el job a tu runner
     timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: powershell        # Usa Windows PowerShell (no pwsh)
 
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- Login a Docker Hub ----------
-      - name: Login to Docker Hub
-        shell: powershell          # ← aquí
-        run: |
-          docker login $Env:REGISTRY `
-            --username "jturbi" `
-            --password "${{ secrets.DOCKERHUB_TOKEN }}"
+      - name: Docker login
+        run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
-      # ---------- Generar archivo .env ---------
-      - name: Generate .env for Compose
-        shell: powershell          # ← aquí
+      - name: Crear .env para Compose
         run: |
-          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File -Encoding utf8 .env
-          "TAG=$Env:TAG" | Add-Content -Encoding utf8 .env
+          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File .env -Encoding utf8
+          "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
           Get-Content .env
 
-      # ---------- Pull de imágenes -------------
       - name: Pull images
-        shell: powershell          # ← aquí
         run: docker compose -f docker-compose.prod.yml --env-file .env pull
 
-      # ---------- Up / Update contenedores -----
       - name: Up / Update containers
-        shell: powershell          # ← aquí
         run: |
           docker compose -f docker-compose.prod.yml --env-file .env up -d --remove-orphans
-          docker image prune -f
+          docker image prune -f        # Limpieza opcional
 
 
