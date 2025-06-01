@@ -1,13 +1,12 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
-namespace SharedLibrary.Logs;
 
+namespace SharedLibrary.Logs;
 
 public static class SerilogConfiguration
 {
-
-  public static void ConfigureSerilog(IConfiguration configuration)
+    public static void ConfigureSerilog(IConfiguration configuration)
     {
         var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
 

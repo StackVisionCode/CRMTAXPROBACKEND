@@ -62,11 +62,7 @@ public class DeleteAddressHandler : IRequestHandler<DeleteAddressCommands, ApiRe
                 "Error occurred while soft deleting Address with ID {Id}",
                 request.Id
             );
-            return new ApiResponse<bool>(
-                false,
-                "An error occurred while deleting the address",
-                false
-            );
+            return new ApiResponse<bool>(false, ex.Message, false);
         }
     }
 }

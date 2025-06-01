@@ -4,5 +4,5 @@ using MediatR;
 
 namespace CustomerService.Commands.TaxInformationCommands;
 
-public record class CreateTaxInformationCommands(CreateTaxInformationDTOs taxInformation)
+public record class UpdateTaxInformationCommands(UpdateTaxInformationDTOs taxInformation)
     : IRequest<ApiResponse<bool>>;
