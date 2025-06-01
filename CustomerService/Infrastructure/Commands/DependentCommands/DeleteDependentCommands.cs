@@ -3,4 +3,4 @@ using MediatR;
 
 namespace CustomerService.Commands.DependentCommands;
 
-public record class DeleteDependetCommands(Guid Id) : IRequest<ApiResponse<bool>>;
+public record class DeleteDependentCommands(Guid Id) : IRequest<ApiResponse<bool>>;

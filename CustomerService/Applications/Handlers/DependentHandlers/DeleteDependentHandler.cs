@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CustomerService.Handlers.DependentHandlers;
 
-public class DeleteDependentHandler : IRequestHandler<DeleteDependetCommands, ApiResponse<bool>>
+public class DeleteDependentHandler : IRequestHandler<DeleteDependentCommands, ApiResponse<bool>>
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly ILogger<DeleteDependentHandler> _logger;
@@ -21,7 +21,7 @@ public class DeleteDependentHandler : IRequestHandler<DeleteDependetCommands, Ap
     }
 
     public async Task<ApiResponse<bool>> Handle(
-        DeleteDependetCommands request,
+        DeleteDependentCommands request,
         CancellationToken cancellationToken
     )
     {
