@@ -91,11 +91,15 @@ jobs:
           "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
           Get-Content .env
 
-      # 6. Pull y Up (sin --env-file, Compose v2 lee .env automáticamente)
+      # 6. Verificar archivos antes de ejecutar Docker Compose
+      - name: Verify docker-compose.prod.yml existence
+        run: Get-ChildItem C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND -Force | Format-Table -AutoSize
+
+      # 7. Pull y Up (sin --env-file, Compose v2 lee .env automáticamente)
       - name: Pull images
-        run: docker compose -f docker-compose.prod.yml pull
+        run: docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.prod.yml pull
 
       - name: Up / Update containers
         run: |
-          docker compose -f docker-compose.prod.yml up -d --remove-orphans
-          docker image prune -f
+          docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.prod.yml up -d --remove-orphans
+          docker image prune -f
