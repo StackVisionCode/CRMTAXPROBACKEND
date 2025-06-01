@@ -6,17 +6,17 @@ name: CI-CD Docker (.NET 9)
 
 on:
   push:
-    branches: [ main ]          # Cámbialo si tu rama principal es otra
+    branches: [ main ]          # Ajusta si tu rama principal es otra
   workflow_dispatch:
 
 # ---------- Variables globales ----------
 env:
   REGISTRY: docker.io
-  REGISTRY_PREFIX: jturbi/crmtaxpro   # docker.io/jturbi/crmtaxpro-<svc>
-  TAG: ${{ github.sha }}              # Versión única por commit
+  REGISTRY_PREFIX: jturbi/crmtaxpro
+  TAG: ${{ github.sha }}
 
 # =============================================================
-# 1) Build & Push  (runner Ubuntu hospedado por GitHub)
+# 1) Build & Push  (Ubuntu runner gestionado por GitHub)
 # =============================================================
 jobs:
   build-and-push:
@@ -50,40 +50,49 @@ jobs:
           done
 
 # =============================================================
-# 2) Deploy  (runner self-hosted Windows Server 2019)
+# 2) Deploy  (runner Windows Server 2019 self-hosted)
 # =============================================================
   deploy:
     needs: build-and-push
-    runs-on: self-hosted
+    runs-on: self-hosted          # WIN-MUKVKVN5NB1
     timeout-minutes: 30
 
     defaults:
       run:
-        shell: powershell   # Windows PowerShell (v1)
+        shell: powershell
 
     steps:
       - uses: actions/checkout@v4
 
-      # 1️⃣  Login a Docker Hub
+      # 1️⃣  Instalar Docker Compose v2 si no existe
+      - name: Ensure Docker Compose v2
+        run: |
+          $composePath = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
+          if (!(Test-Path $composePath)) {
+              Write-Host "⬇️  Descargando Docker Compose v2…"
+              $url = "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe"
+              Invoke-WebRequest -Uri $url -OutFile $composePath
+          } else {
+              Write-Host "✅ Docker Compose v2 ya presente"
+          }
+
+      # 2️⃣  Login a Docker Hub
       - name: Docker login
         run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
-      # 2️⃣  Crear archivo .env con versión y prefijo
+      # 3️⃣  Crear archivo .env con versión y prefijo
       - name: Crear .env para Compose
         run: |
           "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File .env -Encoding utf8
           "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
           Get-Content .env
 
-      # 3️⃣  Descargar imágenes publicadas
+      # 4️⃣  Descargar imágenes publicadas
       - name: Pull images
-        run: docker-compose --env-file .env -f docker-compose.prod.yml pull
+        run: docker compose --env-file .env -f docker-compose.prod.yml pull
 
-      # 4️⃣  Levantar / actualizar contenedores
+      # 5️⃣  Levantar / actualizar contenedores
       - name: Up / Update containers
         run: |
-          docker-compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
-          docker image prune -f        # Limpieza opcional
-
-
-
+          docker compose --env-file .env -f docker-compose.prod.yml up -d --remove-orphans
+          docker image prune -f    # Limpieza opcional
