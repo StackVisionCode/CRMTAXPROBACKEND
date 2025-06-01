@@ -1,0 +1,107 @@
+# ============================================================
+#  CI-CD: Microservicios .NET 9  ➜  Docker  ➜  Windows Server
+# ============================================================
+
+name: CI-CD Docker
+
+# ────────────────────────────────────────────────────────────
+#  Ejecuta el workflow al hacer push a main o manualmente
+# ────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [ main ]        # cambia si tu rama principal es otra
+  workflow_dispatch:
+
+# ────────────────────────────────────────────────────────────
+#  Variables globales (no hay secretos aquí)
+# ────────────────────────────────────────────────────────────
+env:
+  REGISTRY: docker.io
+  REGISTRY_PREFIX: jturbi/crmtaxpro     # todas las imágenes usarán este prefijo
+  TAG: ${{ github.sha }}                # versión inmutable por commit
+
+# ============================================================
+# 1) JOB: Build & Push (Github-hosted Ubuntu runner)
+# ============================================================
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Obtener el código
+      - uses: actions/checkout@v4
+
+      # 2. Habilitar Buildx
+      - uses: docker/setup-buildx-action@v3
+
+      # 3. Login a Docker Hub
+      - uses: docker/login-action@v3
+        with:
+          username: jturbi
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4. Construir y subir imágenes
+      - name: Build & push microservice images
+        shell: bash
+        run: |
+          # mapa servicio -> ruta Dockerfile
+          declare -A DOCKERS=(
+            [apigateway]=ApiGateway/Dockerfile
+            [auth-service]=AuthService/Dockerfile
+            [customer-service]=CustomerService/Dockerfile
+            [docu-service]=SignDocuTax/Dockerfile
+            [email-service]=EmailServices/Dockerfile
+          )
+
+          for svc in "${!DOCKERS[@]}"; do
+            dockerfile="${DOCKERS[$svc]}"
+            image="$REGISTRY/$REGISTRY_PREFIX-$svc"
+
+            echo "🔨 Construyendo $image ..."
+            docker build -f "$dockerfile" -t "$image:$TAG" -t "$image:latest" .
+
+            echo "📤 Subiendo $image ..."
+            docker push "$image" --all-tags
+          done
+
+# ============================================================
+# 2) JOB: Deploy (self-hosted Windows Server 2019 runner)
+# ============================================================
+  deploy:
+    needs: build-and-push
+    runs-on: [ self-hosted, Windows, X64 ]
+    timeout-minutes: 30
+
+    steps:
+      # 1. Obtener docker-compose.prod.yml
+      - uses: actions/checkout@v4
+
+      # 2. Login a Docker Hub
+      - name: Login to Docker Hub
+        shell: pwsh
+        run: |
+          docker login $Env:REGISTRY `
+            --username "jturbi" `
+            --password "${{ secrets.DOCKERHUB_TOKEN }}"
+
+      # 3. Generar archivo .env con la versión
+      - name: Generate .env for Compose
+        shell: pwsh
+        run: |
+          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File -Encoding utf8 .env
+          "TAG=$Env:TAG" | Add-Content -Encoding utf8 .env
+          Get-Content .env
+
+      # 4. Descargar imágenes publicadas
+      - name: Pull images
+        shell: pwsh
+        run: docker compose -f docker-compose.prod.yml --env-file .env pull
+
+      # 5. Levantar / actualizar contenedores
+      - name: Up / Update containers
+        shell: pwsh
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file .env up -d --remove-orphans
+          docker image prune -f         # limpieza opcional
+
+
