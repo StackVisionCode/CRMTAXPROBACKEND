@@ -59,12 +59,15 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 return new ApiResponse<bool>(false, "Email already exists", false);
             }
 
-            // Actualizar datos del usuario
-            userTax.Email = request.UserTax.Email;
-            userTax.Domain = request.UserTax.Domain;
-            userTax.IsActive = request.UserTax.IsActive ?? userTax.IsActive;
-            userTax.UpdatedAt = DateTime.UtcNow;
-            userTax.Password = _passwordHash.HashPassword(userTax.Password);
+            // 1. Campos de TaxUser
+            if (!string.IsNullOrWhiteSpace(request.UserTax.Email))
+                userTax.Email = request.UserTax.Email;
+
+            if (!string.IsNullOrWhiteSpace(request.UserTax.Domain))
+                userTax.Domain = request.UserTax.Domain;
+
+            if (request.UserTax.IsActive.HasValue)
+                userTax.IsActive = request.UserTax.IsActive.Value;
 
             // Actualizar perfil del usuario
             if (userTax.TaxUserProfile != null)
@@ -78,6 +81,13 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             }
 
             _mapper.Map(request.UserTax, userTax);
+
+            // Si se proporciona una nueva contraseña, actualizarla y hashearla
+            if (!string.IsNullOrWhiteSpace(request.UserTax.Password))
+                userTax.Password = _passwordHash.HashPassword(request.UserTax.Password);
+
+            userTax.UpdatedAt = DateTime.UtcNow;
+
             _dbContext.TaxUsers.Update(userTax);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0 ? true : false;
             if (result)

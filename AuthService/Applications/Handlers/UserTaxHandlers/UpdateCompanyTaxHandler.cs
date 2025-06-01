@@ -1,6 +1,3 @@
-using AuthService.Applications.DTOs.CompanyDTOs;
-using AuthService.Domains.Companies;
-using AuthService.Domains.Users;
 using AuthService.Infraestructure.Services;
 using AutoMapper;
 using Commands.UserCommands;
@@ -65,26 +62,36 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
                 }
             }
 
-            userCompany.Email = request.CompanyTax.Email;
-            userCompany.Domain = request.CompanyTax.Domain;
-            userCompany.IsActive = request.CompanyTax.IsActive ?? userCompany.IsActive;
-            // userCompany.Phone = request.CompanyTax.Phone ?? userCompany.Phone;
+            // 1. Campos de TaxUser
+            if (!string.IsNullOrWhiteSpace(request.CompanyTax.Email))
+                userCompany.Email = request.CompanyTax.Email;
+
+            if (!string.IsNullOrWhiteSpace(request.CompanyTax.Domain))
+                userCompany.Domain = request.CompanyTax.Domain;
+
+            if (request.CompanyTax.IsActive.HasValue)
+                userCompany.IsActive = request.CompanyTax.IsActive.Value;
+
+            if (!string.IsNullOrWhiteSpace(request.CompanyTax.Password))
+                userCompany.Password = _passwordHash.HashPassword(request.CompanyTax.Password);
+
             userCompany.UpdatedAt = DateTime.UtcNow;
-            userCompany.Password = _passwordHash.HashPassword(userCompany.Password);
 
             // Actualizar datos de la compañía
-            if (true)
+            if (userCompany.Company != null)
             {
                 userCompany.Company.FullName = request.CompanyTax.FullName;
                 userCompany.Company.CompanyName = request.CompanyTax.CompanyName;
                 userCompany.Company.Address = request.CompanyTax.Address;
+                userCompany.Company.Phone = request.CompanyTax.Phone;
                 userCompany.Company.Description = request.CompanyTax.Description;
                 userCompany.Company.UserLimit = request.CompanyTax.UserLimit;
                 userCompany.Company.Brand = request.CompanyTax.Brand;
                 userCompany.Company.UpdatedAt = DateTime.UtcNow;
             }
 
-            _mapper.Map(request.CompanyTax, userCompany);
+            // Guardamos los cambios
+            _dbContext.TaxUsers.Update(userCompany);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
             if (result)

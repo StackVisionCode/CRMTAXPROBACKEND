@@ -15,6 +15,7 @@ public class CompanyProfile : Profile
         CreateMap<NewCompanyDTO, NewUserDTO>().ReverseMap();
         CreateMap<UpdateCompanyDTO, Company>().ReverseMap();
         CreateMap<UpdateCompanyDTO, UpdateUserDTO>().ReverseMap();
+        CreateMap<UpdateCompanyDTO, TaxUser>().ReverseMap();
         CreateMap<CreateTaxCompanyCommands, Company>().ReverseMap();
         CreateMap<UpdateTaxCompanyCommands, Company>().ReverseMap();
     }

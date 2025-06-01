@@ -45,13 +45,81 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        [HttpPut("Update")]
-        public async Task<ActionResult<ApiResponse<bool>>> Update([FromBody] UpdateUserDTO userDto)
+        [HttpPut("UpdateUser")]
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateUser(
+            [FromBody] UpdateUserDTO userDto
+        )
         {
             var command = new UpdateTaxUserCommands(userDto);
             var result = await _mediator.Send(command);
+
             if (result == null)
                 return BadRequest(new { message = "Failed to update user" });
+
+            return Ok(result);
+        }
+
+        [HttpPut("UpdateCompany")]
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateCompany(
+            [FromBody] UpdateCompanyDTO companyDto
+        )
+        {
+            var command = new UpdateTaxCompanyCommands(companyDto);
+            var result = await _mediator.Send(command);
+
+            if (result == null)
+                return BadRequest(new { message = "Failed to update company" });
+
+            return Ok(result);
+        }
+
+        // Endpoint adicional para actualizar el perfil del usuario autenticado
+        [HttpPut("UpdateProfile")]
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateProfile(
+            [FromBody] UpdateUserDTO userDto
+        )
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized(new ApiResponse<bool>(false, "Invalid session"));
+
+            // Asegurar que el usuario solo pueda actualizar su propio perfil
+            userDto.Id = userId;
+
+            var command = new UpdateTaxUserCommands(userDto);
+            var result = await _mediator.Send(command);
+
+            if (result == null)
+                return BadRequest(new { message = "Failed to update profile" });
+
+            return Ok(result);
+        }
+
+        // Endpoint adicional para actualizar el perfil del usuario autenticado
+        [HttpPut("UpdateCompanyProfile")]
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateCompanyProfile(
+            [FromBody] UpdateCompanyDTO companyDto
+        )
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized(new ApiResponse<bool>(false, "Invalid session"));
+
+            // Asegurar que el usuario solo pueda actualizar su propio perfil
+            companyDto.Id = userId;
+
+            var command = new UpdateTaxCompanyCommands(companyDto);
+            var result = await _mediator.Send(command);
+
+            if (result == null)
+                return BadRequest(new { message = "Failed to update profile" });
+
             return Ok(result);
         }
 

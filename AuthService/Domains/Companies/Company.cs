@@ -8,6 +8,7 @@ public class Company : BaseEntity
     public string? FullName { get; set; }
     public string? CompanyName { get; set; }
     public string? Address { get; set; }
+    public string? Phone { get; set; }
     public string? Description { get; set; }
     public int UserLimit { get; set; }
     public string? Brand { get; set; }

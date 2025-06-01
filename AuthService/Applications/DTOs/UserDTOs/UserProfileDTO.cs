@@ -13,6 +13,7 @@ public class UserProfileDTO
     public string RoleName { get; set; } = string.Empty;
     public Guid CompanyId { get; set; }
     public string? FullName { get; set; }
+    public string? Phone { get; set; }
     public string? CompanyName { get; set; }
     public string? CompanyBrand { get; set; }
 }

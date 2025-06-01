@@ -13,13 +13,22 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<GetAllUserTaxHandler> _logger;
-    public GetAllUserTaxHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<GetAllUserTaxHandler> logger)
+
+    public GetAllUserTaxHandler(
+        ApplicationDbContext dbContext,
+        IMapper mapper,
+        ILogger<GetAllUserTaxHandler> logger
+    )
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
     }
-    public async Task<ApiResponse<List<UserGetDTO>>> Handle(GetAllUserQuery request, CancellationToken cancellationToken)
+
+    public async Task<ApiResponse<List<UserGetDTO>>> Handle(
+        GetAllUserQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -30,7 +39,11 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                 return new ApiResponse<List<UserGetDTO>>(false, "No user tax found", null!);
             }
             var userDTOs = _mapper.Map<List<UserGetDTO>>(users);
-            return new ApiResponse<List<UserGetDTO>>(true, "User tax retrieved successfully", userDTOs);
+            return new ApiResponse<List<UserGetDTO>>(
+                true,
+                "User tax retrieved successfully",
+                userDTOs
+            );
         }
         catch (Exception ex)
         {
