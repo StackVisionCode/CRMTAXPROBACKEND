@@ -62,30 +62,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Garantizar Docker Compose v2
+      # 1. Garantizar Docker Compose v2 (Corrección en instalación)
       - name: Ensure Docker Compose v2
         run: |
           $dest = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
           if (!(Test-Path $dest)) {
-            iwr -Uri "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe" -OutFile $dest
+            New-Item -ItemType Directory -Path "$Env:ProgramFiles\Docker\cli-plugins" -Force
+            Invoke-WebRequest -Uri "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe" -OutFile $dest
           }
 
-      # 2. Login a Docker Hub
+      # 2. Agregar Docker Compose al PATH para asegurar su reconocimiento
+      - name: Add Docker Compose to PATH
+        run: |
+          [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files\Docker\cli-plugins", [System.EnvironmentVariableTarget]::Machine)
+
+      # 3. Verificar la instalación de Docker Compose
+      - name: Verify Docker Compose Installation
+        run: docker compose version
+
+      # 4. Login a Docker Hub
       - name: Docker login
         run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
-      # 3. Crear .env que Compose usará para interpolar ${REGISTRY_PREFIX} y ${TAG}
+      # 5. Crear .env que Compose usará para interpolar ${REGISTRY_PREFIX} y ${TAG}
       - name: Create .env
         run: |
           "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Out-File .env -Encoding utf8
           "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
           Get-Content .env
 
-      # 4. Pull y Up (sin --env-file, Compose v2 lee .env automáticamente)
+      # 6. Verificar archivos antes de ejecutar Docker Compose
+      - name: Verify docker-compose.prod.yml existence
+        run: Get-ChildItem C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND -Force | Format-Table -AutoSize
+
+      # 7. Pull y Up (sin --env-file, Compose v2 lee .env automáticamente)
       - name: Pull images
-        run: docker compose -f docker-compose.prod.yml pull
+        run: docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.prod.yml pull
 
       - name: Up / Update containers
         run: |
-          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          docker compose -f C:\actions-runner\_work\CRMTAXPROBACKEND\CRMTAXPROBACKEND\docker-compose.prod.yml up -d --remove-orphans
           docker image prune -f
