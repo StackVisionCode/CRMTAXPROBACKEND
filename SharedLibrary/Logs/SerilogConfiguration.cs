@@ -6,7 +6,7 @@ namespace SharedLibrary.Logs;
 
 public static class SerilogConfiguration
 {
-    
+
   public static void ConfigureSerilog(IConfiguration configuration)
     {
         var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
@@ -21,6 +21,9 @@ public static class SerilogConfiguration
             .WriteTo.File(
                 Path.Combine(logFolderPath, "LogsApplication-.txt"),
                 rollingInterval: RollingInterval.Day
+            )
+            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
             )
             .Enrich.FromLogContext()
             .CreateLogger();
