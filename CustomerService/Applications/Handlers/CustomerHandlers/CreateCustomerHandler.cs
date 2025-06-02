@@ -4,6 +4,8 @@ using CustomerService.Commands.CustomerCommands;
 using CustomerService.Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs.CustomerEventsDTO;
 
 namespace CustomerService.Handlers.CustomerHandlers;
 
@@ -12,16 +14,19 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommands, Api
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<CreateCustomerHandler> _logger;
+    private readonly IEventBus _eventBus;
 
     public CreateCustomerHandler(
         ApplicationDbContext dbContext,
         IMapper mapper,
-        ILogger<CreateCustomerHandler> logger
+        ILogger<CreateCustomerHandler> logger,
+        IEventBus eventBus
     )
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
+        _eventBus = eventBus;
     }
 
     public async Task<ApiResponse<bool>> Handle(
@@ -52,6 +57,23 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommands, Api
             customer.CreatedAt = DateTime.UtcNow;
             await _dbContext.Customers.AddAsync(customer, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+
+            if (result)
+            {
+                // Publish the customer created event
+                var customerCreatedEvent = new CustomerCreatedEvent(
+                    Id: Guid.NewGuid(),
+                    OccurredOn: DateTime.UtcNow,
+                    CustomerId: customer.Id,
+                    TaxUserId: customer.TaxUserId,
+                    FirstName: customer.FirstName,
+                    MiddleName: customer.MiddleName,
+                    LastName: customer.LastName,
+                    Folders: new[] { "Documents", "Firms" }
+                );
+
+                _eventBus.Publish(customerCreatedEvent);
+            }
             _logger.LogInformation("Customer created successfully: {Customer}", customer);
             return new ApiResponse<bool>(
                 result,
