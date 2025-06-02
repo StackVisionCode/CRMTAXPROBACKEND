@@ -15,7 +15,7 @@ env:
   TAG: ${{ github.sha }}
 
 ###############################################################################
-# 1) BUILD & PUSH (Ubuntu runner)
+# 1) BUILD & PUSH — runner Ubuntu (GitHub)
 ###############################################################################
 jobs:
   build-and-push:
@@ -27,6 +27,7 @@ jobs:
         with:
           username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build & push images (.NET 9)
         shell: bash
         run: |
@@ -45,16 +46,15 @@ jobs:
           done
 
 ###############################################################################
-# 2) DEPLOY (self-hosted Windows runner)
+# 2) DEPLOY — runner self-hosted (Windows Server 2019)
 ###############################################################################
   deploy:
     needs: build-and-push
     runs-on: self-hosted
     timeout-minutes: 30
 
-    # Sólo la variable extra que necesitamos
     env:
-      COMPOSE_PROJECT_NAME: crmtaxpro
+      COMPOSE_PROJECT_NAME: crmtaxpro   # evita prefijos raros
 
     defaults:
       run:
@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 0️⃣  Docker Compose v2
+      # 0️⃣  Garantizar Docker Compose v2 (una sola vez)
       - name: Ensure Docker Compose v2
         run: |
           $dest = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
@@ -71,24 +71,30 @@ jobs:
             Invoke-WebRequest -Uri https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe -OutFile $dest
           }
 
-      # 1️⃣  Añadir NETWORK SERVICE a docker-users si falta
-      - name: Ensure permissions for runner account
-        run: |
-          $needsRestart = $false
-          $member = 'NT AUTHORITY\NETWORK SERVICE'
-          $group  = 'docker-users'
-          if (-not (Get-LocalGroupMember -Group $group -ErrorAction SilentlyContinue | Where-Object {$_.Name -eq $member})) {
-            net localgroup $group "$member" /add
-            $needsRestart = $true
-          }
-          if ($needsRestart) {
-            Restart-Service docker
-            Start-Sleep -Seconds 6
-          }
-
-      # 2️⃣  Asegurar daemon Docker activo
+      # 1️⃣  Asegurar que el daemon Docker esté activo
       - name: Ensure Docker service running
+        shell: powershell
+        run: if ((Get-Service 'docker').Status -ne 'Running') { Start-Service 'docker'; Start-Sleep -Seconds 6 }
+
+      # 2️⃣  Login en Docker Hub
+      - name: Docker login
+        run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
+
+      # 3️⃣  Exportar variables y generar .env
+      - name: Export vars & create .env
         run: |
-          if ((Get-Service docker).Status -ne 'Running') {
-            Start-Service docker
-            Start-Sleep -Seconds 6
+          $Env:REGISTRY_PREFIX = "${{ env.REGISTRY_PREFIX }}"
+          $Env:TAG             = "${{ env.TAG }}"
+          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Set-Content .env -Encoding utf8
+          "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
+          Get-Content .env
+
+      # 4️⃣  Descargar imágenes
+      - name: Pull images
+        run: docker compose pull
+
+      # 5️⃣  Levantar / actualizar contenedores
+      - name: Up / update containers
+        run: |
+          docker compose up -d --remove-orphans
+          docker image prune -f      # limpieza opcional
