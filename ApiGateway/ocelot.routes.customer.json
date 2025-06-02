@@ -43,6 +43,27 @@
       "SwaggerKey": "customer"
     },
     {
+      "DownstreamPathTemplate": "/api/Customer/GetOwnCustomers",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5094
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customers/getowncustomers",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
       "DownstreamPathTemplate": "/api/Customer/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
