@@ -1,5 +1,6 @@
 using Infraestructure.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Extensions;
@@ -31,7 +32,40 @@ try
 
     // Configurar Swagger (nativo de .NET 9)
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(c =>
+{
+
+    // Configuración de JWT para Swagger
+    c.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            Description =
+                "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+        }
+    );
+
+    c.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer",
+                    },
+                },
+                Array.Empty<string>()
+            },
+        }
+    );
+});
 
     // Configurar JWT
     builder.Services.AddJwtAuth(builder.Configuration);

@@ -3,11 +3,13 @@ using EmailServices.Services;
 using Infrastructure.Context;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 using SharedLibrary.Extensions;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,29 +31,76 @@ Log.Logger = new LoggerConfiguration()
 
 Log.Information("Starting up the application");
 
+builder.Services.AddJwtAuth(builder.Configuration);
+builder
+    .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(
+        "Bearer",
+        opts =>
+        {
+            var cfg = builder.Configuration.GetSection("JwtSettings");
+            opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+        }
+    );
+
+
 builder.Services.AddCustomCors();
+
+builder.Services.AddSessionCache();
 
 builder.Services.AddEventBus(builder.Configuration);
 
+builder.Services.AddAuthorization();
+
 builder.Services.AddControllers();
 
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IEmailConfigValidator, EmailConfigValidator>();
-builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
-builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
-
+// Registrar AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
 
+//configure mediator
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssemblyContaining<Program>();
     cfg.Lifetime = ServiceLifetime.Scoped;
 });
 
-// Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "EmailService API", Version = "v1" });
+
+    // Configuración de JWT para Swagger
+    c.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            Description =
+                "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+        }
+    );
+
+    c.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer",
+                    },
+                },
+                Array.Empty<string>()
+            },
+        }
+    );
+});
 
 var objetoConexion = new ConnectionApp();
 
@@ -62,8 +111,10 @@ builder.Services.AddDbContext<EmailContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
-
-builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailConfigValidator, EmailConfigValidator>();
+builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
 
 builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventHandler>();
 
@@ -87,7 +138,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<RequireGatewayHeaderMiddleware>();
 app.MapControllers();
 
 app.Run();
