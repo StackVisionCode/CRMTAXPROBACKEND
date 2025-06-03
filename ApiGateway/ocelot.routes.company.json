@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5259
+          "Port": 5003
         }
       ],
       "UpstreamPathTemplate": "/api/company/create",
@@ -27,7 +27,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5259
+          "Port": 5003
         }
       ],
       "UpstreamPathTemplate": "/api/company/getall",
@@ -48,7 +48,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5259
+          "Port": 5003
         }
       ],
       "UpstreamPathTemplate": "/api/company/getbyid",
@@ -69,7 +69,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5259
+          "Port": 5003
         }
       ],
       "UpstreamPathTemplate": "/api/company/update",
@@ -90,7 +90,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5259
+          "Port": 5003
         }
       ],
       "UpstreamPathTemplate": "/api/company/delete",

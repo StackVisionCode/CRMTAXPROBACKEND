@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/auth/login",
@@ -23,7 +23,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/auth/logout",
@@ -44,7 +44,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/auth/logout-all",
@@ -65,7 +65,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/auth/sessions/active",
@@ -86,7 +86,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/auth/session/{id}",
@@ -107,7 +107,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/auth/sessions",

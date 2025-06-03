@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers/create",
@@ -27,7 +27,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers/update",
@@ -48,7 +48,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers/delete",
@@ -69,7 +69,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers",
@@ -90,7 +90,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers/getowncustomers",
@@ -111,7 +111,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers/{id}",
@@ -132,7 +132,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customertypes",
@@ -153,7 +153,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customertype/{id}",
@@ -174,7 +174,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/address/create",
@@ -195,7 +195,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/address/update",
@@ -216,7 +216,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/address/delete",
@@ -237,7 +237,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/addresses",
@@ -258,7 +258,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/address/{id}",
@@ -279,7 +279,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/create",
@@ -300,7 +300,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/update",
@@ -321,7 +321,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/delete",
@@ -342,7 +342,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactsinfo",
@@ -363,7 +363,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/{id}",
@@ -384,7 +384,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/create",
@@ -405,7 +405,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/update",
@@ -426,7 +426,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/delete",
@@ -447,7 +447,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependents",
@@ -468,7 +468,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/{id}",
@@ -489,7 +489,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/create",
@@ -510,7 +510,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/update",
@@ -531,7 +531,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/delete",
@@ -552,7 +552,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformations",
@@ -573,7 +573,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/{id}",
@@ -594,7 +594,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatus/create",
@@ -615,7 +615,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatuses",
@@ -636,7 +636,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatus/{id}",
@@ -657,7 +657,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatus/create",
@@ -678,7 +678,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatuses",
@@ -699,7 +699,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatus/{id}",
@@ -720,7 +720,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/occupation/create",
@@ -741,7 +741,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/occupations",
@@ -762,7 +762,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/occupation/{id}",
@@ -783,7 +783,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontact/create",
@@ -804,7 +804,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontacts",
@@ -825,7 +825,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontact/{id}",
@@ -846,7 +846,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/relationship/create",
@@ -867,7 +867,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/relationships",
@@ -888,7 +888,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/relationship/{id}",

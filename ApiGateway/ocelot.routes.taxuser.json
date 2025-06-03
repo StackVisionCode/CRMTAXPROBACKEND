@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/register",
@@ -23,7 +23,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxcompany/register",
@@ -40,7 +40,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/updateuser",
@@ -61,7 +61,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/updatecompany",
@@ -82,7 +82,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/updateprofile",
@@ -103,7 +103,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/updatecompanyprofile",
@@ -124,7 +124,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/delete",
@@ -145,7 +145,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/getall",
@@ -166,7 +166,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/getbyid/{id}",
@@ -187,7 +187,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5092
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/getprofile",
