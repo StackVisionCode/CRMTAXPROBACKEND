@@ -8,7 +8,7 @@ public class ConnectionApp
 
     public ConnectionApp()
     {
-        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "TIC-LAP-09\\SQLEXPRESS";
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "WIN-MUKVKVN5NB1";
 
         User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 
