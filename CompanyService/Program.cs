@@ -1,4 +1,4 @@
-using CompanyService.Application.Handlers.IntegrationEvents;
+// using CompanyService.Application.Handlers.IntegrationEvents;
 using Infraestructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;

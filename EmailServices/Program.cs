@@ -3,6 +3,7 @@ using AuthService.Handlers.EventsHandler;
 using AuthService.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
 using EmailServices.Services.EmailNotificationsServices;
+using Handlers.EventHandlers.UserEventHandlers;
 using Infrastructure.Context;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,6 +13,7 @@ using Serilog;
 using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
+using SharedLibrary.DTOs.AuthEvents;
 using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -139,11 +141,15 @@ builder.Services.AddScoped<
     IIntegrationEventHandler<PasswordChangedEvent>,
     PasswordChangedEventHandler
 >();
+builder.Services.AddScoped<IIntegrationEventHandler<AccountConfirmationLinkEvent>, AccountConfirmationLinkHandler>();
+builder.Services.AddScoped<IIntegrationEventHandler<AccountConfirmedEvent>, AccountActivatedHandler>();
 
 builder.Services.AddScoped<UserLoginEventsHandler>();
 builder.Services.AddScoped<PasswordResetEventHandler>();
 builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
 builder.Services.AddScoped<PasswordChangedEventHandler>();
+builder.Services.AddScoped<AccountConfirmationLinkHandler>();
+builder.Services.AddScoped<AccountActivatedHandler>();
 
 var app = builder.Build();
 
@@ -154,6 +160,8 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<PasswordResetLinkEvent, PasswordResetEventHandler>();
     bus.Subscribe<PasswordResetOtpEvent, PasswordResetOtpEventsHandler>();
     bus.Subscribe<PasswordChangedEvent, PasswordChangedEventHandler>();
+    bus.Subscribe<AccountConfirmationLinkEvent, AccountConfirmationLinkHandler>();
+    bus.Subscribe<AccountConfirmedEvent, AccountActivatedHandler>();
 
     // Log successful subscriptions
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();

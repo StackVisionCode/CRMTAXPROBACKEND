@@ -98,18 +98,24 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
     {
         try
         {
-            return eventName switch
+            // 1️⃣  Preguntamos primero al subs-manager (en memoria)
+            var type = _subsManager.GetEventTypeByName(eventName);
+
+            // 2️⃣  Fallback: reflexión genérica (por si llega un evento
+            //      que este microservicio aún no maneja pero podría necesitar
+            //      más adelante)
+            type ??= AppDomain.CurrentDomain
+                            .GetAssemblies()
+                            .SelectMany(a => a.GetTypes())
+                            .FirstOrDefault(t => t.Name == eventName);
+
+            if (type is null)
             {
-                nameof(UserLoginEvent) => JsonConvert.DeserializeObject<UserLoginEvent>(json),
-                nameof(PasswordResetLinkEvent) =>
-                    JsonConvert.DeserializeObject<PasswordResetLinkEvent>(json),
-                nameof(PasswordResetOtpEvent) =>
-                    JsonConvert.DeserializeObject<PasswordResetOtpEvent>(json),
-                nameof(PasswordChangedEvent) => JsonConvert.DeserializeObject<PasswordChangedEvent>(
-                    json
-                ),
-                _ => null,
-            };
+                _logger.LogWarning("No se encontró tipo CLR para {EventName}", eventName);
+                return null;
+            }
+
+            return JsonConvert.DeserializeObject(json, type);
         }
         catch (Exception ex)
         {

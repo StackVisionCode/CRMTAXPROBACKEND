@@ -22,10 +22,10 @@ namespace AuthService.Controllers
         }
 
         [HttpPost("Create")]
-        public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] NewUserDTO userDto)
+        public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] NewUserDTO userDto, [FromHeader(Name = "Origin")] string origin)
         {
             // Mapeas el DTO al Command (usando AutoMapper)
-            var command = new CreateTaxUserCommands(userDto);
+            var command = new CreateTaxUserCommands(userDto, origin);
             var result = await _mediator.Send(command);
             if (result == null)
                 return BadRequest(new { message = "Failed to create user" });
@@ -34,11 +34,12 @@ namespace AuthService.Controllers
 
         [HttpPost("CreateCompany")]
         public async Task<ActionResult<ApiResponse<bool>>> CreateCompany(
-            [FromBody] NewCompanyDTO companyDto
+            [FromBody] NewCompanyDTO companyDto,
+            [FromHeader(Name = "Origin")] string origin
         )
         {
             // Mapeas el DTO al Command (usando AutoMapper)
-            var command = new CreateTaxCompanyCommands(companyDto);
+            var command = new CreateTaxCompanyCommands(companyDto, origin);
             var result = await _mediator.Send(command);
             if (result == null)
                 return BadRequest(new { message = "Failed to create company" });

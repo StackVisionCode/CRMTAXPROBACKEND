@@ -161,6 +161,16 @@
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
       "Priority": 1,
       "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/account/confirm",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/confirm",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "Priority": 1,
+      "SwaggerKey": "auth"
     }
   ]
 }

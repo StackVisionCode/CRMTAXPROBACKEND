@@ -47,4 +47,13 @@ public sealed class InMemoryEventBusSubscriptionsManager
     public IEnumerable<Type> GetHandlersForEvent(string eventName) => _handlers[eventName];
 
     public string GetEventKey<T>() => typeof(T).Name;
+
+    public Type? GetEventTypeByName(string eventName)
+    {
+        // 1) Intenta encontrar ya cargado en cualquier ensamblado
+        return AppDomain.CurrentDomain
+                        .GetAssemblies()
+                        .SelectMany(a => a.GetTypes())
+                        .FirstOrDefault(t => t.Name == eventName);
+    }
 }
