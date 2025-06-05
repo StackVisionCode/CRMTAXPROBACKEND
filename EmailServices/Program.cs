@@ -1,4 +1,6 @@
 using Application.Validation;
+using AuthService.Handlers.EventsHandler;
+using AuthService.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
 using EmailServices.Services.EmailNotificationsServices;
 using Infrastructure.Context;
@@ -124,16 +126,38 @@ builder.Services.AddScoped<ISmtpSender, SmtpSender>();
 builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
 
 // Configurar el contexto de eventos
-builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventHandler>();
+builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventsHandler>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<PasswordResetLinkEvent>,
+    PasswordResetEventHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<PasswordResetOtpEvent>,
+    PasswordResetOtpEventsHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<PasswordChangedEvent>,
+    PasswordChangedEventHandler
+>();
 
-builder.Services.AddScoped<UserLoginEventHandler>();
+builder.Services.AddScoped<UserLoginEventsHandler>();
+builder.Services.AddScoped<PasswordResetEventHandler>();
+builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
+builder.Services.AddScoped<PasswordChangedEventHandler>();
 
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
-    bus.Subscribe<UserLoginEvent, UserLoginEventHandler>();
+    bus.Subscribe<UserLoginEvent, UserLoginEventsHandler>();
+    bus.Subscribe<PasswordResetLinkEvent, PasswordResetEventHandler>();
+    bus.Subscribe<PasswordResetOtpEvent, PasswordResetOtpEventsHandler>();
+    bus.Subscribe<PasswordChangedEvent, PasswordChangedEventHandler>();
+
+    // Log successful subscriptions
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("EmailService subscribed to all integration events");
 }
 
 app.UseCors("AllowAll");

@@ -8,12 +8,12 @@ using MediatR;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 
-public sealed class UserLoginEventHandler : IIntegrationEventHandler<UserLoginEvent>
+public sealed class UserLoginEventsHandler : IIntegrationEventHandler<UserLoginEvent>
 {
     private readonly IMediator _mediator;
     private readonly IWebHostEnvironment _env;
 
-    public UserLoginEventHandler(IMediator mediator, IWebHostEnvironment env)
+    public UserLoginEventsHandler(IMediator mediator, IWebHostEnvironment env)
     {
         _mediator = mediator;
         _env = env;

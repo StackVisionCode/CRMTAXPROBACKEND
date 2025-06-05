@@ -13,9 +13,17 @@ public sealed class RequireGatewayHeaderMiddleware(RequestDelegate next)
         "/api/TaxUser/Create",
         "/api/taxcompany/register",
         "/api/Session/IsValid",
+        "/api/Password/request",
+        "/api/Password/otp/send",
+        "/api/Password/otp/validate",
+        "/api/Password/reset",
         "/api/auth/login",
         "/api/taxuser/register",
         "/api/taxcompany/register",
+        "/api/auth/password/request",
+        "/api/auth/password/otp/send",
+        "/api/auth/password/otp/validate",
+        "/api/auth/password/reset",
     };
 
     public async Task InvokeAsync(HttpContext ctx)

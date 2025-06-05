@@ -15,6 +15,8 @@ public static class JwtServiceCollectionExtensions
     {
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IResetTokenService, ResetTokenService>();
+        services.AddScoped<IOtpService, OtpService>();
 
         return services;
     }

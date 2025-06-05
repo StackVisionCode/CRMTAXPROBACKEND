@@ -121,6 +121,46 @@
       },
       "Priority": 0,
       "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/password/request",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/password/request",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "Priority": 1,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/password/otp/send",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/password/otp/send",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "Priority": 1,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/password/otp/validate",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/password/otp/validate",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "Priority": 1,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/password/reset",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/password/reset",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "Priority": 1,
+      "SwaggerKey": "auth"
     }
   ]
 }

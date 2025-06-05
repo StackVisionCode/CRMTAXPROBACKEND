@@ -93,6 +93,31 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
         }
     }
 
+    // **NEW: Helper method to deserialize events by name**
+    private object? DeserializeEventByName(string json, string eventName)
+    {
+        try
+        {
+            return eventName switch
+            {
+                nameof(UserLoginEvent) => JsonConvert.DeserializeObject<UserLoginEvent>(json),
+                nameof(PasswordResetLinkEvent) =>
+                    JsonConvert.DeserializeObject<PasswordResetLinkEvent>(json),
+                nameof(PasswordResetOtpEvent) =>
+                    JsonConvert.DeserializeObject<PasswordResetOtpEvent>(json),
+                nameof(PasswordChangedEvent) => JsonConvert.DeserializeObject<PasswordChangedEvent>(
+                    json
+                ),
+                _ => null,
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deserializing event {EventName}", eventName);
+            return null;
+        }
+    }
+
     public void Subscribe<TEvent, THandler>()
         where TEvent : IntegrationEvent
         where THandler : class, IIntegrationEventHandler<TEvent>
@@ -107,7 +132,7 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
 
         if (_consumerChannels.ContainsKey(eventName))
         {
-            _logger.LogWarning("Already subscribed to event {EventName}", eventName);
+            _logger.LogInformation("Already subscribed to event {EventName}", eventName);
             return;
         }
 
@@ -127,21 +152,21 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
             EnsureExchangeQueue(channel);
             channel.QueueBind(_queue, _exchange, eventName);
 
+            // **FIXED: Create a generic consumer that can handle any event type**
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.Received += async (sender, ea) =>
             {
-                await ProcessEvent<TEvent>(channel, ea);
+                await ProcessEventGeneric(channel, ea);
             };
 
             channel.BasicConsume(queue: _queue, autoAck: false, consumer: consumer);
 
-            _logger.LogInformation("Suscrito a {EventName}", eventName);
+            _logger.LogInformation("Subscribed to {EventName}", eventName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error subscribing to event {EventName}", eventName);
 
-            // Cleanup on error
             if (_consumerChannels.TryGetValue(eventName, out var errorChannel))
             {
                 errorChannel?.Dispose();
@@ -152,8 +177,7 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
         }
     }
 
-    private async Task ProcessEvent<TEvent>(IModel channel, BasicDeliverEventArgs ea)
-        where TEvent : IntegrationEvent
+    private async Task ProcessEventGeneric(IModel channel, BasicDeliverEventArgs ea)
     {
         var eventName = ea.RoutingKey;
         var messageId = ea.BasicProperties?.MessageId ?? "unknown";
@@ -166,17 +190,6 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                 messageId
             );
 
-            if (eventName != typeof(TEvent).Name)
-            {
-                _logger.LogWarning(
-                    "Event name mismatch. Expected: {Expected}, Received: {Received}",
-                    typeof(TEvent).Name,
-                    eventName
-                );
-                channel.BasicNack(ea.DeliveryTag, false, false); // Rechazar sin requeue
-                return;
-            }
-
             var raw = Encoding.UTF8.GetString(ea.Body.ToArray());
 
             if (string.IsNullOrWhiteSpace(raw))
@@ -186,18 +199,13 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                 return;
             }
 
-            var eventObj = JsonConvert.DeserializeObject<TEvent>(raw);
-            if (eventObj == null)
-            {
-                _logger.LogWarning("Failed to deserialize event {EventName}", eventName);
-                channel.BasicNack(ea.DeliveryTag, false, false);
-                return;
-            }
-
             var handlerTypes = _subsManager.GetHandlersForEvent(eventName).ToList();
             if (!handlerTypes.Any())
             {
-                _logger.LogWarning("No handlers found for event {EventName}", eventName);
+                _logger.LogDebug(
+                    "No handlers found for event {EventName} - acknowledging",
+                    eventName
+                );
                 channel.BasicAck(ea.DeliveryTag, false);
                 return;
             }
@@ -220,6 +228,121 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                         continue;
                     }
 
+                    object? eventObj = DeserializeEventByName(raw, eventName);
+                    if (eventObj == null)
+                    {
+                        _logger.LogWarning("Failed to deserialize event {EventName}", eventName);
+                        continue; // Skip this handler but continue with others
+                    }
+
+                    var task = (Task)method.Invoke(handler, new object[] { eventObj })!;
+                    await task;
+
+                    _logger.LogDebug(
+                        "Handler {HandlerType} processed event {EventName} successfully",
+                        handlerType.Name,
+                        eventName
+                    );
+                }
+                catch (Exception handlerEx)
+                {
+                    _logger.LogError(
+                        handlerEx,
+                        "Error in handler {HandlerType} processing event {EventName} with MessageId {MessageId}",
+                        handlerType.Name,
+                        eventName,
+                        messageId
+                    );
+                    // Continue with other handlers even if one fails
+                }
+            }
+
+            channel.BasicAck(ea.DeliveryTag, false);
+            _logger.LogDebug(
+                "Event {EventName} with MessageId {MessageId} processed successfully",
+                eventName,
+                messageId
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Unexpected error processing event {EventName} with MessageId {MessageId}",
+                eventName,
+                messageId
+            );
+            channel.BasicNack(ea.DeliveryTag, false, true);
+        }
+    }
+
+    private async Task ProcessEvent<TEvent>(IModel channel, BasicDeliverEventArgs ea)
+        where TEvent : IntegrationEvent
+    {
+        var eventName = ea.RoutingKey;
+        var messageId = ea.BasicProperties?.MessageId ?? "unknown";
+
+        try
+        {
+            _logger.LogDebug(
+                "Processing event {EventName} with MessageId {MessageId}",
+                eventName,
+                messageId
+            );
+
+            // **FIXED: Remove the strict type checking that was causing the mismatch**
+            // The original code was rejecting events when the routing key didn't match the generic type
+            // Instead, we should handle the event based on the actual routing key
+
+            var raw = Encoding.UTF8.GetString(ea.Body.ToArray());
+
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                _logger.LogWarning("Empty message body for event {EventName}", eventName);
+                channel.BasicNack(ea.DeliveryTag, false, false);
+                return;
+            }
+
+            // **FIXED: Handle events based on routing key instead of generic type**
+            var handlerTypes = _subsManager.GetHandlersForEvent(eventName).ToList();
+            if (!handlerTypes.Any())
+            {
+                // This is normal - not all services handle all events
+                _logger.LogDebug(
+                    "No handlers found for event {EventName} - acknowledging",
+                    eventName
+                );
+                channel.BasicAck(ea.DeliveryTag, false);
+                return;
+            }
+
+            using var scope = _serviceProvider.CreateScope();
+
+            foreach (var handlerType in handlerTypes)
+            {
+                try
+                {
+                    var handler = scope.ServiceProvider.GetRequiredService(handlerType);
+                    var method = handlerType.GetMethod("Handle");
+
+                    if (method == null)
+                    {
+                        _logger.LogError(
+                            "Handle method not found on {HandlerType}",
+                            handlerType.Name
+                        );
+                        continue;
+                    }
+
+                    // **FIXED: Deserialize to the correct event type based on routing key**
+                    object? eventObj = DeserializeEventByName(raw, eventName);
+                    if (eventObj == null)
+                    {
+                        _logger.LogWarning("Failed to deserialize event {EventName}", eventName);
+                        channel.BasicNack(ea.DeliveryTag, false, false);
+                        return;
+                    }
+
                     var task = (Task)method.Invoke(handler, new object[] { eventObj })!;
                     await task;
 
@@ -239,14 +362,11 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                         messageId
                     );
 
-                    // Si un handler falla, rechazamos el mensaje y lo reencolamos
-                    // Podrías implementar lógica de dead letter queue aquí
                     channel.BasicNack(ea.DeliveryTag, false, true);
                     return;
                 }
             }
 
-            // Todos los handlers se ejecutaron correctamente
             channel.BasicAck(ea.DeliveryTag, false);
             _logger.LogDebug(
                 "Event {EventName} with MessageId {MessageId} processed successfully",
@@ -262,7 +382,7 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                 eventName,
                 messageId
             );
-            channel.BasicNack(ea.DeliveryTag, false, false); // No requeue - mensaje malformado
+            channel.BasicNack(ea.DeliveryTag, false, false);
         }
         catch (Exception ex)
         {
@@ -272,7 +392,7 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                 eventName,
                 messageId
             );
-            channel.BasicNack(ea.DeliveryTag, false, true); // Requeue para reintento
+            channel.BasicNack(ea.DeliveryTag, false, true);
         }
     }
 

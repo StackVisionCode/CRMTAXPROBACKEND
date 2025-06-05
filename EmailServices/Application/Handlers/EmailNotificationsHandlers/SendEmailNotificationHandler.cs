@@ -4,14 +4,14 @@ using MediatR;
 
 namespace EmailServices.Handlers.EmailNotificationsHandlers;
 
-public sealed class SendEmailNotificationCommandHandler
+public sealed class SendEmailNotificationHandler
     : IRequestHandler<SendEmailNotificationCommand, Unit>
 {
     private readonly IEmailBuilder _builder;
     private readonly ISmtpSender _sender;
     private readonly IEmailConfigProvider _provider;
 
-    public SendEmailNotificationCommandHandler(
+    public SendEmailNotificationHandler(
         IEmailBuilder builder,
         ISmtpSender sender,
         IEmailConfigProvider provider
