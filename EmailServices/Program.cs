@@ -1,15 +1,16 @@
 using Application.Validation;
 using EmailServices.Services;
+using EmailServices.Services.EmailNotificationsServices;
 using Infrastructure.Context;
 using Infrastructure.Services;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 using SharedLibrary.Extensions;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +27,8 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(
         Path.Combine(logFolderPath, "LogsApplication-.txt"),
         rollingInterval: RollingInterval.Day
-    ).Enrich.FromLogContext()
+    )
+    .Enrich.FromLogContext()
     .CreateLogger();
 
 Log.Information("Starting up the application");
@@ -42,7 +44,6 @@ builder
             opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
         }
     );
-
 
 builder.Services.AddCustomCors();
 
@@ -104,7 +105,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var objetoConexion = new ConnectionApp();
 
-var connectionString = $"Server={objetoConexion.Server};Database=EmailDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+var connectionString =
+    $"Server={objetoConexion.Server};Database=EmailDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+
 // Configurar DbContext
 builder.Services.AddDbContext<EmailContext>(options =>
 {
@@ -115,7 +118,12 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailConfigValidator, EmailConfigValidator>();
 builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
 builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
+builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+builder.Services.AddScoped<IEmailBuilder, EmailBuilder>();
+builder.Services.AddScoped<ISmtpSender, SmtpSender>();
+builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
 
+// Configurar el contexto de eventos
 builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventHandler>();
 
 builder.Services.AddScoped<UserLoginEventHandler>();
