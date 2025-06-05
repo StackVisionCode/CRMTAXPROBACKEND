@@ -5,44 +5,46 @@ namespace SharedLibrary.Services.RabbitMQ;
 /// Gestiona qué handlers están suscritos a cada evento.
 public sealed class InMemoryEventBusSubscriptionsManager
 {
-  private readonly Dictionary<string, List<Type>> _handlers = [];
-  public bool HasSubscriptionsForEvent(string eventName) => _handlers.ContainsKey(eventName);
+    private readonly Dictionary<string, List<Type>> _handlers = [];
 
-  public void AddSubscription<TEvent, THandler>()
-      where TEvent : IntegrationEvent
-      where THandler : class
-  {
-    var key = typeof(TEvent).Name;
-    var handlerType = typeof(THandler);
+    public bool HasSubscriptionsForEvent(string eventName) => _handlers.ContainsKey(eventName);
 
-    if (!_handlers.TryGetValue(key, out var handlers))
-    {
-      handlers = [];
-      _handlers.Add(key, handlers);
-    }
-
-    if (handlers.Any(h => h == handlerType))
-      throw new ArgumentException($"Handler {handlerType.Name} ya registrado para {key}");
-
-    handlers.Add(handlerType);
-  }
-
-  public void RemoveSubscription<TEvent, THandler>()
+    public void AddSubscription<TEvent, THandler>()
         where TEvent : IntegrationEvent
         where THandler : class
-  {
-    var key = typeof(TEvent).Name;
-    var handlerType = typeof(THandler);
+    {
+        var key = typeof(TEvent).Name;
+        var handlerType = typeof(THandler);
 
-    if (!_handlers.TryGetValue(key, out var list)) return;
+        if (!_handlers.TryGetValue(key, out var handlers))
+        {
+            handlers = [];
+            _handlers.Add(key, handlers);
+        }
 
-    list.Remove(handlerType);
+        if (handlers.Any(h => h == handlerType))
+            throw new ArgumentException($"Handler {handlerType.Name} ya registrado para {key}");
 
-    if (list.Count == 0)
-      _handlers.Remove(key);
-  }
+        handlers.Add(handlerType);
+    }
 
-  public IEnumerable<Type> GetHandlersForEvent(string eventName) => _handlers[eventName];
+    public void RemoveSubscription<TEvent, THandler>()
+        where TEvent : IntegrationEvent
+        where THandler : class
+    {
+        var key = typeof(TEvent).Name;
+        var handlerType = typeof(THandler);
 
-  public string GetEventKey<T>() => typeof(T).Name;
+        if (!_handlers.TryGetValue(key, out var list))
+            return;
+
+        list.Remove(handlerType);
+
+        if (list.Count == 0)
+            _handlers.Remove(key);
+    }
+
+    public IEnumerable<Type> GetHandlersForEvent(string eventName) => _handlers[eventName];
+
+    public string GetEventKey<T>() => typeof(T).Name;
 }

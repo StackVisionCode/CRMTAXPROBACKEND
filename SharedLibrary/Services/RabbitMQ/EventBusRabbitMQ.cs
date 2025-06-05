@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -6,7 +7,6 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
-using System.Text;
 
 namespace SharedLibrary.Services.RabbitMQ;
 
@@ -26,7 +26,8 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
         IServiceProvider serviceProvider,
         IOptions<RabbitMQOptions> settings,
         ILogger<EventBusRabbitMQ> logger,
-        InMemoryEventBusSubscriptionsManager subsManager)
+        InMemoryEventBusSubscriptionsManager subsManager
+    )
     {
         _connection = connection;
         _serviceProvider = serviceProvider;
@@ -51,33 +52,43 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
         }
 
         var eventName = @event.GetType().Name;
-        
+
         using var channel = _connection.CreateModel();
-        
+
         try
         {
             EnsureExchangeQueue(channel);
-            
+
             var message = JsonConvert.SerializeObject(@event);
             var body = Encoding.UTF8.GetBytes(message);
             var properties = channel.CreateBasicProperties();
             properties.DeliveryMode = 2; // persistente
             properties.MessageId = @event.Id.ToString();
-            properties.Timestamp = new AmqpTimestamp(((DateTimeOffset)@event.OccurredOn).ToUnixTimeSeconds());
+            properties.Timestamp = new AmqpTimestamp(
+                ((DateTimeOffset)@event.OccurredOn).ToUnixTimeSeconds()
+            );
 
             channel.BasicPublish(
                 exchange: _exchange,
                 routingKey: eventName,
                 basicProperties: properties,
-                body: body);
+                body: body
+            );
 
-            _logger.LogInformation("Evento {EventName} con ID {EventId} publicado en RabbitMQ", 
-                eventName, @event.Id);
+            _logger.LogInformation(
+                "Evento {EventName} con ID {EventId} publicado en RabbitMQ",
+                eventName,
+                @event.Id
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error publishing event {EventName} with ID {EventId}", 
-                eventName, @event.Id);
+            _logger.LogError(
+                ex,
+                "Error publishing event {EventName} with ID {EventId}",
+                eventName,
+                @event.Id
+            );
             throw;
         }
     }
@@ -122,24 +133,21 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                 await ProcessEvent<TEvent>(channel, ea);
             };
 
-            channel.BasicConsume(
-                queue: _queue,
-                autoAck: false,
-                consumer: consumer);
+            channel.BasicConsume(queue: _queue, autoAck: false, consumer: consumer);
 
             _logger.LogInformation("Suscrito a {EventName}", eventName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error subscribing to event {EventName}", eventName);
-            
+
             // Cleanup on error
             if (_consumerChannels.TryGetValue(eventName, out var errorChannel))
             {
                 errorChannel?.Dispose();
                 _consumerChannels.Remove(eventName);
             }
-            
+
             throw;
         }
     }
@@ -149,22 +157,28 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
     {
         var eventName = ea.RoutingKey;
         var messageId = ea.BasicProperties?.MessageId ?? "unknown";
-        
+
         try
         {
-            _logger.LogDebug("Processing event {EventName} with MessageId {MessageId}", 
-                eventName, messageId);
+            _logger.LogDebug(
+                "Processing event {EventName} with MessageId {MessageId}",
+                eventName,
+                messageId
+            );
 
             if (eventName != typeof(TEvent).Name)
             {
-                _logger.LogWarning("Event name mismatch. Expected: {Expected}, Received: {Received}", 
-                    typeof(TEvent).Name, eventName);
+                _logger.LogWarning(
+                    "Event name mismatch. Expected: {Expected}, Received: {Received}",
+                    typeof(TEvent).Name,
+                    eventName
+                );
                 channel.BasicNack(ea.DeliveryTag, false, false); // Rechazar sin requeue
                 return;
             }
 
             var raw = Encoding.UTF8.GetString(ea.Body.ToArray());
-            
+
             if (string.IsNullOrWhiteSpace(raw))
             {
                 _logger.LogWarning("Empty message body for event {EventName}", eventName);
@@ -189,32 +203,42 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
             }
 
             using var scope = _serviceProvider.CreateScope();
-            
+
             foreach (var handlerType in handlerTypes)
             {
                 try
                 {
                     var handler = scope.ServiceProvider.GetRequiredService(handlerType);
                     var method = handlerType.GetMethod("Handle");
-                    
+
                     if (method == null)
                     {
-                        _logger.LogError("Handle method not found on {HandlerType}", handlerType.Name);
+                        _logger.LogError(
+                            "Handle method not found on {HandlerType}",
+                            handlerType.Name
+                        );
                         continue;
                     }
 
                     var task = (Task)method.Invoke(handler, new object[] { eventObj })!;
                     await task;
-                    
-                    _logger.LogDebug("Handler {HandlerType} processed event {EventName} successfully", 
-                        handlerType.Name, eventName);
+
+                    _logger.LogDebug(
+                        "Handler {HandlerType} processed event {EventName} successfully",
+                        handlerType.Name,
+                        eventName
+                    );
                 }
                 catch (Exception handlerEx)
                 {
-                    _logger.LogError(handlerEx, 
-                        "Error in handler {HandlerType} processing event {EventName} with MessageId {MessageId}", 
-                        handlerType.Name, eventName, messageId);
-                    
+                    _logger.LogError(
+                        handlerEx,
+                        "Error in handler {HandlerType} processing event {EventName} with MessageId {MessageId}",
+                        handlerType.Name,
+                        eventName,
+                        messageId
+                    );
+
                     // Si un handler falla, rechazamos el mensaje y lo reencolamos
                     // Podrías implementar lógica de dead letter queue aquí
                     channel.BasicNack(ea.DeliveryTag, false, true);
@@ -224,21 +248,30 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
 
             // Todos los handlers se ejecutaron correctamente
             channel.BasicAck(ea.DeliveryTag, false);
-            _logger.LogDebug("Event {EventName} with MessageId {MessageId} processed successfully", 
-                eventName, messageId);
+            _logger.LogDebug(
+                "Event {EventName} with MessageId {MessageId} processed successfully",
+                eventName,
+                messageId
+            );
         }
         catch (JsonException jsonEx)
         {
-            _logger.LogError(jsonEx, 
-                "JSON deserialization error for event {EventName} with MessageId {MessageId}", 
-                eventName, messageId);
+            _logger.LogError(
+                jsonEx,
+                "JSON deserialization error for event {EventName} with MessageId {MessageId}",
+                eventName,
+                messageId
+            );
             channel.BasicNack(ea.DeliveryTag, false, false); // No requeue - mensaje malformado
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, 
-                "Unexpected error processing event {EventName} with MessageId {MessageId}", 
-                eventName, messageId);
+            _logger.LogError(
+                ex,
+                "Unexpected error processing event {EventName} with MessageId {MessageId}",
+                eventName,
+                messageId
+            );
             channel.BasicNack(ea.DeliveryTag, false, true); // Requeue para reintento
         }
     }
@@ -260,12 +293,18 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                     channel.QueueUnbind(_queue, _exchange, eventName);
                     channel.Dispose();
                     _consumerChannels.Remove(eventName);
-                    _logger.LogInformation("Unbound and disposed channel for {EventName}", eventName);
+                    _logger.LogInformation(
+                        "Unbound and disposed channel for {EventName}",
+                        eventName
+                    );
                 }
                 else
                 {
-                    _logger.LogInformation("Handler {Handler} eliminado de {EventName}",
-                        typeof(THandler).Name, eventName);
+                    _logger.LogInformation(
+                        "Handler {Handler} eliminado de {EventName}",
+                        typeof(THandler).Name,
+                        eventName
+                    );
                 }
             }
             catch (Exception ex)
@@ -279,20 +318,22 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
     {
         // Exchange durable
         channel.ExchangeDeclare(_exchange, ExchangeType.Direct, durable: true);
-        
+
         // Queue durable y sin auto-delete
         channel.QueueDeclare(
             queue: _queue,
             durable: true,
             exclusive: false,
             autoDelete: false,
-            arguments: null);
+            arguments: null
+        );
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
-        
+        if (_disposed)
+            return;
+
         _disposed = true;
 
         foreach (var channel in _consumerChannels.Values)
@@ -306,7 +347,7 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                 _logger.LogError(ex, "Error disposing consumer channel");
             }
         }
-        
+
         _consumerChannels.Clear();
     }
 }

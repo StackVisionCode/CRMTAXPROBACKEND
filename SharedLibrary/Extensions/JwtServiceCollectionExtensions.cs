@@ -8,7 +8,10 @@ namespace SharedLibrary.Extensions;
 
 public static class JwtServiceCollectionExtensions
 {
-    public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddJwtAuth(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
         services.AddScoped<ITokenService, TokenService>();
