@@ -1,7 +1,8 @@
 # =============================================================
-#  CI-CD ▸ Microservicios .NET 9 → Docker → Windows Server 2019
+#  CI-CD ▸ Microservicios .NET 9 → Docker → Ubuntu Server 24.04
 # =============================================================
 name: CI-CD Docker (.NET 9)
+
 on:
   push:
     branches: [ main ]
@@ -14,11 +15,12 @@ env:
   TAG: ${{ github.sha }}
 
 ###############################################################################
-# 1) BUILD & PUSH — runner Ubuntu (GitHub)
+# 1) BUILD & PUSH — runner GitHub (Ubuntu)
 ###############################################################################
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -45,7 +47,7 @@ jobs:
           done
 
 ###############################################################################
-# 2) DEPLOY — runner self-hosted (Windows Server 2019)
+# 2) DEPLOY — runner self-hosted (Ubuntu 24.04)
 ###############################################################################
   deploy:
     needs: build-and-push
@@ -57,42 +59,35 @@ jobs:
 
     defaults:
       run:
-        shell: powershell
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
 
-      # 0️⃣  Garantizar Docker Compose v2 (una sola vez)
+      # 1️⃣ Verificar que Docker Compose v2 esté disponible
       - name: Ensure Docker Compose v2
         run: |
-          $dest = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
-          if (-not (Test-Path $dest)) {
-            Invoke-WebRequest -Uri https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe -OutFile $dest
-          }
+          if ! docker compose version >/dev/null 2>&1; then
+            echo "Docker Compose v2 no está instalado. Por favor instala docker-compose-plugin."
+            exit 1
+          fi
 
-      # 1️⃣  Asegurar que el daemon Docker esté activo
-      - name: Ensure Docker service running
-        shell: powershell
-        run: if ((Get-Service 'docker').Status -ne 'Running') { Start-Service 'docker'; Start-Sleep -Seconds 6 }
-
-      # 2️⃣  Login en Docker Hub
+      # 2️⃣ Login en Docker Hub
       - name: Docker login
-        run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login $REGISTRY -u jturbi --password-stdin
 
-      # 3️⃣  Exportar variables y generar .env
+      # 3️⃣ Exportar variables y generar .env
       - name: Export vars & create .env
         run: |
-          $Env:REGISTRY_PREFIX = "${{ env.REGISTRY_PREFIX }}"
-          $Env:TAG             = "${{ env.TAG }}"
-          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Set-Content .env -Encoding utf8
-          "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
-          Get-Content .env
+          echo "REGISTRY_PREFIX=${{ env.REGISTRY_PREFIX }}" > .env
+          echo "TAG=${{ env.TAG }}" >> .env
+          cat .env
 
-      # 4️⃣  Descargar imágenes
+      # 4️⃣ Descargar imágenes
       - name: Pull images
         run: docker compose pull
 
-      # 5️⃣  Levantar / actualizar contenedores
+      # 5️⃣ Levantar / actualizar contenedores
       - name: Up / update containers
         run: |
           docker compose up -d --remove-orphans
