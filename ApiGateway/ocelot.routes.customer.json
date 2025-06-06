@@ -31,7 +31,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/update",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["PUT"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -52,7 +52,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/delete",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -199,7 +199,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/address/update",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["PUT"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -220,7 +220,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/address/delete",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -304,7 +304,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/update",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["PUT"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -325,7 +325,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/delete",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -409,7 +409,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/update",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["PUT"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -430,7 +430,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/delete",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -514,7 +514,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/update",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["PUT"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -535,7 +535,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/delete",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
