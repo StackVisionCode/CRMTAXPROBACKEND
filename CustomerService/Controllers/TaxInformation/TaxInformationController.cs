@@ -12,17 +12,47 @@ namespace CustomerService.Controllers.TaxInformation
     public class TaxInformationController : ControllerBase
     {
         private readonly IMediator _mediator;
+
         public TaxInformationController(IMediator mediator)
         {
             _mediator = mediator;
         }
 
         [HttpPost("Create")]
-        public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] CreateTaxInformationDTOs taxInformationDto)
+        public async Task<ActionResult<ApiResponse<bool>>> Create(
+            [FromBody] CreateTaxInformationDTOs taxInformationDto
+        )
         {
             var command = new CreateTaxInformationCommands(taxInformationDto);
             var result = await _mediator.Send(command);
-            if (result == null) return BadRequest(new { message = "Failed to create a taxInformation" });
+            if (result == null)
+                return BadRequest(new { message = "Failed to create a taxInformation" });
+            return Ok(result);
+        }
+
+        [HttpPut("Update")]
+        public async Task<ActionResult<ApiResponse<bool>>> Update(
+            [FromBody] UpdateTaxInformationDTOs taxInformationDto
+        )
+        {
+            var command = new UpdateTaxInformationCommands(taxInformationDto);
+            var result = await _mediator.Send(command);
+
+            if (result?.Success != true)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("Delete")]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        {
+            var command = new DeleteTaxInformationCommands(id);
+            var result = await _mediator.Send(command);
+
+            if (result?.Success != true)
+                return BadRequest(result);
+
             return Ok(result);
         }
 
@@ -31,7 +61,8 @@ namespace CustomerService.Controllers.TaxInformation
         {
             var command = new GetAllTaxInformationQueries();
             var result = await _mediator.Send(command);
-            if (result.Success == false) return BadRequest(new { result });
+            if (result.Success == false)
+                return BadRequest(new { result });
 
             return Ok(result);
         }
@@ -41,7 +72,8 @@ namespace CustomerService.Controllers.TaxInformation
         {
             var command = new GetByIdTaxInformationQueries(Id);
             var result = await _mediator.Send(command);
-            if (result.Success == false) return BadRequest(new { result });
+            if (result.Success == false)
+                return BadRequest(new { result });
 
             return Ok(result);
         }

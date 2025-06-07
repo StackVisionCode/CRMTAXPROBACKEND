@@ -5,10 +5,23 @@ namespace AuthService.DTOs.UserDTOs;
 public class UpdateUserDTO
 {
     [Key]
-    public Guid Id { get; set; }
-    public Guid? CompanyId { get; set; }
-    public required Guid RoleId { get; set; }
-    public string? FullName { get; set; }
-    public required string Email { get; set; }
-    public required string Password { get; set; }
+    public required Guid Id { get; set; }
+
+    [Required]
+    public string? Name { get; set; }
+
+    [Required]
+    public string? LastName { get; set; }
+
+    [Required]
+    public string? Phone { get; set; }
+
+    [Required, EmailAddress]
+    public string? Email { get; set; }
+    public string? Password { get; set; }
+
+    public string? Address { get; set; }
+    public string? PhotoUrl { get; set; }
+    public string? Domain { get; set; }
+    public bool? IsActive { get; set; }
 }

@@ -10,7 +10,9 @@ using Common;
 using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs;
+using SharedLibrary.DTOs.AuthEvents;
 
 namespace Handlers.UserTaxHandlers;
 
@@ -20,15 +22,30 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
   private readonly ILogger<CreateCompanyTaxHandler> _logger;
   private readonly IMapper _mapper;
   private readonly IPasswordHash _passwordHash;
+  private readonly IEventBus _eventBus;
+  private readonly IConfirmTokenService _confirmTokenService;
 
-  public CreateCompanyTaxHandler(ApplicationDbContext dbContext, ILogger<CreateCompanyTaxHandler> logger, IMapper mapper, IPasswordHash passwordHash)
+  public CreateCompanyTaxHandler(
+      ApplicationDbContext dbContext,
+      ILogger<CreateCompanyTaxHandler> logger,
+      IMapper mapper,
+      IPasswordHash passwordHash
+,
+      IEventBus eventBus,
+      IConfirmTokenService confirmTokenService)
   {
     _dbContext = dbContext;
     _logger = logger;
     _mapper = mapper;
     _passwordHash = passwordHash;
+    _eventBus = eventBus;
+    _confirmTokenService = confirmTokenService;
   }
-  public async Task<ApiResponse<bool>> Handle(CreateTaxCompanyCommands request, CancellationToken cancellationToken)
+
+  public async Task<ApiResponse<bool>> Handle(
+        CreateTaxCompanyCommands request,
+        CancellationToken cancellationToken
+    )
   {
     try
     {
@@ -48,7 +65,7 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
       var UserCompanyTax = _mapper.Map<NewUserDTO>(request.Companytax);
       var MapToUser = _mapper.Map<TaxUser>(UserCompanyTax);
       MapToUser.CompanyId = companyTax.Id;
-      MapToUser.IsActive = true;
+      MapToUser.IsActive = false;
       MapToUser.Confirm = false;
       MapToUser.CreatedAt = DateTime.UtcNow;
       var RoleGuid = await GetAllRoles();
@@ -61,8 +78,17 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         _logger.LogError("Error creating company tax");
         return new ApiResponse<bool>(false, "Error creating company tax", false);
       }
+
+      var (token, expiration) = _confirmTokenService.Generate(MapToUser.Id, MapToUser.Email);
+      MapToUser.ConfirmToken = token;
+
       await _dbContext.TaxUsers.AddAsync(MapToUser);
       var ResultUserSaved = await _dbContext.SaveChangesAsync() > 0;
+
+      var link = $"{request.Origin.TrimEnd('/')}/auth/confirm" +
+          $"?email={Uri.EscapeDataString(MapToUser.Email)}" +
+          $"&token={Uri.EscapeDataString(token)}";
+
       if (!ResultUserSaved)
       {
         _logger.LogError("Error creating user tax");
@@ -70,7 +96,20 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
       }
 
       _logger.LogInformation("User tax created successfully: {UserTax}", companyTax);
-      return new ApiResponse<bool>(ResultUserSaved, ResultUserSaved ? "Company tax created successfully" : "Failed to create company tax", ResultUserSaved);
+
+      _eventBus.Publish(new AccountConfirmationLinkEvent(
+            Guid.NewGuid(), DateTime.UtcNow,
+            MapToUser.Id, MapToUser.Email,
+            request.Companytax.FullName ?? request.Companytax.CompanyName ?? MapToUser.Email,
+            link, expiration));
+
+      return new ApiResponse<bool>(
+          ResultUserSaved,
+          ResultUserSaved
+              ? "Company tax created successfully"
+              : "Failed to create company tax",
+          ResultUserSaved
+      );
     }
     catch (Exception ex)
     {
@@ -83,7 +122,8 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
   {
     try
     {
-      return await _dbContext.TaxUsers.FirstOrDefaultAsync(a => a.Email == companyDTO.Email) != null;
+      return await _dbContext.TaxUsers.FirstOrDefaultAsync(a => a.Email == companyDTO.Email)
+          != null;
     }
     catch (Exception ex)
     {
@@ -94,7 +134,10 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
 
   private async Task<Role> GetAllRoles()
   {
-    var result = await _dbContext.Roles.AsNoTracking().Where(a => a.Name.Contains("administrator")).FirstAsync();
+    var result = await _dbContext
+        .Roles.AsNoTracking()
+        .Where(a => a.Name.Contains("administrator"))
+        .FirstAsync();
     if (result is null)
     {
       return null!;

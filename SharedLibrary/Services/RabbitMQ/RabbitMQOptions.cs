@@ -8,7 +8,7 @@ public sealed class RabbitMQOptions
     public string Password { get; init; } = "guest";
     public int RetryCount { get; init; } = 5;
     public string ExchangeName { get; init; } = "EventBusExchange";
-    
+
     // Nuevas opciones para mejorar la configuración
     public string VirtualHost { get; init; } = "/";
     public int RequestedHeartbeat { get; init; } = 60;

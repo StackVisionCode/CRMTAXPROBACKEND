@@ -30,6 +30,32 @@ namespace CustomerService.Controllers.Dependent
             return Ok(result);
         }
 
+        [HttpPut("Update")]
+        public async Task<ActionResult<ApiResponse<bool>>> Update(
+            [FromBody] UpdateDependentDTO dependentDto
+        )
+        {
+            var command = new UpdateDependentCommands(dependentDto);
+            var result = await _mediator.Send(command);
+
+            if (result?.Success != true)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("Delete")]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        {
+            var command = new DeleteDependentCommands(id);
+            var result = await _mediator.Send(command);
+
+            if (result?.Success != true)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
         [HttpGet("GetAll")]
         public async Task<ActionResult> GetAll()
         {

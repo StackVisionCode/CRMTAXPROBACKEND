@@ -61,7 +61,7 @@ try
 
             var baseUrl = runningInDocker
                 ? "http://auth-service:8080" // nombre DNS en la red bridge
-                : "http://localhost:5092"; // desarrollo local
+                : "http://localhost:5001"; // desarrollo local
 
             c.BaseAddress = new Uri(baseUrl);
             c.DefaultRequestHeaders.Add("X-From-Gateway", "Api-Gateway");

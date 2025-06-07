@@ -51,6 +51,9 @@ namespace AuthService.Migrations
                     b.Property<string>("FullName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -293,6 +296,9 @@ namespace AuthService.Migrations
 
                     b.Property<DateTime?>("OtpExpires")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("OtpVerified")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Password")
                         .IsRequired()

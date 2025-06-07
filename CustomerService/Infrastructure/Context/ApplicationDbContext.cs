@@ -48,7 +48,8 @@ public class ApplicationDbContext : DbContext
         }
 
         // relación entre Customer y CustomerTypeAdd commentMore actions
-        modelBuilder.Entity<Customer>()
+        modelBuilder
+            .Entity<Customer>()
             .HasOne(c => c.CustomerType)
             .WithMany(ct => ct.Customers)
             .HasForeignKey(c => c.CustomerTypeId);
@@ -150,26 +151,28 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<PreferredContact>().HasKey(p => p.Id);
 
         // Seed CustomerType data defaultAdd commentMore actions
-        modelBuilder.Entity<CustomerType>().HasData(
-            new CustomerType
-            {
-                Id = Guid.Parse("50000000-0000-0000-0000-000000000001"),
-                Name = "Individual",
-                Description = "Individual customer type"
-            },
-            new CustomerType
-            {
-                Id = Guid.Parse("50000000-0000-0000-0000-000000000002"),
-                Name = "Company",
-                Description = "Company customer type"
-            },
-            new CustomerType
-            {
-                Id = Guid.Parse("50000000-0000-0000-0000-000000000003"),
-                Name = "Other",
-                Description = "Other customer type"
-            }
-        );
+        modelBuilder
+            .Entity<CustomerType>()
+            .HasData(
+                new CustomerType
+                {
+                    Id = Guid.Parse("50000000-0000-0000-0000-000000000001"),
+                    Name = "Individual",
+                    Description = "Individual customer type",
+                },
+                new CustomerType
+                {
+                    Id = Guid.Parse("50000000-0000-0000-0000-000000000002"),
+                    Name = "Company",
+                    Description = "Company customer type",
+                },
+                new CustomerType
+                {
+                    Id = Guid.Parse("50000000-0000-0000-0000-000000000003"),
+                    Name = "Other",
+                    Description = "Other customer type",
+                }
+            );
 
         // Seed data for initial values
         modelBuilder

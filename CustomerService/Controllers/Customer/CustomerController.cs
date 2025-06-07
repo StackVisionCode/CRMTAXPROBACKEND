@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Common;
 using CustomerService.Commands.CustomerCommands;
 using CustomerService.DTOs.CustomerDTOs;
@@ -61,6 +63,28 @@ namespace CustomerService.Controllers.Customer
         {
             var command = new GetAllCustomerQueries();
             var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetOwnCustomers")]
+        public async Task<ActionResult> GetOwnCustomers()
+        {
+            // 1) extraer el Id de usuario (claim "sub" ó NameIdentifier)
+            var rawId =
+                User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(rawId, out var userId))
+                return Unauthorized(
+                    new ApiResponse<List<ReadCustomerDTO>>(false, "Invalid session")
+                );
+
+            var command = new GetOwnCustomersQueries(userId);
+            var result = await _mediator.Send(command);
+
             if (result.Success == false)
                 return BadRequest(new { result });
 

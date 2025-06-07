@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bienvenido a TAXPRO SHIELD</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      line-height: 1.6;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background: transparent"
+    >
+      <tr>
+        <td style="padding: 40px 20px">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              max-width: 600px;
+              margin: 0 auto;
+              background: #ffffff;
+              border-radius: 16px;
+              box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);
+              overflow: hidden;
+            "
+          >
+            <!-- Header con fondo blanco para mejor contraste -->
+            <tr>
+              <td
+                style="
+                  background: #ffffff;
+                  padding: 30px;
+                  text-align: center;
+                  border-bottom: 5px solid #2563eb;
+                "
+              >
+                <img
+                  src="cid:logo_cid"
+                  alt="TAXPRO SHIELD"
+                  style="max-width: 180px; height: auto"
+                />
+              </td>
+            </tr>
+
+            <!-- Barra de color -->
+            <tr>
+              <td
+                style="
+                  padding: 0;
+                  height: 6px;
+                  background: linear-gradient(90deg, #2563eb 0%, #22c55e 100%);
+                "
+              ></td>
+            </tr>
+
+            <!-- Contenido principal -->
+            <tr>
+              <td style="padding: 40px 30px">
+                <div style="text-align: center; margin-bottom: 30px">
+                  <div
+                    style="
+                      display: inline-block;
+                      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                      width: 60px;
+                      height: 60px;
+                      border-radius: 50%;
+                      position: relative;
+                      margin-bottom: 20px;
+                    "
+                  >
+                    <div
+                      style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        color: white;
+                        font-size: 24px;
+                        font-weight: bold;
+                      "
+                    >
+                      👋
+                    </div>
+                  </div>
+                  <h1
+                    style="
+                      margin: 0;
+                      color: #1e293b;
+                      font-size: 28px;
+                      font-weight: 700;
+                      letter-spacing: -0.5px;
+                    "
+                  >
+                    ¡Hola {{DisplayName}}!
+                  </h1>
+                  <p
+                    style="margin: 10px 0 0 0; color: #64748b; font-size: 16px"
+                  >
+                    Bienvenido a la familia de preparadores profesionales
+                  </p>
+                </div>
+
+                <!-- Tarjeta de bienvenida -->
+                <div
+                  style="
+                    background: linear-gradient(
+                      135deg,
+                      #eff6ff 0%,
+                      #dbeafe 100%
+                    );
+                    border: 1px solid #bfdbfe;
+                    border-radius: 12px;
+                    padding: 25px;
+                    margin: 25px 0;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      margin-bottom: 20px;
+                    "
+                  >
+                    <div
+                      style="
+                        background: #2563eb;
+                        width: 4px;
+                        height: 40px;
+                        border-radius: 2px;
+                        margin-right: 15px;
+                      "
+                    ></div>
+                    <div>
+                      <h3
+                        style="
+                          margin: 0;
+                          color: #1e40af;
+                          font-size: 18px;
+                          font-weight: 600;
+                        "
+                      >
+                        ¡Gracias por Registrarte!
+                      </h3>
+                      <p
+                        style="
+                          margin: 5px 0 0 0;
+                          color: #1e40af;
+                          font-size: 14px;
+                        "
+                      >
+                        Preparador de Impuestos Individual
+                      </p>
+                    </div>
+                  </div>
+
+                  <p
+                    style="
+                      margin: 0 0 20px 0;
+                      color: #1e40af;
+                      font-size: 15px;
+                      line-height: 1.5;
+                    "
+                  >
+                    Estás a un paso de acceder a la plataforma más avanzada para
+                    preparadores de impuestos. Para activar tu cuenta y comenzar
+                    a disfrutar de todas nuestras herramientas profesionales,
+                    confirma tu registro haciendo clic en el botón de abajo.
+                  </p>
+
+                  <!-- Botón principal -->
+                  <div style="text-align: center; margin: 25px 0">
+                    <a
+                      href="{{ConfirmLink}}"
+                      style="
+                        display: inline-block;
+                        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                        color: white;
+                        text-decoration: none;
+                        padding: 16px 32px;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        font-size: 16px;
+                        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+                        transition: all 0.3s ease;
+                      "
+                    >
+                      ✅ Confirmar Mi Cuenta
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Beneficios -->
+                <div
+                  style="
+                    background: linear-gradient(
+                      135deg,
+                      #ecfdf5 0%,
+                      #d1fae5 100%
+                    );
+                    border-left: 4px solid #22c55e;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 25px 0;
+                  "
+                >
+                  <h4
+                    style="
+                      margin: 0 0 15px 0;
+                      color: #166534;
+                      font-size: 16px;
+                      font-weight: 600;
+                    "
+                  >
+                    🚀 Lo que obtienes con TAXPRO SHIELD:
+                  </h4>
+                  <ul
+                    style="
+                      margin: 0;
+                      padding-left: 20px;
+                      color: #166534;
+                      font-size: 14px;
+                      line-height: 1.8;
+                    "
+                  >
+                    <li>
+                      <strong>Herramientas avanzadas</strong> para preparación
+                      de impuestos
+                    </li>
+                    <li>
+                      <strong>Seguridad de nivel empresarial</strong> para
+                      proteger datos fiscales
+                    </li>
+                    <li>
+                      <strong>Soporte técnico especializado</strong> disponible
+                      24/7
+                    </li>
+                    <li>
+                      <strong>Actualizaciones automáticas</strong> de
+                      regulaciones fiscales
+                    </li>
+                    <li>
+                      <strong>Interfaz intuitiva</strong> diseñada para
+                      profesionales
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Mensaje de seguridad -->
+                <div
+                  style="
+                    background: linear-gradient(
+                      135deg,
+                      #fef3c7 0%,
+                      #fde68a 100%
+                    );
+                    border-left: 4px solid #f59e0b;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 25px 0;
+                  "
+                >
+                  <p
+                    style="
+                      margin: 0;
+                      color: #92400e;
+                      font-size: 15px;
+                      line-height: 1.5;
+                    "
+                  >
+                    <strong>🛡️ Nota de Seguridad:</strong> Si no solicitaste
+                    esta cuenta, simplemente ignora este mensaje. Tu información
+                    está completamente segura con nosotros.
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                  padding: 25px 30px;
+                  border-top: 1px solid #e2e8f0;
+                "
+              >
+                <div style="text-align: center">
+                  <div style="margin-bottom: 15px">
+                    <span
+                      style="
+                        display: inline-block;
+                        background: #22c55e;
+                        width: 30px;
+                        height: 3px;
+                        border-radius: 2px;
+                        margin: 0 5px;
+                      "
+                    ></span>
+                    <span
+                      style="
+                        display: inline-block;
+                        background: #2563eb;
+                        width: 30px;
+                        height: 3px;
+                        border-radius: 2px;
+                        margin: 0 5px;
+                      "
+                    ></span>
+                    <span
+                      style="
+                        display: inline-block;
+                        background: #22c55e;
+                        width: 30px;
+                        height: 3px;
+                        border-radius: 2px;
+                        margin: 0 5px;
+                      "
+                    ></span>
+                  </div>
+                  <p
+                    style="
+                      margin: 0;
+                      color: #6b7280;
+                      font-size: 13px;
+                      line-height: 1.4;
+                    "
+                  >
+                    © {{Year}}
+                    <strong style="color: #374151">TAXPRO SHIELD</strong> –
+                    Todos los derechos reservados<br />
+                    <span style="color: #9ca3af"
+                      >Protegiendo tu información fiscal con tecnología
+                      avanzada</span
+                    >
+                  </p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

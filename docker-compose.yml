@@ -1,4 +1,15 @@
 services:
+ # --- SQL Server 2022 -------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Brittany040238."
+      MSSQL_PID: "Developer"
+    networks: [backend]
   # --- Mensajería ------------------------------------------------------------
   rabbitmq:
     image: rabbitmq:3-management         # imagen oficial, no la construimos
@@ -29,7 +40,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: host.docker.internal,1433
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -44,7 +55,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: host.docker.internal,1433
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -59,7 +70,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: host.docker.internal,1433
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -74,7 +85,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: host.docker.internal,1433
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq

@@ -1,5 +1,6 @@
 using Common;
 using CustomerService.Commands.AddressCommands;
+using CustomerService.DTOs.AddressCommands;
 using CustomerService.DTOs.AddressDTOs;
 using CustomerService.Queries.AddressQueries;
 using MediatR;
@@ -12,17 +13,47 @@ namespace CustomerService.Controllers.Address
     public class AddressController : ControllerBase
     {
         private readonly IMediator _mediator;
+
         public AddressController(IMediator mediator)
         {
             _mediator = mediator;
         }
 
         [HttpPost("Create")]
-        public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] CreateAddressDTO addressDto)
+        public async Task<ActionResult<ApiResponse<bool>>> Create(
+            [FromBody] CreateAddressDTO addressDto
+        )
         {
             var command = new CreateAddressCommands(addressDto);
             var result = await _mediator.Send(command);
-            if (result == null) return BadRequest(new { message = "Failed to create an address" });
+            if (result == null)
+                return BadRequest(new { message = "Failed to create an address" });
+            return Ok(result);
+        }
+
+        [HttpPut("Update")]
+        public async Task<ActionResult<ApiResponse<bool>>> Update(
+            [FromBody] UpdateAddressDTO addressDto
+        )
+        {
+            var command = new UpdateAddressCommands(addressDto);
+            var result = await _mediator.Send(command);
+
+            if (result?.Success != true)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("Delete")]
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        {
+            var command = new DeleteAddressCommands(id);
+            var result = await _mediator.Send(command);
+
+            if (result?.Success != true)
+                return BadRequest(result);
+
             return Ok(result);
         }
 
@@ -31,7 +62,8 @@ namespace CustomerService.Controllers.Address
         {
             var command = new GetAllAddressQueries();
             var result = await _mediator.Send(command);
-            if (result.Success == false) return BadRequest(new { result });
+            if (result.Success == false)
+                return BadRequest(new { result });
 
             return Ok(result);
         }
@@ -41,7 +73,8 @@ namespace CustomerService.Controllers.Address
         {
             var command = new GetByIdAddressQueries(Id);
             var result = await _mediator.Send(command);
-            if (result.Success == false) return BadRequest(new { result });           
+            if (result.Success == false)
+                return BadRequest(new { result });
 
             return Ok(result);
         }

@@ -34,30 +34,26 @@ public class GetByIdCustomerHanlder
         try
         {
             var customerDTO = await (
-                from customer in _dbContext.Customers
-                join customerType in _dbContext.CustomerTypes
-                    on customer.CustomerTypeId equals customerType.Id
-                join occupation in _dbContext.Occupations
-                    on customer.OccupationId equals occupation.Id
-                join maritalStatus in _dbContext.MaritalStatuses
-                    on customer.MaritalStatusId equals maritalStatus.Id
-                join contatInfo in _dbContext.ContactInfos
-                    on customer.Id equals contatInfo.CustomerId
-
+                from cust in _dbContext.Customers
+                join ct in _dbContext.CustomerTypes on cust.CustomerTypeId equals ct.Id
+                join occ in _dbContext.Occupations on cust.OccupationId equals occ.Id
+                join ms in _dbContext.MaritalStatuses on cust.MaritalStatusId equals ms.Id
+                join ci in _dbContext.ContactInfos on cust.Id equals ci.CustomerId into ciGroup // ← agrupo
+                from ci in ciGroup.DefaultIfEmpty() // ← LEFT JOIN
                 select new ReadCustomerDTO
                 {
-                    Id = customer.Id,
-                    CustomerType = customerType.Name,
-                    CustomerTypeDescription = customerType.Description,
-                    FirstName = customer.FirstName,
-                    LastName = customer.LastName,
-                    MiddleName = customer.MiddleName,
-                    DateOfBirth = customer.DateOfBirth,
-                    SsnOrItin = customer.SsnOrItin,
-                    IsActive = customer.IsActive,
-                    IsLogin = contatInfo.IsLoggin,
-                    Occupation = occupation.Name,
-                    MaritalStatus = maritalStatus.Name,
+                    Id = cust.Id,
+                    CustomerType = ct.Name,
+                    CustomerTypeDescription = ct.Description,
+                    FirstName = cust.FirstName,
+                    LastName = cust.LastName,
+                    MiddleName = cust.MiddleName,
+                    DateOfBirth = cust.DateOfBirth,
+                    SsnOrItin = cust.SsnOrItin,
+                    IsActive = cust.IsActive,
+                    IsLogin = ci != null && ci.IsLoggin, // si no hay contacto → false
+                    Occupation = occ.Name,
+                    MaritalStatus = ms.Name,
                 }
             ).FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
             if (customerDTO == null)

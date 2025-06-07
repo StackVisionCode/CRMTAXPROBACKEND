@@ -6,11 +6,53 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers/create",
       "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Customer/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customers/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Customer/Delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customers/delete",
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -27,10 +69,31 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Customer/GetOwnCustomers",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/customers/getowncustomers",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -48,7 +111,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customers/{id}",
@@ -69,7 +132,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customertypes",
@@ -90,7 +153,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/customertype/{id}",
@@ -111,11 +174,53 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/address/create",
       "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Address/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/address/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Address/Delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/address/delete",
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -132,7 +237,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/addresses",
@@ -153,7 +258,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/address/{id}",
@@ -174,11 +279,53 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/create",
       "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ContactInfo/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/contactinfo/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ContactInfo/Delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/contactinfo/delete",
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -195,7 +342,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactsinfo",
@@ -216,7 +363,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/{id}",
@@ -237,11 +384,53 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/create",
       "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Dependent/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/dependent/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Dependent/Delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/dependent/delete",
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -258,7 +447,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependents",
@@ -279,7 +468,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/{id}",
@@ -300,11 +489,53 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/create",
       "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxInformation/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxinformation/update",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxInformation/Delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxinformation/delete",
+      "UpstreamHttpMethod": ["DELETE"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -321,7 +552,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformations",
@@ -342,7 +573,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/{id}",
@@ -363,7 +594,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatus/create",
@@ -384,7 +615,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatuses",
@@ -405,7 +636,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatus/{id}",
@@ -426,7 +657,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatus/create",
@@ -447,7 +678,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatuses",
@@ -468,7 +699,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatus/{id}",
@@ -489,7 +720,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/occupation/create",
@@ -510,7 +741,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/occupations",
@@ -531,7 +762,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/occupation/{id}",
@@ -552,7 +783,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontact/create",
@@ -573,7 +804,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontacts",
@@ -594,7 +825,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontact/{id}",
@@ -615,7 +846,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/relationship/create",
@@ -636,7 +867,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/relationships",
@@ -657,7 +888,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5094
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/relationship/{id}",
