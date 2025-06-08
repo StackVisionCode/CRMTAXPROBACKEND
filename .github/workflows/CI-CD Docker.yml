@@ -35,7 +35,7 @@ jobs:
           declare -A DF=(
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
-            [customer-service]=CustomerService/Dockerfile           
+            [customer-service]=CustomerService/Dockerfile
             [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
           )
@@ -91,3 +91,11 @@ jobs:
         run: |
           docker compose up -d --remove-orphans
           docker image prune -f      # limpieza opcional
+
+      # 6️⃣ Ejecutar migraciones (por contenedor)
+      - name: Run DB Migrations
+        run: |
+          docker compose run --rm auth-migrator
+          docker compose run --rm customer-migrator
+          docker compose run --rm docu-migrator
+          docker compose run --rm email-migrator
