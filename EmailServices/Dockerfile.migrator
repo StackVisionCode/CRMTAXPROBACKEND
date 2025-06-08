@@ -1,0 +1,10 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS migrator
+WORKDIR /src
+
+COPY . .
+WORKDIR /src/EmailServices  # cambia según el servicio
+
+RUN dotnet tool install --global dotnet-ef --version 9.0.0
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+CMD ["dotnet", "ef", "database", "update"]

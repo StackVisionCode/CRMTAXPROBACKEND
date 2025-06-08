@@ -95,14 +95,9 @@ services:
     depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
-  # --- Migrators -------------------------------------------------------------
+  # --- Migrators (Usan imágenes dedicadas) -----------------------------------
   auth-migrator:
-    image: ${REGISTRY_PREFIX}-auth-service:${TAG}
-    entrypoint: >
-      sh -c "
-      dotnet tool install --global dotnet-ef --version 9.0.0 &&
-      export PATH=$PATH:/root/.dotnet/tools &&
-      dotnet ef database update --project ./AuthService/AuthService.csproj"
+    image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
     depends_on: [sqlserver]
     environment:
       DB_SERVER: sqlserver
@@ -111,12 +106,7 @@ services:
     networks: [backend]
 
   customer-migrator:
-    image: ${REGISTRY_PREFIX}-customer-service:${TAG}
-    entrypoint: >
-      sh -c "
-      dotnet tool install --global dotnet-ef --version 9.0.0 &&
-      export PATH=$PATH:/root/.dotnet/tools &&
-      dotnet ef database update --project ./CustomerService/CustomerService.csproj"
+    image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
     depends_on: [sqlserver]
     environment:
       DB_SERVER: sqlserver
@@ -125,12 +115,7 @@ services:
     networks: [backend]
 
   docu-migrator:
-    image: ${REGISTRY_PREFIX}-docu-service:${TAG}
-    entrypoint: >
-      sh -c "
-      dotnet tool install --global dotnet-ef --version 9.0.0 &&
-      export PATH=$PATH:/root/.dotnet/tools &&
-      dotnet ef database update --project ./DocuService/DocuService.csproj"
+    image: ${REGISTRY_PREFIX}-docu-migrator:${TAG}
     depends_on: [sqlserver]
     environment:
       DB_SERVER: sqlserver
@@ -139,12 +124,7 @@ services:
     networks: [backend]
 
   email-migrator:
-    image: ${REGISTRY_PREFIX}-email-service:${TAG}
-    entrypoint: >
-      sh -c "
-      dotnet tool install --global dotnet-ef --version 9.0.0 &&
-      export PATH=$PATH:/root/.dotnet/tools &&
-      dotnet ef database update --project ./EmailService/EmailService.csproj"
+    image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
     depends_on: [sqlserver]
     environment:
       DB_SERVER: sqlserver

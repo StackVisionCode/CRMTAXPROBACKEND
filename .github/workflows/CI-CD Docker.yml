@@ -38,6 +38,10 @@ jobs:
             [customer-service]=CustomerService/Dockerfile
             [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
+            [auth-migrator]=AuthService/Dockerfile.migrator
+            [customer-migrator]=CustomerService/Dockerfile.migrator
+            [docu-migrator]=SignDocuTax/Dockerfile.migrator
+            [email-migrator]=EmailServices/Dockerfile.migrator
           )
           for svc in "${!DF[@]}"; do
             img="$REGISTRY/$REGISTRY_PREFIX-$svc"
