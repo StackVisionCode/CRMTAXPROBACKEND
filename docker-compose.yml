@@ -1,4 +1,5 @@
 services:
+  # --- SQL Server 2022 -------------------------------------------------------
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver
@@ -10,6 +11,7 @@ services:
       MSSQL_PID: "Developer"
     networks: [backend]
 
+  # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -21,6 +23,7 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     networks: [backend]
 
+  # --- API Gateway -----------------------------------------------------------
   apigateway:
     image: ${REGISTRY_PREFIX}-apigateway:${TAG}
     environment:
@@ -32,6 +35,7 @@ services:
     depends_on: [rabbitmq]
     networks: [backend]
 
+  # --- Auth Service ----------------------------------------------------------
   auth-service:
     image: ${REGISTRY_PREFIX}-auth-service:${TAG}
     environment:
@@ -43,9 +47,10 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [sqlserver, rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
+  # --- Customer Service ------------------------------------------------------
   customer-service:
     image: ${REGISTRY_PREFIX}-customer-service:${TAG}
     environment:
@@ -57,9 +62,10 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [sqlserver, rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
+  # --- Document Signing Service ----------------------------------------------
   docu-service:
     image: ${REGISTRY_PREFIX}-docu-service:${TAG}
     environment:
@@ -71,9 +77,10 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [sqlserver, rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
+  # --- Email Service ---------------------------------------------------------
   email-service:
     image: ${REGISTRY_PREFIX}-email-service:${TAG}
     environment:
@@ -85,60 +92,44 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [sqlserver, rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
-  # 🛠️ Migrators por microservicio
-  auth.migrator:
-    image: mcr.microsoft.com/dotnet/sdk:9.0
-    container_name: auth.migrator
-    volumes:
-      - .:/src
-    working_dir: /src/AuthService
-    command: >
-      sh -c "dotnet tool install -g dotnet-ef &&
-             export PATH=$PATH:/root/.dotnet/tools &&
-             dotnet ef database update"
+  # --- Migrators -------------------------------------------------------------
+  auth-migrator:
+    image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
     depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
-  customer.migrator:
-    image: mcr.microsoft.com/dotnet/sdk:9.0
-    container_name: customer.migrator
-    volumes:
-      - .:/src
-    working_dir: /src/CustomerService
-    command: >
-      sh -c "dotnet tool install -g dotnet-ef &&
-             export PATH=$PATH:/root/.dotnet/tools &&
-             dotnet ef database update"
+  customer-migrator:
+    image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
     depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
-  docu.migrator:
-    image: mcr.microsoft.com/dotnet/sdk:9.0
-    container_name: docu.migrator
-    volumes:
-      - .:/src
-    working_dir: /src/DocuService
-    command: >
-      sh -c "dotnet tool install -g dotnet-ef &&
-             export PATH=$PATH:/root/.dotnet/tools &&
-             dotnet ef database update"
+  docu-migrator:
+    image: ${REGISTRY_PREFIX}-docu-migrator:${TAG}
     depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
-  email.migrator:
-    image: mcr.microsoft.com/dotnet/sdk:9.0
-    container_name: email.migrator
-    volumes:
-      - .:/src
-    working_dir: /src/EmailService
-    command: >
-      sh -c "dotnet tool install -g dotnet-ef &&
-             export PATH=$PATH:/root/.dotnet/tools &&
-             dotnet ef database update"
+  email-migrator:
+    image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
     depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
 networks:
