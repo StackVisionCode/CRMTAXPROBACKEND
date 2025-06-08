@@ -36,9 +36,12 @@ jobs:
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
             [customer-service]=CustomerService/Dockerfile
-            [company-service]=CompanyService/Dockerfile
             [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
+            [auth-migrator]=AuthService/Dockerfile.migrator
+            [customer-migrator]=CustomerService/Dockerfile.migrator
+            [docu-migrator]=SignDocuTax/Dockerfile.migrator
+            [email-migrator]=EmailServices/Dockerfile.migrator
           )
           for svc in "${!DF[@]}"; do
             img="$REGISTRY/$REGISTRY_PREFIX-$svc"
@@ -92,3 +95,11 @@ jobs:
         run: |
           docker compose up -d --remove-orphans
           docker image prune -f      # limpieza opcional
+
+      # 6️⃣ Ejecutar migraciones (por contenedor)
+      - name: Run DB Migrations
+        run: |
+          docker compose run --rm auth-migrator
+          docker compose run --rm customer-migrator
+          docker compose run --rm docu-migrator
+          docker compose run --rm email-migrator

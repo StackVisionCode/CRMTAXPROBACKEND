@@ -1,5 +1,5 @@
 services:
- # --- SQL Server 2022 -------------------------------------------------------
+  # --- SQL Server 2022 -------------------------------------------------------
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver
@@ -10,9 +10,10 @@ services:
       SA_PASSWORD: "Brittany040238."
       MSSQL_PID: "Developer"
     networks: [backend]
-  # --- Mensajería ------------------------------------------------------------
+
+  # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
-    image: rabbitmq:3-management         # imagen oficial, no la construimos
+    image: rabbitmq:3-management
     container_name: rabbitmq
     ports:
       - "5672:5672"
@@ -34,64 +35,101 @@ services:
     depends_on: [rabbitmq]
     networks: [backend]
 
-  # --- Auth ------------------------------------------------------------------
+  # --- Auth Service ----------------------------------------------------------
   auth-service:
     image: ${REGISTRY_PREFIX}-auth-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: ubuntu1
+      DB_SERVER: sqlserver
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
-  # --- Customer --------------------------------------------------------------
+  # --- Customer Service ------------------------------------------------------
   customer-service:
     image: ${REGISTRY_PREFIX}-customer-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: ubuntu1
+      DB_SERVER: sqlserver
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
-  # --- Document Signing ------------------------------------------------------
+  # --- Document Signing Service ----------------------------------------------
   docu-service:
     image: ${REGISTRY_PREFIX}-docu-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: ubuntu1
+      DB_SERVER: sqlserver
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
-  # --- E-mail ----------------------------------------------------------------
+  # --- Email Service ---------------------------------------------------------
   email-service:
     image: ${REGISTRY_PREFIX}-email-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: ubuntu1
+      DB_SERVER: sqlserver
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [rabbitmq]
+    depends_on: [rabbitmq, sqlserver]
+    networks: [backend]
+
+  # --- Migrators (Usan imágenes dedicadas) -----------------------------------
+  auth-migrator:
+    image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
+    depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
+  customer-migrator:
+    image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
+    depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
+  docu-migrator:
+    image: ${REGISTRY_PREFIX}-docu-migrator:${TAG}
+    depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
+  email-migrator:
+    image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
+    depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
 networks:
