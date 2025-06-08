@@ -35,8 +35,7 @@ jobs:
           declare -A DF=(
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
-            [customer-service]=CustomerService/Dockerfile
-            [company-service]=CompanyService/Dockerfile
+            [customer-service]=CustomerService/Dockerfile           
             [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
           )
