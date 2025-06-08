@@ -12,6 +12,7 @@ WORKDIR "/src/AuthService"
 RUN dotnet build "AuthService.csproj" -c Release -o /app/build
 RUN dotnet tools install --global dotnet-ef --version 9.0.0 \
     && export PATH="$PATH:/root/.dotnet/tools" \
+     && dotnet ef --version \
     && dotnet ef database update --project ../AuthService/AuthService.csproj 
 
 FROM build AS publish
