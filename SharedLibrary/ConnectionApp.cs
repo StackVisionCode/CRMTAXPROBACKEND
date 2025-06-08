@@ -8,7 +8,7 @@ public class ConnectionApp
 
     public ConnectionApp()
     {
-        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "DESKTOP-S0SEBP1";
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "ubuntu1";
 
         User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 

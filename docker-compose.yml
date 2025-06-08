@@ -1,7 +1,18 @@
 services:
-
+ # --- SQL Server 2022 -------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Brittany040238."
+      MSSQL_PID: "Developer"
+    networks: [backend]
+  # --- Mensajería ------------------------------------------------------------
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3-management         # imagen oficial, no la construimos
     container_name: rabbitmq
     ports:
       - "5672:5672"
@@ -9,101 +20,79 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    networks: 
-      - backend
-      
+    networks: [backend]
+
+  # --- API Gateway -----------------------------------------------------------
   apigateway:
-    build:
-      context: .
-      dockerfile: ApiGateway/Dockerfile
+    image: ${REGISTRY_PREFIX}-apigateway:${TAG}
     environment:
-      - RUNNING_IN_DOCKER=true
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://0.0.0.0:80
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://0.0.0.0:80
     ports:
       - "5000:80"
-    networks:
-      - backend
+    depends_on: [rabbitmq]
+    networks: [backend]
 
+  # --- Auth ------------------------------------------------------------------
   auth-service:
-    build:
-      context: .
-      dockerfile: AuthService/Dockerfile
+    image: ${REGISTRY_PREFIX}-auth-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    networks:
-      - backend
+    depends_on: [rabbitmq]
+    networks: [backend]
 
-  # company-service:
-  #   build:
-  #     context: .
-  #     dockerfile: CompanyService/Dockerfile
-  #   environment:
-  #     RUNNING_IN_DOCKER: "true"
-  #     ASPNETCORE_URLS: "http://0.0.0.0:8080"
-  #     DB_SERVER: host.docker.internal,1433
-  #     DB_USER: sa
-  #     DB_PASSWORD: "Brittany040238."
-  #     RabbitMQ__HostName: rabbitmq
-  #     RabbitMQ__UserName: guest
-  #     RabbitMQ__Password: guest
-  #   networks:
-  #     - backend
-
-  customer-service:    
-    build:
-      context: .
-      dockerfile: CustomerService/Dockerfile
+  # --- Customer --------------------------------------------------------------
+  customer-service:
+    image: ${REGISTRY_PREFIX}-customer-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    networks:
-      - backend
+    depends_on: [rabbitmq]
+    networks: [backend]
 
+  # --- Document Signing ------------------------------------------------------
   docu-service:
-    build:
-      context: .
-      dockerfile: SignDocuTax/Dockerfile
+    image: ${REGISTRY_PREFIX}-docu-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    networks:
-      - backend
+    depends_on: [rabbitmq]
+    networks: [backend]
 
+  # --- E-mail ----------------------------------------------------------------
   email-service:
-    build:
-      context: .
-      dockerfile: EmailServices/Dockerfile
+    image: ${REGISTRY_PREFIX}-email-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: "http://0.0.0.0:8080"
-      DB_SERVER: host.docker.internal,1433
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: ubuntu1
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    networks:
-      - backend
+    depends_on: [rabbitmq]
+    networks: [backend]
 
 networks:
   backend:
