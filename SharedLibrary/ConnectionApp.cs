@@ -8,7 +8,7 @@ public class ConnectionApp
 
     public ConnectionApp()
     {
-        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "sqlserver";
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost";
 
         User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 
