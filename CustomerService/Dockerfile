@@ -10,6 +10,9 @@ RUN dotnet restore "CustomerService/CustomerService.csproj"
 COPY . .
 WORKDIR "/src/CustomerService"
 RUN dotnet build "CustomerService.csproj" -c Release -o /app/build
+RUN dotnet tools install --global dotnet-ef --version 9.0.0 \
+    && export PATH="$PATH:/root/.dotnet/tools" \
+    && dotnet ef database update --project ../CustomerService/CustomerService.csproj 
 
 FROM build AS publish
 RUN dotnet publish "CustomerService.csproj" -c Release -o /app/publish /p:UseAppHost=false

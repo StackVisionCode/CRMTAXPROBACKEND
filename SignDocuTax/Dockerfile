@@ -17,6 +17,9 @@ COPY . .
 
 WORKDIR "/src/SignDocuTax"
 RUN dotnet build "SignDocuTax.csproj" -c Release -o /app/build
+RUN dotnet tools install --global dotnet-ef --version 9.0.0 \
+    && export PATH="$PATH:/root/.dotnet/tools" \
+    && dotnet ef database update --project ../SignDocuTax/SignDocuTax.csproj 
 
 FROM build AS publish
 RUN dotnet publish "SignDocuTax.csproj" -c Release -o /app/publish /p:UseAppHost=false
