@@ -31,7 +31,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://0.0.0.0:80
     ports:
-      - "80:5000"
+      - "5000:5000"
     depends_on: [rabbitmq]
     networks: [backend]
 
