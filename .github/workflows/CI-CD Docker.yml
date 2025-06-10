@@ -24,6 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create services build tracker
+        run: echo "" > built-services.txt
+
       # 1️⃣ Setup Buildx (con soporte de caché)
       - uses: docker/setup-buildx-action@v3
 
@@ -77,7 +80,15 @@ jobs:
               --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
               --push \
               .
+
+            echo "$svc" >> built-services.txt
           done
+
+      - name: Upload built-services file
+        uses: actions/upload-artifact@v3
+        with:
+          name: built-services
+          path: built-services.txt
 
 ###############################################################################
 # 2) DEPLOY — runner self-hosted (Ubuntu 24.04)
@@ -96,6 +107,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download built-services artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: built-services
+
+      - name: Read built-services into variable
+        id: services
+        run: |
+          mapfile -t lines < built-services.txt
+          echo "services=${lines[*]}" >> $GITHUB_OUTPUT
 
       # 1️⃣ Verificar que Docker Compose v2 esté disponible
       - name: Ensure Docker Compose v2
@@ -116,9 +138,12 @@ jobs:
           echo "TAG=${{ env.TAG }}" >> .env
           cat .env
 
-      # 4️⃣ Descargar imágenes
-      - name: Pull images
-        run: docker compose pull
+      # 4️⃣ Descargar imágenes de servicios construidos
+      - name: Pull only built images
+        run: |
+          while IFS= read -r svc; do
+            docker compose pull "$svc" || echo "⚠️ Skipping $svc — image not found"
+          done < built-services.txt
 
       # 5️⃣ Levantar / actualizar contenedores
       - name: Up / update containers
@@ -126,10 +151,11 @@ jobs:
           docker compose up -d --remove-orphans
           docker image prune -f
 
-      # 6️⃣ Ejecutar migraciones (por contenedor)
+      # 6️⃣ Ejecutar migraciones solo para servicios construidos
       - name: Run DB Migrations
         run: |
-          docker compose run --rm auth-migrator
-          docker compose run --rm customer-migrator
-          docker compose run --rm docu-migrator
-          docker compose run --rm email-migrator
+          while IFS= read -r svc; do
+            if [[ "$svc" == *-migrator ]]; then
+              docker compose run --rm "$svc" || echo "⚠️ Migrator $svc failed or not built"
+            fi
+          done < built-services.txt
