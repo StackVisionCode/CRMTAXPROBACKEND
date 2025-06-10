@@ -145,17 +145,17 @@ jobs:
             docker compose pull "$svc" || echo "⚠️ Skipping $svc — image not found"
           done < built-services.txt
 
-      # 5️⃣ Levantar / actualizar contenedores
+      # 5️⃣ Levantar / actualizar solo servicios construidos
       - name: Up / update only built services
         run: |
           while IFS= read -r svc; do
-          docker compose up -d "$svc" || echo "⚠️ Could not start $svc"
+            docker compose up -d "$svc" || echo "⚠️ Could not start $svc"
           done < built-services.txt
           docker image prune -f
 
       # 6️⃣ Ejecutar migraciones solo para servicios construidos
-      -  name: Run DB Migrations
-    run: |
+      - name: Run DB Migrations
+        run: |
           while IFS= read -r svc; do
             if [[ "$svc" == *-migrator ]]; then
               docker compose run --rm "$svc" || echo "⚠️ Migrator $svc failed or not built"
