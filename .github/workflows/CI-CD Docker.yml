@@ -146,10 +146,12 @@ jobs:
           done < built-services.txt
 
       # 5️⃣ Levantar / actualizar contenedores
-      - name: Up / update containers
-        run: |
-          docker compose up -d --remove-orphans
-          docker image prune -f
+      - name: Up / update only built services
+  run: |
+    while IFS= read -r svc; do
+      docker compose up -d "$svc" || echo "⚠️ Could not start $svc"
+    done < built-services.txt
+    docker image prune -f
 
       # 6️⃣ Ejecutar migraciones solo para servicios construidos
       - name: Run DB Migrations
