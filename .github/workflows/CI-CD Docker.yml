@@ -154,7 +154,7 @@ jobs:
           docker image prune -f
 
       # 6️⃣ Ejecutar migraciones solo para servicios construidos
-    -name: Run DB Migrations
+      -  name: Run DB Migrations
     run: |
           while IFS= read -r svc; do
             if [[ "$svc" == *-migrator ]]; then
