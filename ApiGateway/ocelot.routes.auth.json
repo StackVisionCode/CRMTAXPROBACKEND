@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5001
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/auth/login",
@@ -23,7 +23,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5001
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/auth/logout",
@@ -44,7 +44,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5001
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/auth/logout-all",
@@ -65,7 +65,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5001
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/auth/sessions/active",
@@ -86,7 +86,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5001
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/auth/session/{id}",
@@ -107,7 +107,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5001
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/auth/sessions",
@@ -125,7 +125,7 @@
     {
       "DownstreamPathTemplate": "/api/password/request",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 80 }],
       "UpstreamPathTemplate": "/api/auth/password/request",
       "UpstreamHttpMethod": ["POST"],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -135,7 +135,7 @@
     {
       "DownstreamPathTemplate": "/api/password/otp/send",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 80 }],
       "UpstreamPathTemplate": "/api/auth/password/otp/send",
       "UpstreamHttpMethod": ["POST"],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -145,7 +145,7 @@
     {
       "DownstreamPathTemplate": "/api/password/otp/validate",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 80 }],
       "UpstreamPathTemplate": "/api/auth/password/otp/validate",
       "UpstreamHttpMethod": ["POST"],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -155,7 +155,7 @@
     {
       "DownstreamPathTemplate": "/api/password/reset",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 80 }],
       "UpstreamPathTemplate": "/api/auth/password/reset",
       "UpstreamHttpMethod": ["POST"],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -165,7 +165,7 @@
     {
       "DownstreamPathTemplate": "/api/account/confirm",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 80 }],
       "UpstreamPathTemplate": "/api/auth/confirm",
       "UpstreamHttpMethod": ["POST"],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
