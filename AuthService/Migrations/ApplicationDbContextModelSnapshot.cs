@@ -297,6 +297,9 @@ namespace AuthService.Migrations
                     b.Property<DateTime?>("OtpExpires")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("OtpVerified")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

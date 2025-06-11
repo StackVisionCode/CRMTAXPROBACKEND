@@ -1,9 +1,9 @@
+using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
-using System.Net.Sockets;
 
 namespace SharedLibrary.Services.RabbitMQ;
 
@@ -19,15 +19,15 @@ public sealed class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentCon
     public DefaultRabbitMQPersistentConnection(
         IConnectionFactory factory,
         ILogger<DefaultRabbitMQPersistentConnection> logger,
-        IOptions<RabbitMQOptions> options)
+        IOptions<RabbitMQOptions> options
+    )
     {
         _factory = factory;
         _logger = logger;
         _options = options.Value;
     }
 
-    public bool IsConnected =>
-        _connection is { IsOpen: true } && !_disposed;
+    public bool IsConnected => _connection is { IsOpen: true } && !_disposed;
 
     public IModel CreateModel()
     {
@@ -36,19 +36,22 @@ public sealed class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentCon
             _logger.LogError("Cannot create RabbitMQ model - no connection available");
             throw new InvalidOperationException("Services Broker no disponible para crear modelo");
         }
-        
+
         var model = _connection!.CreateModel();
-        
+
         // Configurar QoS para el canal
         model.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
-        
+
         return model;
     }
 
     public bool TryConnect()
     {
-        _logger.LogInformation("Services Broker: intentando conectar a {HostName}:{Port}...", 
-            _options.HostName, _options.Port);
+        _logger.LogInformation(
+            "Services Broker: intentando conectar a {HostName}:{Port}...",
+            _options.HostName,
+            _options.Port
+        );
 
         lock (_syncRoot)
         {
@@ -67,32 +70,45 @@ public sealed class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentCon
                     retry => TimeSpan.FromSeconds(Math.Pow(2, retry)),
                     (ex, delay, retryCount, context) =>
                     {
-                        _logger.LogWarning(ex, 
-                            "RabbitMQ connection attempt {RetryCount}/{MaxRetries} failed. Reintentando en {Delay}s", 
-                            retryCount, _options.RetryCount, delay.TotalSeconds);
-                    });
+                        _logger.LogWarning(
+                            ex,
+                            "RabbitMQ connection attempt {RetryCount}/{MaxRetries} failed. Reintentando en {Delay}s",
+                            retryCount,
+                            _options.RetryCount,
+                            delay.TotalSeconds
+                        );
+                    }
+                );
 
             try
             {
                 policy.Execute(() =>
                 {
                     _connection?.Dispose();
-                    _connection = _factory.CreateConnection($"{AppDomain.CurrentDomain.FriendlyName}-Connection");
+                    _connection = _factory.CreateConnection(
+                        $"{AppDomain.CurrentDomain.FriendlyName}-Connection"
+                    );
                 });
 
                 if (IsConnected)
                 {
                     _connection!.ConnectionShutdown += OnConnectionShutdown;
-                    
-                    _logger.LogInformation("Services Broker: conexión establecida a {HostName}:{Port}", 
-                        _options.HostName, _options.Port);
+
+                    _logger.LogInformation(
+                        "Services Broker: conexión establecida a {HostName}:{Port}",
+                        _options.HostName,
+                        _options.Port
+                    );
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, "RabbitMQ: NO se pudo conectar después de {RetryCount} intentos", 
-                    _options.RetryCount);
+                _logger.LogCritical(
+                    ex,
+                    "RabbitMQ: NO se pudo conectar después de {RetryCount} intentos",
+                    _options.RetryCount
+                );
                 return false;
             }
 
@@ -103,10 +119,11 @@ public sealed class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentCon
 
     private void OnConnectionShutdown(object? sender, ShutdownEventArgs args)
     {
-        if (_disposed) return;
-        
+        if (_disposed)
+            return;
+
         _logger.LogWarning("RabbitMQ connection shutdown: {Reason}", args.ReplyText);
-        
+
         // Intentar reconectar en un hilo separado
         Task.Run(async () =>
         {
@@ -120,10 +137,11 @@ public sealed class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentCon
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _disposed = true;
-        
+
         try
         {
             _connection?.Dispose();

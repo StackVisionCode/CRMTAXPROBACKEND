@@ -1,12 +1,19 @@
 using Application.Validation;
+using AuthService.Handlers.EventsHandler;
+using AuthService.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
+using EmailServices.Services.EmailNotificationsServices;
+using Handlers.EventHandlers.UserEventHandlers;
 using Infrastructure.Context;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
+using SharedLibrary.DTOs.AuthEvents;
 using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,57 +31,141 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(
         Path.Combine(logFolderPath, "LogsApplication-.txt"),
         rollingInterval: RollingInterval.Day
-    ).Enrich.FromLogContext()
+    )
+    .Enrich.FromLogContext()
     .CreateLogger();
 
 Log.Information("Starting up the application");
 
+builder.Services.AddJwtAuth(builder.Configuration);
+builder
+    .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(
+        "Bearer",
+        opts =>
+        {
+            var cfg = builder.Configuration.GetSection("JwtSettings");
+            opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+        }
+    );
+
 builder.Services.AddCustomCors();
+
+builder.Services.AddSessionCache();
 
 builder.Services.AddEventBus(builder.Configuration);
 
+builder.Services.AddAuthorization();
+
 builder.Services.AddControllers();
 
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IEmailConfigValidator, EmailConfigValidator>();
-builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
-builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
-
+// Registrar AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
 
+//configure mediator
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssemblyContaining<Program>();
     cfg.Lifetime = ServiceLifetime.Scoped;
 });
 
-// Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "EmailService API", Version = "v1" });
+
+    // Configuración de JWT para Swagger
+    c.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            Description =
+                "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+        }
+    );
+
+    c.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer",
+                    },
+                },
+                Array.Empty<string>()
+            },
+        }
+    );
+});
 
 var objetoConexion = new ConnectionApp();
 
-var connectionString = $"Server={objetoConexion.Server};Database=EmailDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+var connectionString =
+    $"Server={objetoConexion.Server};Database=EmailDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+
 // Configurar DbContext
 builder.Services.AddDbContext<EmailContext>(options =>
 {
     options.UseSqlServer(connectionString);
 });
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailConfigValidator, EmailConfigValidator>();
+builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
+builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+builder.Services.AddScoped<IEmailBuilder, EmailBuilder>();
+builder.Services.AddScoped<ISmtpSender, SmtpSender>();
+builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
 
-builder.Services.AddAutoMapper(typeof(Program));
+// Configurar el contexto de eventos
+builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventsHandler>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<PasswordResetLinkEvent>,
+    PasswordResetEventHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<PasswordResetOtpEvent>,
+    PasswordResetOtpEventsHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<PasswordChangedEvent>,
+    PasswordChangedEventHandler
+>();
+builder.Services.AddScoped<IIntegrationEventHandler<AccountConfirmationLinkEvent>, AccountConfirmationLinkHandler>();
+builder.Services.AddScoped<IIntegrationEventHandler<AccountConfirmedEvent>, AccountActivatedHandler>();
 
-builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventHandler>();
-
-builder.Services.AddScoped<UserLoginEventHandler>();
+builder.Services.AddScoped<UserLoginEventsHandler>();
+builder.Services.AddScoped<PasswordResetEventHandler>();
+builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
+builder.Services.AddScoped<PasswordChangedEventHandler>();
+builder.Services.AddScoped<AccountConfirmationLinkHandler>();
+builder.Services.AddScoped<AccountActivatedHandler>();
 
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
-    bus.Subscribe<UserLoginEvent, UserLoginEventHandler>();
+    bus.Subscribe<UserLoginEvent, UserLoginEventsHandler>();
+    bus.Subscribe<PasswordResetLinkEvent, PasswordResetEventHandler>();
+    bus.Subscribe<PasswordResetOtpEvent, PasswordResetOtpEventsHandler>();
+    bus.Subscribe<PasswordChangedEvent, PasswordChangedEventHandler>();
+    bus.Subscribe<AccountConfirmationLinkEvent, AccountConfirmationLinkHandler>();
+    bus.Subscribe<AccountConfirmedEvent, AccountActivatedHandler>();
+
+    // Log successful subscriptions
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("EmailService subscribed to all integration events");
 }
 
 app.UseCors("AllowAll");
@@ -87,7 +178,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<RequireGatewayHeaderMiddleware>();
 app.MapControllers();
 
 app.Run();

@@ -13,7 +13,7 @@
         {
           "Name": "Auth Service API",
           "Version": "v1",
-          "Url": "http://localhost:5092/swagger/v1/swagger.json"
+          "Url": "http://localhost:5001/swagger/v1/swagger.json"
         }
       ]
     },
@@ -23,7 +23,7 @@
         {
           "Name": "Customer Service API",
           "Version": "v1",
-          "Url": "http://localhost:5094/swagger/v1/swagger.json"
+          "Url": "http://localhost:5002/swagger/v1/swagger.json"
         }
       ]
     },
@@ -33,7 +33,17 @@
         {
           "Name": "Company Service API",
           "Version": "v1",
-          "Url": "http://localhost:5259/swagger/v1/swagger.json"
+          "Url": "http://localhost:5003/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "email",
+      "Config": [
+        {
+          "Name": "Email Service API",
+          "Version": "v1",
+          "Url": "http://localhost:5004/swagger/v1/swagger.json"
         }
       ]
     },
@@ -43,7 +53,7 @@
         {
           "Name": "SignDocu Service API",
           "Version": "v1",
-          "Url": "http://localhost:5066/swagger/v1/swagger.json"
+          "Url": "http://localhost:5005/swagger/v1/swagger.json"
         }
       ]
     }

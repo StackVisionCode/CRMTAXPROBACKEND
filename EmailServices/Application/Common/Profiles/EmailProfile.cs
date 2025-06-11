@@ -4,7 +4,7 @@ using Domain;
 
 namespace Application.Common.Profiles;
 
-public class EmailProfile:Profile
+public class EmailProfile : Profile
 {
     public EmailProfile()
     {

@@ -3,15 +3,22 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SharedLibrary.Contracts;
 using SharedLibrary.Services;
+using SharedLibrary.Services.ConfirmAccountService;
 
 namespace SharedLibrary.Extensions;
 
 public static class JwtServiceCollectionExtensions
 {
-    public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddJwtAuth(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IResetTokenService, ResetTokenService>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IConfirmTokenService, ConfirmTokenService>();
 
         return services;
     }

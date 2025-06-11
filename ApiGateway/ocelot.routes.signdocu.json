@@ -4,7 +4,7 @@
       "DownstreamPathTemplate": "/api/webhooks/auth/events",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/webhooks/auth/events",
       "UpstreamHttpMethod": [ "POST" ],
@@ -14,7 +14,7 @@
       "DownstreamPathTemplate": "/api/Contacts",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/contacts",
       "UpstreamHttpMethod": [ "POST", "PUT", "GET", "DELETE" ],
@@ -32,7 +32,7 @@
       "DownstreamPathTemplate": "/api/Contacts/{id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/contacts/{id}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -50,7 +50,7 @@
       "DownstreamPathTemplate": "/api/Contacts/ByUserTaxId/{userTaxId}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/contacts/byusertaxid/{userTaxId}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -68,7 +68,7 @@
       "DownstreamPathTemplate": "/api/Contacts/ByCompanyId/{companyId}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/contacts/bycompanyid/{companyId}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -86,7 +86,7 @@
       "DownstreamPathTemplate": "/api/Contacts/ByName/{name}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/contacts/byname/{name}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -105,7 +105,7 @@
       "DownstreamPathTemplate": "/api/Documents/upload",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/documents/upload",
       "UpstreamHttpMethod": [ "POST" ],
@@ -123,7 +123,7 @@
       "DownstreamPathTemplate": "/api/Documents/GetAll",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/documents",
       "UpstreamHttpMethod": [ "GET" ],
@@ -141,7 +141,7 @@
       "DownstreamPathTemplate": "/api/Documents/GetById?Id={id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/documents/{id}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -159,7 +159,7 @@
       "DownstreamPathTemplate": "/api/Documents/Update",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/documents/update",
       "UpstreamHttpMethod": [ "PUT" ],
@@ -177,7 +177,7 @@
       "DownstreamPathTemplate": "/api/Documents/Delete",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/documents/delete",
       "UpstreamHttpMethod": [ "DELETE" ],
@@ -196,7 +196,7 @@
       "DownstreamPathTemplate": "/api/DocumentsSignerControllers",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/doc-signers",
       "UpstreamHttpMethod": [ "POST" ],
@@ -214,7 +214,7 @@
       "DownstreamPathTemplate": "/api/DocumentsSignerControllers/with-signers",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/doc-signers/with-signers",
       "UpstreamHttpMethod": [ "POST" ],
@@ -232,7 +232,7 @@
       "DownstreamPathTemplate": "/api/DocumentsSignerControllers/sign",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/doc-signers/sign",
       "UpstreamHttpMethod": [ "POST" ],
@@ -250,7 +250,7 @@
       "DownstreamPathTemplate": "/api/DocumentsSignerControllers/{documentId}/signers",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/doc-signers/{documentId}/signers",
       "UpstreamHttpMethod": [ "GET" ],
@@ -268,7 +268,7 @@
       "DownstreamPathTemplate": "/api/DocumentsSignerControllers/pending/{userId}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/doc-signers/pending/{userId}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -286,7 +286,7 @@
       "DownstreamPathTemplate": "/api/DocumentsSignerControllers/external/{token}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/doc-signers/external/{token}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -305,7 +305,7 @@
       "DownstreamPathTemplate": "/api/DocumentsStatus/Create",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-status/create",
       "UpstreamHttpMethod": [ "POST" ],
@@ -323,7 +323,7 @@
       "DownstreamPathTemplate": "/api/DocumentsStatus/GetAll",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-status",
       "UpstreamHttpMethod": [ "GET" ],
@@ -341,7 +341,7 @@
       "DownstreamPathTemplate": "/api/DocumentsStatus/Update",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-status/update",
       "UpstreamHttpMethod": [ "PUT" ],
@@ -359,7 +359,7 @@
       "DownstreamPathTemplate": "/api/DocumentsStatus/Delete",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-status/delete",
       "UpstreamHttpMethod": [ "DELETE" ],
@@ -378,7 +378,7 @@
       "DownstreamPathTemplate": "/api/DocumentsType/Create",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-type/create",
       "UpstreamHttpMethod": [ "POST" ],
@@ -397,7 +397,7 @@
       "DownstreamPathTemplate": "/api/DocumentsType/GetAll",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-type",
       "UpstreamHttpMethod": [ "GET" ],
@@ -415,7 +415,7 @@
       "DownstreamPathTemplate": "/api/DocumentsType/Update",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-type/update",
       "UpstreamHttpMethod": [ "PUT" ],
@@ -433,7 +433,7 @@
       "DownstreamPathTemplate": "/api/DocumentsType/Delete",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-type/delete",
       "UpstreamHttpMethod": [ "DELETE" ],
@@ -451,7 +451,7 @@
       "DownstreamPathTemplate": "/api/DocumentsType/getById/{id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/docs-type/{id}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -470,7 +470,7 @@
       "DownstreamPathTemplate": "/api/Firm/Create",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/firm/create",
       "UpstreamHttpMethod": [ "POST" ],
@@ -488,7 +488,7 @@
       "DownstreamPathTemplate": "/api/Firm/Update",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/firm/update",
       "UpstreamHttpMethod": [ "PUT" ],
@@ -506,7 +506,7 @@
       "DownstreamPathTemplate": "/api/Firm/Delete",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/firm/delete",
       "UpstreamHttpMethod": [ "DELETE" ],
@@ -524,7 +524,7 @@
       "DownstreamPathTemplate": "/api/Firm/GetAll",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/firm",
       "UpstreamHttpMethod": [ "GET" ],
@@ -542,7 +542,7 @@
       "DownstreamPathTemplate": "/api/Firm/GetById",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/firm/{id}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -561,7 +561,7 @@
       "DownstreamPathTemplate": "/api/FirmStatus",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/firm-status",
       "UpstreamHttpMethod": [ "POST", "GET" ],
@@ -579,7 +579,7 @@
       "DownstreamPathTemplate": "/api/FirmStatus/{id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/firm-status/{id}",
       "UpstreamHttpMethod": [ "PUT", "DELETE", "GET" ],
@@ -598,7 +598,7 @@
       "DownstreamPathTemplate": "/api/Secure/protected-data",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/secure/protected-data",
       "UpstreamHttpMethod": [ "GET" ],
@@ -617,7 +617,7 @@
       "DownstreamPathTemplate": "/api/SignatureEventType",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/signature-event-type",
       "UpstreamHttpMethod": [ "POST", "PUT", "DELETE", "GET" ],
@@ -636,7 +636,7 @@
       "DownstreamPathTemplate": "/api/signatures/start-process",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/signatures/start-process",
       "UpstreamHttpMethod": [ "POST" ],
@@ -654,7 +654,7 @@
       "DownstreamPathTemplate": "/api/signatures/register-event",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/signatures/register-event",
       "UpstreamHttpMethod": [ "POST" ],
@@ -672,7 +672,7 @@
       "DownstreamPathTemplate": "/api/signatures/document-events/{documentId}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/signatures/document-events/{documentId}",
       "UpstreamHttpMethod": [ "GET" ],
@@ -691,7 +691,7 @@
       "DownstreamPathTemplate": "/api/SignatureType",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/signature-type",
       "UpstreamHttpMethod": [ "POST", "GET" ],
@@ -709,7 +709,7 @@
       "DownstreamPathTemplate": "/api/SignatureType/{id}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/signature-type/{id}",
       "UpstreamHttpMethod": [ "GET", "DELETE" ],
@@ -727,7 +727,7 @@
       "DownstreamPathTemplate": "/api/SignatureType/update",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/signature-type/update",
       "UpstreamHttpMethod": [ "PUT" ],
@@ -746,7 +746,7 @@
       "DownstreamPathTemplate": "/api/StatusRequirement",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5066 }
+        { "Host": "localhost", "Port": 5005 }
       ],
       "UpstreamPathTemplate": "/api/signdocu/status-requirement",
       "UpstreamHttpMethod": [ "POST", "PUT", "DELETE", "GET" ],

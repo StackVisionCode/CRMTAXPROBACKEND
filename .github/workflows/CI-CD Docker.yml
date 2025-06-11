@@ -1,5 +1,5 @@
 # =============================================================
-#  CI-CD ▸ Microservicios .NET 9 → Docker → Windows Server 2019
+#  CI-CD ▸ Microservicios .NET 9 → Docker → Ubuntu Server 24.04
 # =============================================================
 name: CI-CD Docker (.NET 9)
 
@@ -15,38 +15,83 @@ env:
   TAG: ${{ github.sha }}
 
 ###############################################################################
-# 1) BUILD & PUSH — runner Ubuntu (GitHub)
+# 1) BUILD & PUSH — runner GitHub (Ubuntu)
 ###############################################################################
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create services build tracker
+        run: echo "" > built-services.txt
+
+      # 1️⃣ Setup Buildx (con soporte de caché)
       - uses: docker/setup-buildx-action@v3
+
+      # 2️⃣ Cache para Docker layers
+      - name: Docker layer cache
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # 3️⃣ Login DockerHub
       - uses: docker/login-action@v3
         with:
           username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & push images (.NET 9)
+      # 4️⃣ Build + Push + Usar cache solo si hay cambios
+      - name: Build & push images (.NET 9) with cache
         shell: bash
         run: |
           declare -A DF=(
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
             [customer-service]=CustomerService/Dockerfile
-            [company-service]=CompanyService/Dockerfile
             [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
+            [auth-migrator]=AuthService/Dockerfile.migrator
+            [customer-migrator]=CustomerService/Dockerfile.migrator
+            [docu-migrator]=SignDocuTax/Dockerfile.migrator
+            [email-migrator]=EmailServices/Dockerfile.migrator
           )
           for svc in "${!DF[@]}"; do
+            dockerfile_path="${DF[$svc]}"
+
+            # Si no hay cambios en el path asociado al Dockerfile, omitir
+            if ! git diff --name-only origin/main | grep -qE "${dockerfile_path%/*}"; then
+              echo "⏩ Skipping $svc (no changes detected)"
+              continue
+            fi
+
             img="$REGISTRY/$REGISTRY_PREFIX-$svc"
-            docker build -f "${DF[$svc]}" -t "$img:$TAG" -t "$img:latest" .
-            docker push "$img" --all-tags
+            echo "⚡ Building $img"
+
+            docker buildx build \
+              --file "$dockerfile_path" \
+              --tag "$img:$TAG" \
+              --tag "$img:latest" \
+              --cache-from=type=local,src=/tmp/.buildx-cache \
+              --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
+              --push \
+              .
+
+            echo "$svc" >> built-services.txt
           done
 
+      - name: Upload built-services file
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-services
+          path: built-services.txt
+
 ###############################################################################
-# 2) DEPLOY — runner self-hosted (Windows Server 2019)
+# 2) DEPLOY — runner self-hosted (Ubuntu 24.04)
 ###############################################################################
   deploy:
     needs: build-and-push
@@ -54,47 +99,65 @@ jobs:
     timeout-minutes: 30
 
     env:
-      COMPOSE_PROJECT_NAME: crmtaxpro   # evita prefijos raros
+      COMPOSE_PROJECT_NAME: crmtaxpro
 
     defaults:
       run:
-        shell: powershell
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
 
-      # 0️⃣  Garantizar Docker Compose v2 (una sola vez)
+      - name: Download built-services artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-services
+
+      - name: Read built-services into variable
+        id: services
+        run: |
+          mapfile -t lines < built-services.txt
+          echo "services=${lines[*]}" >> $GITHUB_OUTPUT
+
+      # 1️⃣ Verificar que Docker Compose v2 esté disponible
       - name: Ensure Docker Compose v2
         run: |
-          $dest = "$Env:ProgramFiles\Docker\cli-plugins\docker-compose.exe"
-          if (-not (Test-Path $dest)) {
-            Invoke-WebRequest -Uri https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-windows-x86_64.exe -OutFile $dest
-          }
+          if ! docker compose version >/dev/null 2>&1; then
+            echo "Docker Compose v2 no está instalado. Por favor instala docker-compose-plugin."
+            exit 1
+          fi
 
-      # 1️⃣  Asegurar que el daemon Docker esté activo
-      - name: Ensure Docker service running
-        shell: powershell
-        run: if ((Get-Service 'docker').Status -ne 'Running') { Start-Service 'docker'; Start-Sleep -Seconds 6 }
-
-      # 2️⃣  Login en Docker Hub
+      # 2️⃣ Login en Docker Hub
       - name: Docker login
-        run: docker login $Env:REGISTRY -u jturbi -p "${{ secrets.DOCKERHUB_TOKEN }}"
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login $REGISTRY -u jturbi --password-stdin
 
-      # 3️⃣  Exportar variables y generar .env
+      # 3️⃣ Exportar variables y generar .env
       - name: Export vars & create .env
         run: |
-          $Env:REGISTRY_PREFIX = "${{ env.REGISTRY_PREFIX }}"
-          $Env:TAG             = "${{ env.TAG }}"
-          "REGISTRY_PREFIX=$Env:REGISTRY_PREFIX" | Set-Content .env -Encoding utf8
-          "TAG=$Env:TAG"                         | Add-Content .env -Encoding utf8
-          Get-Content .env
+          echo "REGISTRY_PREFIX=${{ env.REGISTRY_PREFIX }}" > .env
+          echo "TAG=${{ env.TAG }}" >> .env
+          cat .env
 
-      # 4️⃣  Descargar imágenes
-      - name: Pull images
-        run: docker compose pull
-
-      # 5️⃣  Levantar / actualizar contenedores
-      - name: Up / update containers
+      # 4️⃣ Descargar imágenes de servicios construidos
+      - name: Pull only built images
         run: |
-          docker compose up -d --remove-orphans
-          docker image prune -f      # limpieza opcional
+          while IFS= read -r svc; do
+            docker compose pull "$svc" || echo "⚠️ Skipping $svc — image not found"
+          done < built-services.txt
+
+      # 5️⃣ Levantar / actualizar solo servicios construidos
+      - name: Up / update only built services
+        run: |
+          while IFS= read -r svc; do
+            docker compose up -d "$svc" || echo "⚠️ Could not start $svc"
+          done < built-services.txt
+          docker image prune -f
+
+      # 6️⃣ Ejecutar migraciones solo para servicios construidos
+      - name: Run DB Migrations
+        run: |
+          while IFS= read -r svc; do
+            if [[ "$svc" == *-migrator ]]; then
+              docker compose run --rm "$svc" || echo "⚠️ Migrator $svc failed or not built"
+            fi
+          done < built-services.txt

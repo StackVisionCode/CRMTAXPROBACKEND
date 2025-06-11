@@ -19,6 +19,7 @@ public class TaxUser : BaseEntity
     public DateTime? ResetPasswordExpires { get; set; }
     public bool? Factor2 { get; set; }
     public string? Otp { get; set; }
+    public bool OtpVerified { get; set; }
     public DateTime? OtpExpires { get; set; }
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
     public virtual required TaxUserProfile TaxUserProfile { get; set; }
