@@ -12,7 +12,7 @@ namespace Domains.Contacts;
         public required string Phone { get; set; }
 
         public int UserTaxId { get; set; }
-        public int CompanyId{ get; set; }
+        public int? CompanyId{ get; set; }
 
         public ICollection<ExternalSigner>? ExternalSigners { get; set; }
         
