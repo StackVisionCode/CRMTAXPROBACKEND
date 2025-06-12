@@ -56,7 +56,8 @@ public class RequestPasswordResetHandler
             await _db.SaveChangesAsync(ct);
 
             // 2. Publicar evento a EmailService
-            var link = $"{r.Origin.TrimEnd('/')}/auth/reset-password?token={token}";
+            var link = $"{r.Origin.TrimEnd('/')}/auth/reset-password/validate?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
+
             var display = DisplayNameHelper.From(
                 user.TaxUserProfile?.Name,
                 user.TaxUserProfile?.LastName,

@@ -15,138 +15,166 @@ namespace Handlers.UserTaxHandlers;
 
 public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiResponse<bool>>
 {
-  private readonly ApplicationDbContext _dbContext;
-  private readonly IMapper _mapper;
-  private readonly ILogger<CreateUserTaxHandler> _logger;
-  private readonly IPasswordHash _passwordHash;
-  IConfirmTokenService _confirmTokenService;
-  private readonly IEventBus _eventBus;
+    private readonly ApplicationDbContext _dbContext;
+    private readonly IMapper _mapper;
+    private readonly ILogger<CreateUserTaxHandler> _logger;
+    private readonly IPasswordHash _passwordHash;
+    IConfirmTokenService _confirmTokenService;
+    private readonly IEventBus _eventBus;
 
-  public CreateUserTaxHandler(
-      ApplicationDbContext dbContext,
-      IMapper mapper,
-      ILogger<CreateUserTaxHandler> logger,
-      IPasswordHash passwordHash,
-      IEventBus eventBus,
-      IConfirmTokenService confirmTokenService)
-  {
-    _dbContext = dbContext;
-    _mapper = mapper;
-    _logger = logger;
-    _passwordHash = passwordHash;
-    _eventBus = eventBus;
-    _confirmTokenService = confirmTokenService;
-  }
+    public CreateUserTaxHandler(
+        ApplicationDbContext dbContext,
+        IMapper mapper,
+        ILogger<CreateUserTaxHandler> logger,
+        IPasswordHash passwordHash,
+        IEventBus eventBus,
+        IConfirmTokenService confirmTokenService
+    )
+    {
+        _dbContext = dbContext;
+        _mapper = mapper;
+        _logger = logger;
+        _passwordHash = passwordHash;
+        _eventBus = eventBus;
+        _confirmTokenService = confirmTokenService;
+    }
 
-  public async Task<ApiResponse<bool>> Handle(
+    public async Task<ApiResponse<bool>> Handle(
         CreateTaxUserCommands request,
         CancellationToken cancellationToken
     )
-  {
-    // Usar transacción para asegurar atomicidad
-    using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-    try
     {
-      var userExists = await Exists(request.Usertax);
-      if (userExists)
-      {
-        _logger.LogWarning("User already exists: {Email}", request.Usertax.Email);
-        return new ApiResponse<bool>(false, "User already exists", false);
-      }
+        // Usar transacción para asegurar atomicidad
+        using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-      request.Usertax.Password = _passwordHash.HashPassword(request.Usertax.Password);
-      request.Usertax.Id = Guid.NewGuid();
+        try
+        {
+            var userExists = await Exists(request.Usertax);
+            if (userExists)
+            {
+                _logger.LogWarning("User already exists: {Email}", request.Usertax.Email);
+                return new ApiResponse<bool>(false, "User already exists", false);
+            }
 
-      var userTax = _mapper.Map<TaxUser>(request.Usertax);
-      userTax.CompanyId = null;
-      userTax.Confirm = false;
-      userTax.IsActive = false;
-      userTax.CreatedAt = DateTime.UtcNow;
-      var roleGuid = await GetAllRoles();
-      userTax.RoleId = roleGuid?.Id ?? Guid.Empty;
+            request.Usertax.Password = _passwordHash.HashPassword(request.Usertax.Password);
+            request.Usertax.Id = Guid.NewGuid();
 
-      // Crear el perfil asociado
-      userTax.TaxUserProfile = new TaxUserProfile
-      {
-        Id = Guid.NewGuid(),
-        TaxUserId = userTax.Id,
-        Name = request.Usertax.Name,
-        LastName = request.Usertax.LastName,
-        PhoneNumber = request.Usertax.Phone,
-        Address = request.Usertax.Address,
-        PhotoUrl = request.Usertax.PhotoUrl,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow,
-      };
+            var userTax = _mapper.Map<TaxUser>(request.Usertax);
+            userTax.CompanyId = null;
+            userTax.Confirm = false;
+            userTax.IsActive = false;
+            userTax.CreatedAt = DateTime.UtcNow;
+            var roleGuid = await GetAllRoles();
+            userTax.RoleId = roleGuid?.Id ?? Guid.Empty;
 
-      // Generar y asignar el token de confirmación
-      var (token, expiration) = _confirmTokenService.Generate(userTax.Id, userTax.Email);
-      userTax.ConfirmToken = token;
+            // Crear el perfil asociado
+            userTax.TaxUserProfile = new TaxUserProfile
+            {
+                Id = Guid.NewGuid(),
+                TaxUserId = userTax.Id,
+                Name = request.Usertax.Name,
+                LastName = request.Usertax.LastName,
+                PhoneNumber = request.Usertax.Phone,
+                Address = request.Usertax.Address,
+                PhotoUrl = request.Usertax.PhotoUrl,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
 
-      // Agregar solo el TaxUser - EF agregará automáticamente el TaxUserProfile
-      await _dbContext.TaxUsers.AddAsync(userTax, cancellationToken);
+            // Generar y asignar el token de confirmación
+            var (token, expiration) = _confirmTokenService.Generate(userTax.Id, userTax.Email);
+            userTax.ConfirmToken = token;
 
-      // Guardar ambas entidades en una sola operación
-      var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+            // Agregar solo el TaxUser - EF agregará automáticamente el TaxUserProfile
+            await _dbContext.TaxUsers.AddAsync(userTax, cancellationToken);
 
-      if (result)
-      {
-        await transaction.CommitAsync(cancellationToken);
-        var link = $"{request.Origin.TrimEnd('/')}/auth/confirm" +
-                  $"?email={Uri.EscapeDataString(userTax.Email)}" +
-                  $"&token={Uri.EscapeDataString(token)}";
+            // Guardar ambas entidades en una sola operación
+            var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
-        _logger.LogInformation("User tax created successfully: {UserId}", userTax.Id);
+            if (result)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                var link =
+                    $"{request.Origin.TrimEnd('/')}/auth/confirm"
+                    + $"?email={Uri.EscapeDataString(userTax.Email)}"
+                    + $"&token={Uri.EscapeDataString(token)}";
 
-        _eventBus.Publish(new AccountConfirmationLinkEvent(
-            Guid.NewGuid(), DateTime.UtcNow,
-            userTax.Id, userTax.Email,
-            $"{request.Usertax.Name} {request.Usertax.LastName}".Trim(),
-            link, expiration));
+                _logger.LogInformation("User tax created successfully: {UserId}", userTax.Id);
 
-        _logger.LogInformation("Event published for user tax creation: {UserId}", userTax.Id);
-        return new ApiResponse<bool>(true, "User tax created successfully", true);
-      }
-      else
-      {
-        await transaction.RollbackAsync(cancellationToken);
-        _logger.LogError("Failed to save user and profile to database");
-        return new ApiResponse<bool>(false, "Failed to create user tax", false);
-      }
+                _eventBus.Publish(
+                    new AccountRegisteredEvent(
+                        Guid.NewGuid(),
+                        DateTime.UtcNow,
+                        userTax.Id,
+                        userTax.Email,
+                        request.Usertax.Name,
+                        request.Usertax.LastName,
+                        request.Usertax.Phone,
+                        false,
+                        null,
+                        null,
+                        null,
+                        request.Usertax.Domain
+                    )
+                );
+
+                _eventBus.Publish(
+                    new AccountConfirmationLinkEvent(
+                        Guid.NewGuid(),
+                        DateTime.UtcNow,
+                        userTax.Id,
+                        userTax.Email,
+                        $"{request.Usertax.Name} {request.Usertax.LastName}".Trim(),
+                        link,
+                        expiration
+                    )
+                );
+
+                _logger.LogInformation(
+                    "Event published for user tax creation: {UserId}",
+                    userTax.Id
+                );
+                return new ApiResponse<bool>(true, "User tax created successfully", true);
+            }
+            else
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError("Failed to save user and profile to database");
+                return new ApiResponse<bool>(false, "Failed to create user tax", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error creating user tax: {Message}", ex.Message);
+            return new ApiResponse<bool>(false, ex.Message, false);
+        }
     }
-    catch (Exception ex)
+
+    private async Task<bool> Exists(NewUserDTO userDTO)
     {
-      await transaction.RollbackAsync(cancellationToken);
-      _logger.LogError(ex, "Error creating user tax: {Message}", ex.Message);
-      return new ApiResponse<bool>(false, ex.Message, false);
+        try
+        {
+            return await _dbContext.TaxUsers.FirstOrDefaultAsync(a => a.Email == userDTO.Email)
+                != null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while checking if user exists.");
+            throw new Exception("Error occurred while checking if user exists.");
+        }
     }
-  }
 
-  private async Task<bool> Exists(NewUserDTO userDTO)
-  {
-    try
+    private async Task<Role> GetAllRoles()
     {
-      return await _dbContext.TaxUsers.FirstOrDefaultAsync(a => a.Email == userDTO.Email)
-          != null;
+        var result = await _dbContext
+            .Roles.AsNoTracking()
+            .Where(a => a.Name.Contains("user"))
+            .FirstAsync();
+        if (result is null)
+        {
+            return null!;
+        }
+        return result;
     }
-    catch (Exception ex)
-    {
-      _logger.LogError(ex, "Error occurred while checking if user exists.");
-      throw new Exception("Error occurred while checking if user exists.");
-    }
-  }
-
-  private async Task<Role> GetAllRoles()
-  {
-    var result = await _dbContext
-        .Roles.AsNoTracking()
-        .Where(a => a.Name.Contains("user"))
-        .FirstAsync();
-    if (result is null)
-    {
-      return null!;
-    }
-    return result;
-  }
 }
