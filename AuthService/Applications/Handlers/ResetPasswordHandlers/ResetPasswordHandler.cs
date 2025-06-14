@@ -54,6 +54,7 @@ public sealed class ResetPasswordHandler : IRequestHandler<ResetPasswordCommands
             // user.ResetPasswordToken = null;
             // user.ResetPasswordExpires = null;
             user.OtpVerified = false;
+            user.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
 
             // 2. Calcular DisplayName coherente

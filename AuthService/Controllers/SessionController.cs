@@ -43,6 +43,12 @@ namespace AuthService.Controllers
                 );
 
                 var result = await _mediator.Send(command);
+
+                if (!(result?.Success ?? false))
+                {
+                    return Unauthorized(result);
+                }
+
                 return Ok(result);
             }
             catch (Exception ex)
