@@ -1,23 +1,42 @@
-using Domain.Entities;
+using Entities;
 using Microsoft.EntityFrameworkCore;
-
 namespace Infrastructure.Context;
+
 public class SignatureDbContext : DbContext
 {
-  
 
-    public SignatureDbContext(DbContextOptions<SignatureDbContext> options) : base(options) { }
+   
+    public SignatureDbContext(DbContextOptions<SignatureDbContext> o) : base(o) { }
+     public DbSet<SignatureRequest> SignatureRequests => Set<SignatureRequest>();
+    public DbSet<Signer> Signers => Set<Signer>();
 
-      public DbSet<Signature> Signatures { get; set; }
 
-
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder mb)
     {
-        modelBuilder.Entity<Signature>()
-            .Property(s => s.Status)
-            .HasConversion<string>(); // Guarda el enum como texto
+        mb.Entity<SignatureRequest>(b =>
+        {
+            b.ToTable("SignatureRequests");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Status)
+             .HasConversion<string>().HasMaxLength(15);
+        });
 
-        base.OnModelCreating(modelBuilder);
+        mb.Entity<Signer>(b =>
+        {
+            b.ToTable("Signers");
+            b.HasKey(x => x.Id);
+
+            b.Property(x => x.Status)
+             .HasConversion<string>().HasMaxLength(10);
+
+            // Value-object mapeado en columnas propias
+            b.OwnsOne(x => x.Certificate, c =>
+            {
+                c.Property(p => p.Thumbprint).HasColumnName("CertThumbprint").HasMaxLength(64);
+                c.Property(p => p.Subject).HasColumnName("CertSubject").HasMaxLength(256);
+                c.Property(p => p.NotBefore).HasColumnName("CertNotBefore");
+                c.Property(p => p.NotAfter).HasColumnName("CertNotAfter");
+            });
+        });
     }
 }

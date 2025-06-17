@@ -8,7 +8,7 @@ using SharedLibrary.Contracts;
 
 namespace SharedLibrary.Services.ConfirmAccountService;
 
-internal sealed class ConfirmTokenService(IOptions<JwtSettings> opt) : IConfirmTokenService
+public sealed class ConfirmTokenService(IOptions<JwtSettings> opt) : IConfirmTokenService
 {
   private readonly JwtSettings _cfg = opt.Value;
 
@@ -33,4 +33,9 @@ internal sealed class ConfirmTokenService(IOptions<JwtSettings> opt) : IConfirmT
     var token = handler.CreateToken(descriptor);
     return (handler.WriteToken(token), token.ValidTo);
   }
+
+    public (bool IsValid, Guid SignerId, Guid RequestId) Validate(string token, string expectedPurpose)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,11 +1,12 @@
 using Application.Interfaces;
-using Infraestructure.Repositories;
 using Infrastructure.Context;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using SharedLibrary;
+using SharedLibrary.Contracts;
 using SharedLibrary.Extensions;
+using SharedLibrary.Services.ConfirmAccountService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,8 +24,9 @@ builder.Services.AddControllers();
     });
 
 builder.Services.AddScoped<ICertificateService, CertificateService>();
-builder.Services.AddScoped<ISignatureRepository, SignatureRepository>();
+builder.Services.AddScoped<IPdfService, PdfService>();
 
+builder.Services.AddScoped<IConfirmTokenService, ConfirmTokenService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
  var objetoConexion = new ConnectionApp();
