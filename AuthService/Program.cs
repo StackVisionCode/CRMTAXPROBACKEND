@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using Applications.Common;
 using AuthService.Applications.Services;
 using AuthService.Infraestructure.Services;
 using Infraestructure.Context;
@@ -100,6 +101,8 @@ try
     builder.Services.AddAuthorization();
 
     builder.Services.AddScoped<IPasswordHash, PasswordHash>();
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddSingleton<LinkBuilder>();
 
     builder.Services.AddControllers();
 

@@ -12,7 +12,7 @@ public static class CorsServiceCollectionExtensions
                 "AllowAll",
                 policy =>
                 {
-                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().SetIsOriginAllowed(_=>true);
                 }
             );
         });

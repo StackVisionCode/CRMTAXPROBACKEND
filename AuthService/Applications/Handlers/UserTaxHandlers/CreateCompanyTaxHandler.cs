@@ -1,3 +1,4 @@
+using Applications.Common;
 using AuthService.Applications.DTOs.CompanyDTOs;
 using AuthService.Domains.Companies;
 using AuthService.Domains.Roles;
@@ -23,6 +24,7 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
     private readonly IMapper _mapper;
     private readonly IPasswordHash _passwordHash;
     private readonly IEventBus _eventBus;
+    private readonly LinkBuilder _linkBuilder;
     private readonly IConfirmTokenService _confirmTokenService;
 
     public CreateCompanyTaxHandler(
@@ -32,7 +34,8 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         IPasswordHash passwordHash,
         IEventBus eventBus,
         IConfirmTokenService confirmTokenService
-    )
+  ,
+        LinkBuilder linkBuilder)
     {
         _dbContext = dbContext;
         _logger = logger;
@@ -40,12 +43,13 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         _passwordHash = passwordHash;
         _eventBus = eventBus;
         _confirmTokenService = confirmTokenService;
+        _linkBuilder = linkBuilder;
     }
 
     public async Task<ApiResponse<bool>> Handle(
-        CreateTaxCompanyCommands request,
-        CancellationToken cancellationToken
-    )
+          CreateTaxCompanyCommands request,
+          CancellationToken cancellationToken
+      )
     {
         try
         {
@@ -85,10 +89,7 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             await _dbContext.TaxUsers.AddAsync(MapToUser);
             var ResultUserSaved = await _dbContext.SaveChangesAsync() > 0;
 
-            var link =
-                $"{request.Origin.TrimEnd('/')}/auth/confirm"
-                + $"?email={Uri.EscapeDataString(MapToUser.Email)}"
-                + $"&token={Uri.EscapeDataString(token)}";
+            string link = _linkBuilder.BuildConfirmationLink(request.Origin, MapToUser.Email, token);
 
             if (!ResultUserSaved)
             {

@@ -1,3 +1,4 @@
+using Applications.Common;
 using AuthService.Domains.Roles;
 using AuthService.Domains.Users;
 using AuthService.DTOs.UserDTOs;
@@ -20,6 +21,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
     private readonly ILogger<CreateUserTaxHandler> _logger;
     private readonly IPasswordHash _passwordHash;
     IConfirmTokenService _confirmTokenService;
+    private readonly LinkBuilder _linkBuilder;
     private readonly IEventBus _eventBus;
 
     public CreateUserTaxHandler(
@@ -29,7 +31,8 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
         IPasswordHash passwordHash,
         IEventBus eventBus,
         IConfirmTokenService confirmTokenService
-    )
+  ,
+        LinkBuilder linkBuilder)
     {
         _dbContext = dbContext;
         _mapper = mapper;
@@ -37,12 +40,13 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
         _passwordHash = passwordHash;
         _eventBus = eventBus;
         _confirmTokenService = confirmTokenService;
+        _linkBuilder = linkBuilder;
     }
 
     public async Task<ApiResponse<bool>> Handle(
-        CreateTaxUserCommands request,
-        CancellationToken cancellationToken
-    )
+          CreateTaxUserCommands request,
+          CancellationToken cancellationToken
+      )
     {
         // Usar transacción para asegurar atomicidad
         using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -94,10 +98,8 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
             if (result)
             {
                 await transaction.CommitAsync(cancellationToken);
-                var link =
-                    $"{request.Origin.TrimEnd('/')}/auth/confirm"
-                    + $"?email={Uri.EscapeDataString(userTax.Email)}"
-                    + $"&token={Uri.EscapeDataString(token)}";
+
+                string link = _linkBuilder.BuildConfirmationLink(request.Origin, userTax.Email, token);
 
                 _logger.LogInformation("User tax created successfully: {UserId}", userTax.Id);
 
