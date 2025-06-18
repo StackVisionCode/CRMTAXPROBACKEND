@@ -10,32 +10,28 @@ namespace SharedLibrary.Services.ConfirmAccountService;
 
 public sealed class ConfirmTokenService(IOptions<JwtSettings> opt) : IConfirmTokenService
 {
-  private readonly JwtSettings _cfg = opt.Value;
+    private readonly JwtSettings _cfg = opt.Value;
 
-  public (string Token, DateTime Expires) Generate(Guid uid, string email)
-  {
-    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg.SecretKey));
-    var handler = new JwtSecurityTokenHandler();
-
-    var descriptor = new SecurityTokenDescriptor
+    public (string Token, DateTime Expires) Generate(Guid uid, string email)
     {
-      Subject = new ClaimsIdentity(
-            new[]
-            {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg.SecretKey));
+        var handler = new JwtSecurityTokenHandler();
+
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(
+                new[]
+                {
                     new Claim(JwtRegisteredClaimNames.Sub, uid.ToString()),
                     new Claim(JwtRegisteredClaimNames.Email, email),
-                    new Claim("purpose", "confirm_account")
-            }),
-      Expires = DateTime.UtcNow.AddHours(1),
-      SigningCredentials = new(key, SecurityAlgorithms.HmacSha256)
-    };
+                    new Claim("purpose", "confirm_account"),
+                }
+            ),
+            Expires = DateTime.UtcNow.AddHours(1),
+            SigningCredentials = new(key, SecurityAlgorithms.HmacSha256),
+        };
 
-    var token = handler.CreateToken(descriptor);
-    return (handler.WriteToken(token), token.ValidTo);
-  }
-
-    public (bool IsValid, Guid SignerId, Guid RequestId) Validate(string token, string expectedPurpose)
-    {
-        throw new NotImplementedException();
+        var token = handler.CreateToken(descriptor);
+        return (handler.WriteToken(token), token.ValidTo);
     }
 }

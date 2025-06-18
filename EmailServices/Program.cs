@@ -141,8 +141,14 @@ builder.Services.AddScoped<
     IIntegrationEventHandler<PasswordChangedEvent>,
     PasswordChangedEventHandler
 >();
-builder.Services.AddScoped<IIntegrationEventHandler<AccountConfirmationLinkEvent>, AccountConfirmationLinkHandler>();
-builder.Services.AddScoped<IIntegrationEventHandler<AccountConfirmedEvent>, AccountActivatedHandler>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<AccountConfirmationLinkEvent>,
+    AccountConfirmationLinkHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<AccountConfirmedEvent>,
+    AccountActivatedHandler
+>();
 
 builder.Services.AddScoped<UserLoginEventsHandler>();
 builder.Services.AddScoped<PasswordResetEventHandler>();
