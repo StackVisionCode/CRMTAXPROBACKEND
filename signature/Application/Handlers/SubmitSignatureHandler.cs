@@ -14,19 +14,19 @@ namespace signature.Application.Handlers
         private readonly SignatureDbContext _db;
         private readonly ISignatureValidToken _tokenSvc;
 
-        // private readonly IEventBus _bus;
+        private readonly IEventBus _bus;
         private readonly ILogger<SubmitSignatureHandler> _log;
 
         public SubmitSignatureHandler(
             SignatureDbContext db,
             ISignatureValidToken tokenSvc,
-            // IEventBus bus,
+            IEventBus bus,
             ILogger<SubmitSignatureHandler> log
         )
         {
             _db = db;
             _tokenSvc = tokenSvc;
-            // _bus = bus;
+            _bus = bus;
             _log = log;
         }
 
@@ -78,50 +78,32 @@ namespace signature.Application.Handlers
                 req.ReceiveSignature(signerId, command.Payload.SignatureImageBase64, cert);
                 await _db.SaveChangesAsync(cancellationToken);
 
-                // 6. Publicar evento para que CloudShield procese el PDF
-                // _bus.Publish(new DocumentPartiallySignedEvent(
-                //     Guid.NewGuid(),
-                //     DateTime.UtcNow,
-                //     req.Id,
-                //     req.DocumentId,
-                //     signer.Id,
-                //     command.Payload.SignatureImageBase64,
-                //     signer.PositionX,
-                //     signer.PositionY,
-                //     signer.PageNumber,
-                //     command.Payload.Certificate
-                // ));
+                //6. Publicar evento para que CloudShield procese el PDF
+                _bus.Publish(
+                    new DocumentPartiallySignedEvent(
+                        Guid.NewGuid(),
+                        DateTime.UtcNow,
+                        req.Id,
+                        req.DocumentId,
+                        signer.Id,
+                        signer.Email
+                    )
+                );
 
                 // 7. Si todas las firmas están completas
-                // if (req.Status == SignatureStatus.Completed)
-                // {
-                //     var allSignatures = req.Signers
-                //         .Where(s => s.Status == SignerStatus.Signed)
-                //         .Select(s => new SignatureDataDto
-                //         {
-                //             SignerId = s.Id,
-                //             SignatureImageBase64 = s.SignatureImage!,
-                //             PositionX = s.PositionX,
-                //             PositionY = s.PositionY,
-                //             PageNumber = s.PageNumber,
-                //             Order = s.Order,
-                //             Certificate = new DigitalCertificateDto
-                //             {
-                //                 Thumbprint = s.Certificate!.Thumbprint,
-                //                 Subject = s.Certificate.Subject,
-                //                 NotBefore = s.Certificate.NotBefore,
-                //                 NotAfter = s.Certificate.NotAfter
-                //             }
-                //         }).ToList();
-
-                //     _bus.Publish(new DocumentFullySignedEvent(
-                //         Guid.NewGuid(),
-                //         DateTime.UtcNow,
-                //         req.Id,
-                //         req.DocumentId,
-                //         allSignatures
-                //     ));
-                // }
+                if (req.Status == SignatureStatus.Completed)
+                {
+                    var emails = req.Signers.Select(s => s.Email).ToList();
+                    _bus.Publish(
+                        new DocumentFullySignedEvent(
+                            Guid.NewGuid(),
+                            DateTime.UtcNow,
+                            req.Id,
+                            req.DocumentId,
+                            emails
+                        )
+                    );
+                }
 
                 _log.LogInformation(
                     "Firma registrada exitosamente para el firmante {SignerId}",

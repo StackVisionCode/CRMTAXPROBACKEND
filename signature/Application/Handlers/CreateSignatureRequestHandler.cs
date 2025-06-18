@@ -10,7 +10,7 @@ public class CreateSignatureRequestHandler(
     SignatureDbContext db,
     // IMapper mapper,
     ISignatureValidToken tokenSvc,
-    // IEventBus bus,
+    IEventBus bus,
     ILogger<CreateSignatureRequestHandler> log
 ) : IRequestHandler<CreateSignatureRequestCommand, ApiResponse<bool>>
 {
@@ -37,27 +37,23 @@ public class CreateSignatureRequestHandler(
                     signer.PosY,
                     signer.Token = token
                 );
+
+                string link = $"http://localhost:4200/firmar?token={token}";
+
+                bus.Publish(
+                    new SignatureInvitationEvent(
+                        Guid.NewGuid(),
+                        DateTime.UtcNow,
+                        signer.CustomerId,
+                        signer.Email,
+                        link,
+                        exp
+                    )
+                );
             }
 
             db.SignatureRequests.AddRange(req);
             await db.SaveChangesAsync(ct);
-
-            // 3. Generar tokens y enviar invitaciones
-            // foreach (var signer in req.Signers)
-            // {
-            //     // string link = $"http://localhost:4200/firmar?token={token}";
-
-            //     // bus.Publish(
-            //     //     new SignatureInvitationEvent(
-            //     //         Guid.NewGuid(),
-            //     //         DateTime.UtcNow,
-            //     //         signer.Id,
-            //     //         signer.Email,
-            //     //         link,
-            //     //         exp
-            //     //     )
-            //     // );
-            // }
 
             log.LogInformation("SignatureRequest {Id} creada", req.Id);
             return new(true, "Solicitud creada");

@@ -3,7 +3,8 @@ namespace SharedLibrary.DTOs.SignatureEvents;
 public sealed record DocumentPartiallySignedEvent(
     Guid Id,
     DateTime OccurredOn,
-    Guid RequestId,
+    Guid SignatureRequestId,
     Guid DocumentId,
-    Guid SignerId
+    Guid SignerId,
+    string SignerEmail
 ) : IntegrationEvent(Id, OccurredOn);

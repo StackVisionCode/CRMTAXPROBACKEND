@@ -1,8 +1,10 @@
+using System.Security.Cryptography.Xml;
 using Application.Validation;
 using AuthService.Handlers.EventsHandler;
 using AuthService.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
 using EmailServices.Services.EmailNotificationsServices;
+using Handlers.EventHandlers.SignatureEventHandlers;
 using Handlers.EventHandlers.UserEventHandlers;
 using Infrastructure.Context;
 using Infrastructure.Services;
@@ -14,6 +16,7 @@ using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 using SharedLibrary.DTOs.AuthEvents;
+using SharedLibrary.DTOs.SignatureEvents;
 using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -149,6 +152,18 @@ builder.Services.AddScoped<
     IIntegrationEventHandler<AccountConfirmedEvent>,
     AccountActivatedHandler
 >();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<SignatureInvitationEvent>,
+    SignatureInvitationHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<DocumentPartiallySignedEvent>,
+    PartiallySignedHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<DocumentFullySignedEvent>,
+    FullySignedHandler
+>();
 
 builder.Services.AddScoped<UserLoginEventsHandler>();
 builder.Services.AddScoped<PasswordResetEventHandler>();
@@ -156,6 +171,9 @@ builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
 builder.Services.AddScoped<PasswordChangedEventHandler>();
 builder.Services.AddScoped<AccountConfirmationLinkHandler>();
 builder.Services.AddScoped<AccountActivatedHandler>();
+builder.Services.AddScoped<SignatureInvitationHandler>();
+builder.Services.AddScoped<PartiallySignedHandler>();
+builder.Services.AddScoped<FullySignedHandler>();
 
 var app = builder.Build();
 
@@ -168,6 +186,9 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<PasswordChangedEvent, PasswordChangedEventHandler>();
     bus.Subscribe<AccountConfirmationLinkEvent, AccountConfirmationLinkHandler>();
     bus.Subscribe<AccountConfirmedEvent, AccountActivatedHandler>();
+    bus.Subscribe<SignatureInvitationEvent, SignatureInvitationHandler>();
+    bus.Subscribe<DocumentPartiallySignedEvent, PartiallySignedHandler>();
+    bus.Subscribe<DocumentFullySignedEvent, FullySignedHandler>();
 
     // Log successful subscriptions
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();

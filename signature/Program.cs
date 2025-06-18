@@ -15,6 +15,9 @@ builder.Services.AddJwtAuth(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddCustomCors();
+
+builder.Services.AddEventBus(builder.Configuration);
+
 builder.Services.AddControllers();
 
 // Registrar AutoMapper

@@ -4,5 +4,6 @@ public sealed record DocumentFullySignedEvent(
     Guid Id,
     DateTime OccurredOn,
     Guid SignatureRequestId,
-    Guid DocumentId
+    Guid DocumentId,
+    IReadOnlyList<string> Emails
 ) : IntegrationEvent(Id, OccurredOn);
