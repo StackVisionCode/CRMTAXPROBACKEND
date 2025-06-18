@@ -1,73 +1,104 @@
 using Application.Helpers;
-using AutoMapper;
 using Infrastructure.Context;
 using MediatR;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.SignatureEvents;
 using signature.Infrastruture.Commands;
 
-public class CreateSignatureRequestHandler(
-    SignatureDbContext db,
-    // IMapper mapper,
-    ISignatureValidToken tokenSvc,
-    IEventBus bus,
-    ILogger<CreateSignatureRequestHandler> log
-) : IRequestHandler<CreateSignatureRequestCommand, ApiResponse<bool>>
+public sealed class CreateSignatureRequestHandler
+    : IRequestHandler<CreateSignatureRequestCommand, ApiResponse<bool>>
 {
+    private readonly SignatureDbContext _db;
+    private readonly ISignatureValidToken _tokens;
+    private readonly IEventBus _bus;
+    private readonly ILogger<CreateSignatureRequestHandler> _log;
+
+    public CreateSignatureRequestHandler(
+        SignatureDbContext db,
+        ISignatureValidToken tokens,
+        IEventBus bus,
+        ILogger<CreateSignatureRequestHandler> log
+    )
+    {
+        _db = db;
+        _tokens = tokens;
+        _bus = bus;
+        _log = log;
+    }
+
     public async Task<ApiResponse<bool>> Handle(
-        CreateSignatureRequestCommand c,
+        CreateSignatureRequestCommand cmd,
         CancellationToken ct
     )
     {
+        /* ╭──────────────────────────────────────────────────────────────╮
+        │ 1 ▸ nueva solicitud de firma                                │
+           ╰──────────────────────────────────────────────────────────────╯ */
+        var req = new SignatureRequest(cmd.Payload.DocumentId, Guid.NewGuid());
+
+        // guardamos los eventos para publicarlos DESPUÉS del commit
+        var pendingEvents = new List<SignatureInvitationEvent>();
+
+        /* ╭──────────────────────────────────────────────────────────────╮
+        │ 2 ▸ iteramos firmantes, generamos token y los agregamos      │
+           ╰──────────────────────────────────────────────────────────────╯ */
+        foreach (var inDto in cmd.Payload.Signers)
+        {
+            Guid signerId = Guid.NewGuid(); // ► PK real de la fila ‘Signer’
+            var (token, exp) = _tokens.Generate(signerId, req.Id, "sign");
+
+            req.AddSigner(
+                signerId, // ← mismo Guid en el JWT (sub)
+                inDto.CustomerId,
+                inDto.Email,
+                inDto.Order,
+                inDto.Page,
+                inDto.PosX,
+                inDto.PosY,
+                token
+            ); // ← se persiste para auditoría
+
+            pendingEvents.Add(
+                new SignatureInvitationEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    signerId, // sub
+                    inDto.Email,
+                    $"https://front.taxshield.com/firmar?token={token}",
+                    exp
+                )
+            );
+        }
+
+        /* ╭──────────────────────────────────────────────────────────────╮
+        │ 3 ▸ persistir dentro de una transacción                     │
+           ╰──────────────────────────────────────────────────────────────╯ */
+        await using var trx = await _db.Database.BeginTransactionAsync(ct);
         try
         {
-            // 1. Crear la solicitud de firma
-            var req = new SignatureRequest(c.Payload.DocumentId, Guid.NewGuid());
-
-            // 2. Agregar firmantes
-            foreach (var signer in c.Payload.Signers)
-            {
-                Guid signerId = Guid.NewGuid();
-                var (token, exp) = tokenSvc.Generate(signerId, req.Id, "sign");
-                req.AddSigner(
-                    signerId,
-                    signer.CustomerId,
-                    signer.Email,
-                    signer.Order,
-                    signer.Page,
-                    signer.PosX,
-                    signer.PosY,
-                    signer.Token = token
-                );
-
-                string link = $"http://localhost:4200/firmar?token={token}";
-
-                bus.Publish(
-                    new SignatureInvitationEvent(
-                        Guid.NewGuid(),
-                        DateTime.UtcNow,
-                        signer.CustomerId,
-                        signer.Email,
-                        link,
-                        exp
-                    )
-                );
-            }
-
-            db.SignatureRequests.AddRange(req);
-            await db.SaveChangesAsync(ct);
-
-            log.LogInformation(
-                "SignatureRequest {Id} creada con {Cnt} firmantes",
-                req.Id,
-                req.Signers.Count
-            );
-            return new(true, "Solicitud creada");
+            await _db.SignatureRequests.AddAsync(req, ct);
+            await _db.SaveChangesAsync(ct);
+            await trx.CommitAsync(ct);
         }
         catch (Exception ex)
         {
-            log.LogError(ex, "Error al crear la solicitud de firma");
-            return new(false, "Error al crear la solicitud de firma");
+            await trx.RollbackAsync(ct);
+            _log.LogError(ex, "❌ Error al guardar la SignatureRequest");
+            return new ApiResponse<bool>(false, "No se pudo crear la solicitud");
         }
+
+        /* ╭──────────────────────────────────────────────────────────────╮
+        │ 4 ▸ ahora sí: publicar invitaciones por RabbitMQ            │
+           ╰──────────────────────────────────────────────────────────────╯ */
+        foreach (var ev in pendingEvents)
+            _bus.Publish(ev);
+
+        _log.LogInformation(
+            "✅ SignatureRequest {Id} creada con {Cnt} firmantes",
+            req.Id,
+            req.Signers.Count
+        );
+
+        return new ApiResponse<bool>(true, "Solicitud creada");
     }
 }

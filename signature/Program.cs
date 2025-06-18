@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using Application.Interfaces;
 using Infrastructure.Context;
 using Infrastructure.Services;
@@ -31,6 +32,9 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     Log.Information("Starting up the application");
+
+    JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+
     // Add token services
     builder.Services.AddJwtAuth(builder.Configuration);
 
