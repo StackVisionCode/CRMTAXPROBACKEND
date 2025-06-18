@@ -1,1 +1,7 @@
-public enum SignatureStatus{Pending, Completed, Expired, Canceled }
+public enum SignatureStatus
+{
+    Pending,
+    Completed,
+    Expired,
+    Canceled,
+}

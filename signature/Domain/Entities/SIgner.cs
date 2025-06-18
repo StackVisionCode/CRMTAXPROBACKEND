@@ -1,10 +1,8 @@
-
 using Application.Helpers;
 
 namespace Entities;
 
-
-public class Signer: BaseEntity
+public class Signer : BaseEntity
 {
     public Guid CustomerId { get; private set; }
     public string Email { get; private set; }
@@ -13,17 +11,35 @@ public class Signer: BaseEntity
     public string? SignatureImage { get; private set; } // base64
     public DigitalCertificate? Certificate { get; private set; }
     public Guid SignatureRequestId { get; private set; }
+    public int PageNumber { get; private set; } // desde 1
+    public float PositionX { get; private set; } // en puntos PDF
+    public float PositionY { get; private set; }
+    public string Token { get; private set; }
 
     private Signer() { } // EF
 
-    internal Signer(Guid custId, string email, int order, Guid reqId)
+    internal Signer(
+        Guid custId,
+        string email,
+        int order,
+        Guid reqId,
+        int page,
+        float x,
+        float y,
+        string token
+    )
     {
         Id = Guid.NewGuid();
         CustomerId = custId;
         Email = email;
         Order = order;
+        PageNumber = page;
+        PositionX = x;
+        PositionY = y;
+        Token = token;
         Status = SignerStatus.Pending;
         SignatureRequestId = reqId;
+        CreatedAt = DateTime.UtcNow;
     }
 
     internal void MarkSigned(string img, DigitalCertificate cert)
@@ -31,5 +47,6 @@ public class Signer: BaseEntity
         SignatureImage = img;
         Certificate = cert;
         Status = SignerStatus.Signed;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

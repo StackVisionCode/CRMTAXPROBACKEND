@@ -1,1 +1,6 @@
-public enum SignerStatus{ Pending, Signed }
+public enum SignerStatus
+{
+    Pending,
+    Signed,
+    MarkCompleted,
+}

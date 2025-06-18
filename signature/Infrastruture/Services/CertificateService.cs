@@ -1,7 +1,7 @@
-
-using Application.Interfaces;
-using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using Application.Interfaces;
+
 namespace Infrastructure.Services;
 
 public class CertificateService : ICertificateService
@@ -11,7 +11,7 @@ public class CertificateService : ICertificateService
 
     public string SignFile(string filePath)
     {
-          // Cargar el certificado
+        // Cargar el certificado
         var cert = new X509Certificate2(_certPath, _certPassword, X509KeyStorageFlags.Exportable);
 
         // Leer el archivo que se va a firmar
