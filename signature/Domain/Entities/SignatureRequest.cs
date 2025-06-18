@@ -20,6 +20,7 @@ public class SignatureRequest : BaseEntity
     }
 
     public void AddSigner(
+        Guid signerId,
         Guid custId,
         string email,
         int order,
@@ -27,7 +28,7 @@ public class SignatureRequest : BaseEntity
         float x,
         float y,
         string token
-    ) => _signers.Add(new Signer(custId, email, order, Id, page, x, y, token));
+    ) => _signers.Add(new Signer(signerId, custId, email, order, Id, page, x, y, token));
 
     public void ReceiveSignature(Guid signerId, string img, DigitalCertificate cert)
     {

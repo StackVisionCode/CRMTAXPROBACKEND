@@ -22,13 +22,15 @@ public class CreateSignatureRequestHandler(
         try
         {
             // 1. Crear la solicitud de firma
-            var req = new SignatureRequest(c.Payload.DocumentId, c.Payload.Id = Guid.NewGuid());
+            var req = new SignatureRequest(c.Payload.DocumentId, Guid.NewGuid());
 
             // 2. Agregar firmantes
             foreach (var signer in c.Payload.Signers)
             {
-                var (token, exp) = tokenSvc.Generate(signer.CustomerId, req.Id.ToString(), "sign");
+                Guid signerId = Guid.NewGuid();
+                var (token, exp) = tokenSvc.Generate(signerId, req.Id, "sign");
                 req.AddSigner(
+                    signerId,
                     signer.CustomerId,
                     signer.Email,
                     signer.Order,
@@ -55,7 +57,11 @@ public class CreateSignatureRequestHandler(
             db.SignatureRequests.AddRange(req);
             await db.SaveChangesAsync(ct);
 
-            log.LogInformation("SignatureRequest {Id} creada", req.Id);
+            log.LogInformation(
+                "SignatureRequest {Id} creada con {Cnt} firmantes",
+                req.Id,
+                req.Signers.Count
+            );
             return new(true, "Solicitud creada");
         }
         catch (Exception ex)

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace signature.Migrations
 {
     [DbContext(typeof(SignatureDbContext))]
-    [Migration("20250617193852_NombreDeLaMigracion")]
-    partial class NombreDeLaMigracion
+    [Migration("20250618173356_NewMigration")]
+    partial class NewMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -47,6 +47,15 @@ namespace signature.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<int>("PageNumber")
+                        .HasColumnType("int");
+
+                    b.Property<double>("PositionX")
+                        .HasColumnType("float");
+
+                    b.Property<double>("PositionY")
+                        .HasColumnType("float");
+
                     b.Property<string>("SignatureImage")
                         .HasColumnType("nvarchar(max)");
 
@@ -57,6 +66,10 @@ namespace signature.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");

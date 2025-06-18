@@ -19,6 +19,7 @@ public class Signer : BaseEntity
     private Signer() { } // EF
 
     internal Signer(
+        Guid signerId,
         Guid custId,
         string email,
         int order,
@@ -29,7 +30,7 @@ public class Signer : BaseEntity
         string token
     )
     {
-        Id = Guid.NewGuid();
+        Id = signerId;
         CustomerId = custId;
         Email = email;
         Order = order;

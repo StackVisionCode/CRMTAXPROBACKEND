@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace signature.Migrations
 {
     /// <inheritdoc />
-    public partial class NombreDeLaMigracion : Migration
+    public partial class NewMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -42,6 +42,10 @@ namespace signature.Migrations
                     CertNotBefore = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CertNotAfter = table.Column<DateTime>(type: "datetime2", nullable: true),
                     SignatureRequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PageNumber = table.Column<int>(type: "int", nullable: false),
+                    PositionX = table.Column<double>(type: "float", nullable: false),
+                    PositionY = table.Column<double>(type: "float", nullable: false),
+                    Token = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)

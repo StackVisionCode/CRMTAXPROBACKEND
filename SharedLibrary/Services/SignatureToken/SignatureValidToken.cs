@@ -18,11 +18,7 @@ public sealed class SignatureValidToken(IOptions<JwtSettings> opt) : ISignatureV
     /* -----------------------------------------------------------
      * 1. Generación
      * --------------------------------------------------------- */
-    public (string Token, DateTime Expires) Generate(
-        Guid signerId,
-        string requestId,
-        string purpose
-    )
+    public (string Token, DateTime Expires) Generate(Guid signerId, Guid requestId, string purpose)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg.SecretKey));
         var handler = new JwtSecurityTokenHandler();
@@ -33,7 +29,7 @@ public sealed class SignatureValidToken(IOptions<JwtSettings> opt) : ISignatureV
                 new[]
                 {
                     new Claim(JwtRegisteredClaimNames.Sub, signerId.ToString()),
-                    new Claim("request_id", requestId),
+                    new Claim("request_id", requestId.ToString()),
                     new Claim("purpose", purpose),
                 }
             ),
@@ -48,46 +44,37 @@ public sealed class SignatureValidToken(IOptions<JwtSettings> opt) : ISignatureV
     /* -----------------------------------------------------------
      * 2. Validación
      * --------------------------------------------------------- */
-    public (bool IsValid, Guid SignerId, string RequestId) Validate(
-        string token,
-        string expectedPurpose
-    )
+    public (bool IsValid, Guid SignerId, Guid RequestId) Validate(string token, string expected)
     {
         var handler = new JwtSecurityTokenHandler();
-
         try
         {
-            var principal = handler.ValidateToken(
+            var p = handler.ValidateToken(
                 token,
                 new TokenValidationParameters
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(_cfg.SecretKey)
-                    ),
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ClockSkew = TimeSpan.Zero,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(_cfg.SecretKey)
+                    ),
                 },
                 out _
             );
 
-            // ► Propósito
-            if (principal.FindFirst("purpose")?.Value != expectedPurpose)
-                return (false, Guid.Empty, string.Empty);
+            if (p.FindFirst("purpose")?.Value != expected)
+                return (false, Guid.Empty, Guid.Empty);
 
-            // ► Firmante y solicitud
-            var signerIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub);
-            var requestIdClaim = principal.FindFirst("request_id");
-
-            if (signerIdClaim is null || requestIdClaim is null)
-                return (false, Guid.Empty, string.Empty);
-
-            return (true, Guid.Parse(signerIdClaim.Value), requestIdClaim.Value); // ← string, no Guid
+            return (
+                true,
+                Guid.Parse(p.FindFirst(JwtRegisteredClaimNames.Sub)!.Value),
+                Guid.Parse(p.FindFirst("request_id")!.Value)
+            );
         }
         catch
         {
-            return (false, Guid.Empty, string.Empty);
+            return (false, Guid.Empty, Guid.Empty);
         }
     }
 }

@@ -68,40 +68,40 @@ try
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
     builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "CustomerService API", Version = "v1" });
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "CustomerService API", Version = "v1" });
 
-    // Configuración de JWT para Swagger
-    c.AddSecurityDefinition(
-        "Bearer",
-        new OpenApiSecurityScheme
-        {
-            Description =
-                "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
-            Name = "Authorization",
-            In = ParameterLocation.Header,
-            Type = SecuritySchemeType.ApiKey,
-            Scheme = "Bearer",
-        }
-    );
-
-    c.AddSecurityRequirement(
-        new OpenApiSecurityRequirement
-        {
+        // Configuración de JWT para Swagger
+        c.AddSecurityDefinition(
+            "Bearer",
+            new OpenApiSecurityScheme
             {
-                new OpenApiSecurityScheme
+                Description =
+                    "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer",
+            }
+        );
+
+        c.AddSecurityRequirement(
+            new OpenApiSecurityRequirement
+            {
                 {
-                    Reference = new OpenApiReference
+                    new OpenApiSecurityScheme
                     {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer",
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer",
+                        },
                     },
+                    Array.Empty<string>()
                 },
-                Array.Empty<string>()
-            },
-        }
-    );
-});
+            }
+        );
+    });
 
     var objetoConexion = new ConnectionApp();
 

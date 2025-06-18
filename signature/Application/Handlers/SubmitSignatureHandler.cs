@@ -38,16 +38,11 @@ namespace signature.Application.Handlers
             try
             {
                 // 1. Validar token
-                var (isValid, signerId, reqIdStr) = _tokenSvc.Validate(
-                    command.Payload.Token,
-                    "sign"
-                );
+                var (isValid, signerId, reqId) = _tokenSvc.Validate(command.Payload.Token, "sign");
                 if (!isValid)
-                    return new ApiResponse<bool>(false, "Token inválido o expirado");
+                    return new(false, "Token inválido o expirado");
 
-                var reqId = Guid.Parse(reqIdStr);
-
-                // 2. Obtener solicitud y firmante
+                // reqId ya es Guid
                 var req = await _db
                     .SignatureRequests.Include(r => r.Signers)
                     .FirstOrDefaultAsync(r => r.Id == reqId, cancellationToken);
@@ -86,7 +81,11 @@ namespace signature.Application.Handlers
                         req.Id,
                         req.DocumentId,
                         signer.Id,
-                        signer.Email
+                        signer.Email,
+                        command.Payload.SignatureImageBase64,
+                        signer.PositionX,
+                        signer.PositionY,
+                        signer.PageNumber
                     )
                 );
 

@@ -6,5 +6,9 @@ public sealed record DocumentPartiallySignedEvent(
     Guid SignatureRequestId,
     Guid DocumentId,
     Guid SignerId,
-    string SignerEmail
+    string SignerEmail,
+    string SignatureImageBase64,
+    float PosX,
+    float PosY,
+    int PageNumber
 ) : IntegrationEvent(Id, OccurredOn);
