@@ -7,6 +7,7 @@ public class SignatureRequest : BaseEntity
     public IReadOnlyCollection<Signer> Signers => _signers.AsReadOnly();
 
     public Guid DocumentId { get; set; }
+    public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
     public SignatureStatus Status { get; set; }
 
     private SignatureRequest() { }

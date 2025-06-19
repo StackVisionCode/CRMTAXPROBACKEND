@@ -116,6 +116,11 @@ namespace signature.Application.Handlers
                 );
                 return new ApiResponse<bool>(true, "Firma registrada exitosamente");
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                // alguien modificó la fila SignatureRequest al mismo tiempo
+                return new(false, "La solicitud cambió, intenta de nuevo.");
+            }
             catch (Exception ex)
             {
                 _log.LogError(ex, "Error al procesar la firma");

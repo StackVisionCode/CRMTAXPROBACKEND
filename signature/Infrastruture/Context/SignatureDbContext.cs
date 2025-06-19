@@ -18,6 +18,7 @@ public class SignatureDbContext : DbContext
             b.ToTable("SignatureRequests");
             b.HasKey(x => x.Id);
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(15);
+            b.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
         });
 
         mb.Entity<Signer>(b =>

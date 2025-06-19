@@ -20,5 +20,4 @@ public class SignerInfoDto
 
     [Range(0, float.MaxValue)]
     public float PosY { get; set; }
-    public string? Token { get; set; }
 }
