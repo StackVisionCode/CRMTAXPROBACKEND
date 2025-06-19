@@ -41,6 +41,9 @@ try
     // Add services to the container.
     builder.Services.AddCustomCors();
 
+    // Add services Origin URL to the container.
+    builder.Services.AddCustomOrigin();
+
     builder.Services.AddEventBus(builder.Configuration);
 
     builder.Services.AddControllers();

@@ -3,6 +3,7 @@ using Infrastructure.Context;
 using MediatR;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.SignatureEvents;
+using SharedLibrary.Helpers;
 using signature.Infrastruture.Commands;
 
 public sealed class CreateSignatureRequestHandler
@@ -12,18 +13,21 @@ public sealed class CreateSignatureRequestHandler
     private readonly ISignatureValidToken _tokens;
     private readonly IEventBus _bus;
     private readonly ILogger<CreateSignatureRequestHandler> _log;
+    private readonly GetOriginURL _getOriginURL;
 
     public CreateSignatureRequestHandler(
         SignatureDbContext db,
         ISignatureValidToken tokens,
         IEventBus bus,
-        ILogger<CreateSignatureRequestHandler> log
+        ILogger<CreateSignatureRequestHandler> log,
+        GetOriginURL getOriginURL
     )
     {
         _db = db;
         _tokens = tokens;
         _bus = bus;
         _log = log;
+        _getOriginURL = getOriginURL;
     }
 
     public async Task<ApiResponse<bool>> Handle(
@@ -35,6 +39,8 @@ public sealed class CreateSignatureRequestHandler
         │ 1 ▸ nueva solicitud de firma                                │
            ╰──────────────────────────────────────────────────────────────╯ */
         var req = new SignatureRequest(cmd.Payload.DocumentId, Guid.NewGuid());
+        // 1.1 resuelve UNA sola vez la URL base para toda la solicitud
+        var baseUrl = _getOriginURL.GetOrigin(); // ej. https://app.company.com
 
         // guardamos los eventos para publicarlos DESPUÉS del commit
         var pendingEvents = new List<SignatureInvitationEvent>();
@@ -64,7 +70,7 @@ public sealed class CreateSignatureRequestHandler
                     DateTime.UtcNow,
                     signerId, // sub
                     inDto.Email,
-                    $"https://front.taxshield.com/firmar?token={token}",
+                    $"{baseUrl}/firmar?token={token}",
                     exp
                 )
             );
