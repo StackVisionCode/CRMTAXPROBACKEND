@@ -6,7 +6,7 @@ using iText.Kernel.Pdf.Canvas;
 
 public class PdfService : IPdfService
 {
-    public async Task<byte[]> EmbedImagesAndSignAsync(
+    public  byte[] EmbedImagesAndSignAsync(
         byte[] pdf,
         IEnumerable<Signer> signers,
         X509Certificate2 platformCert

@@ -5,7 +5,7 @@ namespace Entities;
 public class Signer : BaseEntity
 {
     public Guid CustomerId { get; private set; }
-    public string Email { get; private set; }
+    public  string? Email { get; private set; }
     public int Order { get; private set; }
     public SignerStatus Status { get; private set; }
     public string? SignatureImage { get; private set; } // base64
@@ -14,11 +14,11 @@ public class Signer : BaseEntity
     public int PageNumber { get; private set; } // desde 1
     public float PositionX { get; private set; } // en puntos PDF
     public float PositionY { get; private set; }
-    public string Token { get; private set; }
+    public string? Token { get; private set; }
 
     private Signer() { } // EF
 
-    internal Signer(
+    public  Signer(
         Guid signerId,
         Guid custId,
         string email,

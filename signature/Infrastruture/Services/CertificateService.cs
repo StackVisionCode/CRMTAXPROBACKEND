@@ -11,8 +11,13 @@ public class CertificateService : ICertificateService
 
     public string SignFile(string filePath)
     {
-        // Cargar el certificado
-        var cert = new X509Certificate2(_certPath, _certPassword, X509KeyStorageFlags.Exportable);
+
+        // Carga el primer certificado con clave privada del PFX
+        var cert = X509CertificateLoader.LoadPkcs12FromFile(
+            _certPath,             // ruta al .pfx
+            _certPassword,         // contraseña
+            X509KeyStorageFlags.Exportable
+        );
 
         // Leer el archivo que se va a firmar
         var data = File.ReadAllBytes(filePath);
@@ -24,7 +29,7 @@ public class CertificateService : ICertificateService
         var hash = SHA256.HashData(data);
 
         // Firmar el hash
-        var signature = rsa.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var signature = rsa!.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
         // Guardar la firma en un archivo .sig
         var signaturePath = Path.ChangeExtension(filePath, ".sig");

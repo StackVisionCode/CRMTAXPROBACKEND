@@ -87,7 +87,7 @@ namespace signature.Application.Handlers
                             req.Id,
                             req.DocumentId,
                             signer.Id,
-                            signer.Email,
+                            signer.Email!,
                             command.Payload.SignatureImageBase64,
                             signer.PositionX,
                             signer.PositionY,
@@ -105,7 +105,7 @@ namespace signature.Application.Handlers
                             DateTime.UtcNow,
                             req.Id,
                             req.DocumentId,
-                            emails
+                            emails!
                         )
                     );
                 }
