@@ -36,7 +36,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
             Subject = new ClaimsIdentity(
                 new[]
                 {
-                    new Claim("sub", signerId.ToString()), // Solo usar "sub" simple
+                    new Claim("sub", signerId.ToString()),
                     new Claim("request_id", requestId.ToString()),
                     new Claim("purpose", purpose),
                 }
@@ -50,15 +50,12 @@ public sealed class SignatureValidToken : ISignatureValidToken
         var token = handler.CreateToken(descriptor);
         var tokenString = handler.WriteToken(token);
 
-        // Log token generation details
         _logger.LogInformation(
-            "Token generado - SignerId: {SignerId}, RequestId: {RequestId}, Purpose: {Purpose}, Expires: {Expires}",
+            "Token generado para SignerId: {SignerId}, RequestId: {RequestId}, Purpose: {Purpose}",
             signerId,
             requestId,
-            purpose,
-            token.ValidTo
+            purpose
         );
-        _logger.LogDebug("Token string: {Token}", tokenString);
 
         return (tokenString, token.ValidTo);
     }
@@ -75,63 +72,6 @@ public sealed class SignatureValidToken : ISignatureValidToken
 
         try
         {
-            // First, try to read the token without validation to see its contents
-            try
-            {
-                var jsonToken = handler.ReadJwtToken(token);
-                _logger.LogInformation("Token claims sin validación:");
-                foreach (var claim in jsonToken.Claims)
-                {
-                    _logger.LogInformation("- {Type}: {Value}", claim.Type, claim.Value);
-                }
-                _logger.LogInformation("Token Issuer: {Issuer}", jsonToken.Issuer);
-                _logger.LogInformation(
-                    "Token Audience: {Audience}",
-                    string.Join(", ", jsonToken.Audiences)
-                );
-                _logger.LogInformation("Token ValidFrom: {ValidFrom}", jsonToken.ValidFrom);
-                _logger.LogInformation("Token ValidTo: {ValidTo}", jsonToken.ValidTo);
-            }
-            catch (Exception readEx)
-            {
-                _logger.LogError(
-                    readEx,
-                    "No se puede leer el token sin validación. Token posiblemente corrupto."
-                );
-
-                // Intentar decodificar manualmente el payload
-                try
-                {
-                    var parts = token.Split('.');
-                    if (parts.Length == 3)
-                    {
-                        var payload = parts[1];
-                        // Ajustar padding si es necesario
-                        switch (payload.Length % 4)
-                        {
-                            case 2:
-                                payload += "==";
-                                break;
-                            case 3:
-                                payload += "=";
-                                break;
-                        }
-
-                        var jsonBytes = Convert.FromBase64String(
-                            payload.Replace('-', '+').Replace('_', '/')
-                        );
-                        var json = Encoding.UTF8.GetString(jsonBytes);
-                        _logger.LogInformation("Payload JSON crudo: {Payload}", json);
-                    }
-                }
-                catch (Exception decodeEx)
-                {
-                    _logger.LogError(decodeEx, "Error al decodificar payload manualmente");
-                }
-
-                return (false, Guid.Empty, Guid.Empty);
-            }
-
             var principal = handler.ValidateToken(
                 token,
                 new TokenValidationParameters
@@ -150,9 +90,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
                 out _
             );
 
-            _logger.LogInformation("Token validado exitosamente");
-
-            // 1. propósito
+            // Validar propósito
             var purposeClaim = principal.FindFirst("purpose");
             if (purposeClaim?.Value != expectedPurpose)
             {
@@ -164,61 +102,44 @@ public sealed class SignatureValidToken : ISignatureValidToken
                 return (false, Guid.Empty, Guid.Empty);
             }
 
-            // 2. claims esenciales - Buscar solo por "sub"
+            // Extraer claims esenciales
             var subClaim = principal.FindFirst("sub");
             var reqIdClaim = principal.FindFirst("request_id");
 
-            _logger.LogInformation("Claims encontrados:");
-            foreach (var claim in principal.Claims)
-            {
-                _logger.LogInformation("- {Type}: {Value}", claim.Type, claim.Value);
-            }
-
             if (subClaim is null || reqIdClaim is null)
             {
-                _logger.LogWarning(
-                    "Claims esenciales faltantes. Sub: {Sub}, RequestId: {RequestId}",
-                    subClaim?.Value ?? "null",
-                    reqIdClaim?.Value ?? "null"
-                );
+                _logger.LogWarning("Claims esenciales faltantes en el token");
                 return (false, Guid.Empty, Guid.Empty);
             }
 
             var signerId = Guid.Parse(subClaim.Value);
             var requestId = Guid.Parse(reqIdClaim.Value);
 
-            _logger.LogInformation(
-                "Token válido - SignerId: {SignerId}, RequestId: {RequestId}",
-                signerId,
-                requestId
-            );
-
             return (true, signerId, requestId);
         }
-        catch (SecurityTokenExpiredException ex)
+        catch (SecurityTokenExpiredException)
         {
-            _logger.LogWarning("Token expirado: {Message}", ex.Message);
+            _logger.LogWarning("Token expirado");
             return (false, Guid.Empty, Guid.Empty);
         }
-        catch (SecurityTokenInvalidSignatureException ex)
+        catch (SecurityTokenInvalidSignatureException)
         {
-            _logger.LogError("Firma de token inválida: {Message}", ex.Message);
-            _logger.LogError("Esto generalmente indica que la SecretKey no coincide");
+            _logger.LogError("Firma de token inválida");
             return (false, Guid.Empty, Guid.Empty);
         }
-        catch (SecurityTokenInvalidIssuerException ex)
+        catch (SecurityTokenInvalidIssuerException)
         {
-            _logger.LogError("Issuer inválido: {Message}", ex.Message);
+            _logger.LogError("Issuer de token inválido");
             return (false, Guid.Empty, Guid.Empty);
         }
-        catch (SecurityTokenInvalidAudienceException ex)
+        catch (SecurityTokenInvalidAudienceException)
         {
-            _logger.LogError("Audience inválido: {Message}", ex.Message);
+            _logger.LogError("Audience de token inválido");
             return (false, Guid.Empty, Guid.Empty);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error general al validar token: {Message}", ex.Message);
+            _logger.LogError(ex, "Error al validar token");
             return (false, Guid.Empty, Guid.Empty);
         }
     }
