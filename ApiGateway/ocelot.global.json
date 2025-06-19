@@ -46,16 +46,6 @@
           "Url": "http://localhost:5004/swagger/v1/swagger.json"
         }
       ]
-    },
-    {
-      "Key": "signdocu",
-      "Config": [
-        {
-          "Name": "SignDocu Service API",
-          "Version": "v1",
-          "Url": "http://localhost:5005/swagger/v1/swagger.json"
-        }
-      ]
     }
   ]
 }

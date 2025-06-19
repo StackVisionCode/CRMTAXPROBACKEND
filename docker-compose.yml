@@ -65,21 +65,6 @@ services:
     depends_on: [rabbitmq, sqlserver]
     networks: [backend]
 
-  # --- Document Signing Service ----------------------------------------------
-  docu-service:
-    image: ${REGISTRY_PREFIX}-docu-service:${TAG}
-    environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
-      DB_USER: sa
-      DB_PASSWORD: "Brittany040238."
-      RabbitMQ__HostName: rabbitmq
-      RabbitMQ__UserName: guest
-      RabbitMQ__Password: guest
-    depends_on: [rabbitmq, sqlserver]
-    networks: [backend]
-
   # --- Email Service ---------------------------------------------------------
   email-service:
     image: ${REGISTRY_PREFIX}-email-service:${TAG}
@@ -114,14 +99,6 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
-  docu-migrator:
-    image: ${REGISTRY_PREFIX}-docu-migrator:${TAG}
-    depends_on: [sqlserver]
-    environment:
-      DB_SERVER: sqlserver
-      DB_USER: sa
-      DB_PASSWORD: "Brittany040238."
-    networks: [backend]
 
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}

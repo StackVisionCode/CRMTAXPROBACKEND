@@ -9,7 +9,7 @@ internal static class ServiceMap
         { 5002, ("customer-service", 8080) },
         { 5003, ("company-service", 8080) },
         { 5004, ("email-service", 8080) },
-        { 5005, ("docu-service", 8080) },
+        
         // …añade todos los que uses
     };
 }
