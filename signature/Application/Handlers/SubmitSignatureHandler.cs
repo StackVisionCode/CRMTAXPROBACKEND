@@ -73,25 +73,31 @@ namespace signature.Application.Handlers
                 req.ReceiveSignature(signerId, command.Payload.SignatureImageBase64, cert);
                 await _db.SaveChangesAsync(cancellationToken);
 
-                //6. Publicar evento para que CloudShield procese el PDF
-                _bus.Publish(
-                    new DocumentPartiallySignedEvent(
-                        Guid.NewGuid(),
-                        DateTime.UtcNow,
-                        req.Id,
-                        req.DocumentId,
-                        signer.Id,
-                        signer.Email,
-                        command.Payload.SignatureImageBase64,
-                        signer.PositionX,
-                        signer.PositionY,
-                        signer.PageNumber
-                    )
-                );
+                //6 ▸ ¿faltan firmas o ya está completo?
 
-                // 7. Si todas las firmas están completas
-                if (req.Status == SignatureStatus.Completed)
+                bool hasPending = req.Signers.Any(s => s.Status == SignerStatus.Pending);
+
+                if (hasPending)
                 {
+                    // Al menos un firmante pendiente ⇒ correo “firma parcial”
+                    _bus.Publish(
+                        new DocumentPartiallySignedEvent(
+                            Guid.NewGuid(),
+                            DateTime.UtcNow,
+                            req.Id,
+                            req.DocumentId,
+                            signer.Id,
+                            signer.Email,
+                            command.Payload.SignatureImageBase64,
+                            signer.PositionX,
+                            signer.PositionY,
+                            signer.PageNumber
+                        )
+                    );
+                }
+                else
+                {
+                    // Documento finalizado ⇒ correo “completamente firmado”
                     var emails = req.Signers.Select(s => s.Email).ToList();
                     _bus.Publish(
                         new DocumentFullySignedEvent(

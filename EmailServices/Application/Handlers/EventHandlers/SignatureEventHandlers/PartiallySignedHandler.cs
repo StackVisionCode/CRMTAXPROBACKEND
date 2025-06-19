@@ -17,7 +17,12 @@ public sealed class PartiallySignedHandler : IIntegrationEventHandler<DocumentPa
     {
         var dto = new EmailNotificationDto(
             Template: "Signatures/PartiallySigned.html",
-            Model: new { DocumentId = e.DocumentId, Year = DateTime.UtcNow.Year },
+            Model: new
+            {
+                SignerEmail = e.SignerEmail,
+                DocumentId = e.DocumentId,
+                Year = DateTime.UtcNow.Year,
+            },
             Subject: "Tu firma ha sido registrada",
             To: e.SignerEmail,
             InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")

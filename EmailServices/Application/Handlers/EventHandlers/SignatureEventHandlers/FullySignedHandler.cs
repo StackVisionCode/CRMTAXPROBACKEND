@@ -19,7 +19,12 @@ public sealed class FullySignedHandler : IIntegrationEventHandler<DocumentFullyS
         {
             var dto = new EmailNotificationDto(
                 Template: "Signatures/FullySigned.html",
-                Model: new { DocumentId = e.DocumentId, Year = DateTime.UtcNow.Year },
+                Model: new
+                {
+                    SignerEmail = email,
+                    DocumentId = e.DocumentId,
+                    Year = DateTime.UtcNow.Year,
+                },
                 Subject: "Documento completamente firmado",
                 To: email,
                 InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")
