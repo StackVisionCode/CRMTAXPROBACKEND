@@ -1,6 +1,6 @@
+using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Infrastructure.Context;
 using SharedLibrary;
 
 public class SignatureDbContextFactory : IDesignTimeDbContextFactory<SignatureDbContext>
@@ -9,10 +9,9 @@ public class SignatureDbContextFactory : IDesignTimeDbContextFactory<SignatureDb
     {
         var objetoConexion = new ConnectionApp();
 
-
         var optionsBuilder = new DbContextOptionsBuilder<SignatureDbContext>();
         var connectionString =
-       $"Server={objetoConexion.Server};Database=SignatureDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+            $"Server={objetoConexion.Server};Database=SignatureDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
 
         optionsBuilder.UseSqlServer(connectionString);
 

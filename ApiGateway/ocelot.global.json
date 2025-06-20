@@ -46,6 +46,26 @@
           "Url": "http://localhost:5004/swagger/v1/swagger.json"
         }
       ]
+    },
+    {
+      "Key": "bankstatements",
+      "Config": [
+        {
+          "Name": "Email Service API",
+          "Version": "v1",
+          "Url": "http://localhost:5005/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "signature",
+      "Config": [
+        {
+          "Name": "Email Service API",
+          "Version": "v1",
+          "Url": "http://localhost:5006/swagger/v1/swagger.json"
+        }
+      ]
     }
   ]
 }
