@@ -61,6 +61,10 @@ public sealed class CreateSignatureRequestHandler
                 inDto.Page,
                 inDto.PosX,
                 inDto.PosY,
+                inDto.Width,
+                inDto.Height,
+                inDto.InitialEntity,
+                inDto.FechaSigner,
                 token
             ); // ← se persiste para auditoría
 

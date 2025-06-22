@@ -11,5 +11,7 @@ public class SignatureProfile : Profile
         CreateMap<CreateSignatureRequestDto, SignatureRequest>().ReverseMap();
         CreateMap<SignerInfoDto, Signer>().ReverseMap();
         CreateMap<DigitalCertificateDto, DigitalCertificate>();
+        CreateMap<IntialEntity, InitialEntityDto>();
+        CreateMap<FechaSigner, FechaSignerDto>();
     }
 }

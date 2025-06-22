@@ -41,6 +41,32 @@ public class SignatureDbContext : DbContext
                     b.Property(x => x.PositionY).HasColumnType("float");
                 }
             );
+
+            // Value-object mapeado en columnas propias
+            b.OwnsOne(
+                I => I.InitialEntity,
+                d =>
+                {
+                    d.Property(p => p.InitalValue).HasColumnName("InitialValue").HasMaxLength(4);
+                    d.Property(p => p.WidthIntial).HasColumnName("WidthIntial").HasColumnType("float");
+                    d.Property(p => p.HeightIntial).HasColumnName("HeightIntial").HasColumnType("float");
+                    d.Property(p => p.PositionXIntial).HasColumnName("PositionXIntial").HasColumnType("float");
+                    d.Property(p => p.PositionYIntial).HasColumnName("PositionYIntial").HasColumnType("float");
+                }
+            );
+
+            // Value-object mapeado en columnas propias
+            b.OwnsOne(
+                f => f.FechaSigner,
+                e =>
+                {
+                    e.Property(p => p.FechaValue).HasColumnName("FechaValue");
+                    e.Property(p => p.WidthFechaSigner).HasColumnName("WidthFechaSigner").HasColumnType("float");
+                    e.Property(p => p.HeightFechaSigner).HasColumnName("HeightFechaSigner").HasColumnType("float");
+                    e.Property(p => p.PositionXFechaSigner).HasColumnName("PositionXFechaSigner").HasColumnType("float");
+                    e.Property(p => p.PositionYFechaSigner).HasColumnName("PositionYFechaSigner").HasColumnType("float");
+                }
+            );
         });
     }
 }

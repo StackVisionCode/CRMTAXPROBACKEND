@@ -52,10 +52,22 @@ public class ValidateTokenHandler
         var dto = new ValidateTokenResultDto
         {
             SignatureRequestId = req.Id,
-            SignerId = signer.Id,
             DocumentId = req.DocumentId,
-            SignerEmail = signer.Email,
-            SignerStatus = signer.Status,
+            Signer = new SignerInfoDto
+            {
+                CustomerId = signer.CustomerId,
+                Email = signer.Email,
+                Order = signer.Order,
+                Page = signer.PageNumber,
+                PosX = signer.PositionX,
+                PosY = signer.PositionY,
+                Width = signer.Width,
+                Height = signer.Height,
+                Status = signer.Status,
+                InitialEntity = signer.InitialEntity,
+                FechaSigner = signer.FechaSigner,
+
+            },
             RequestStatus = req.Status,
         };
 
