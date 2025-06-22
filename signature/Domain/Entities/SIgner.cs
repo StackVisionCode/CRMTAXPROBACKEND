@@ -35,7 +35,7 @@ public class Signer : BaseEntity
         float height,
         float x,
         float y,
-        IntialEntity? InitialEntity,
+        IntialEntity? initialEntity,
         FechaSigner? fechaSigner,
         string token
     )
@@ -49,7 +49,7 @@ public class Signer : BaseEntity
         Height = height;
         PositionX = x;
         PositionY = y;
-        InitialEntity = InitialEntity;
+        InitialEntity = initialEntity;
         FechaSigner = fechaSigner;
         Token = token;
         Status = SignerStatus.Pending;

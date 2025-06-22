@@ -5,7 +5,7 @@ public class InitialEntityDto
 {
 
 
-    public string InitalValue { get; set; } = string.Empty;
+    public string InitalValue { get; set; }
 
     public float PositionYIntial { get; set; }
 
@@ -13,7 +13,6 @@ public class InitialEntityDto
 
     public float WidthIntial { get; set; } // en puntos PDF
     public float HeightIntial { get; set; } // en puntos PDF
-
 
 }
 
