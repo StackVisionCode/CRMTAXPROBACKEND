@@ -66,6 +66,16 @@
           "Url": "http://localhost:5006/swagger/v1/swagger.json"
         }
       ]
+    },
+    {
+      "Key": "commlinks",
+      "Config": [
+        {
+          "Name": "CommLink Service API",
+          "Version": "v1",
+          "Url": "http://localhost:5007/swagger/v1/swagger.json"
+        }
+      ]
     }
   ]
 }

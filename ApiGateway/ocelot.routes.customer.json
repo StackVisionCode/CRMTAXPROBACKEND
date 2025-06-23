@@ -295,6 +295,48 @@
       "SwaggerKey": "customer"
     },
     {
+      "DownstreamPathTemplate": "/api/ContactInfo/EnableLogin",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/contactinfo/enablelogin",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ContactInfo/DisableLogin",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/contactinfo/disablelogin",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
       "DownstreamPathTemplate": "/api/ContactInfo/Update",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

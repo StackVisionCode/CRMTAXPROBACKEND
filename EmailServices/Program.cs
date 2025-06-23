@@ -1,7 +1,6 @@
-using System.Security.Cryptography.Xml;
 using Application.Validation;
-using AuthService.Handlers.EventsHandler;
-using AuthService.Handlers.PasswordEventsHandler;
+using EmailServices.Handlers.EventsHandler;
+using EmailServices.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
 using EmailServices.Services.EmailNotificationsServices;
 using Handlers.EventHandlers.SignatureEventHandlers;
@@ -16,6 +15,7 @@ using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 using SharedLibrary.DTOs.AuthEvents;
+using SharedLibrary.DTOs.CustomerEventsDTO;
 using SharedLibrary.DTOs.SignatureEvents;
 using SharedLibrary.Extensions;
 
@@ -164,6 +164,14 @@ builder.Services.AddScoped<
     IIntegrationEventHandler<DocumentFullySignedEvent>,
     FullySignedHandler
 >();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<CustomerLoginEnabledEvent>,
+    CustomerLoginEnabledEventHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<CustomerLoginDisabledEvent>,
+    CustomerLoginDisabledEventHandler
+>();
 
 builder.Services.AddScoped<UserLoginEventsHandler>();
 builder.Services.AddScoped<PasswordResetEventHandler>();
@@ -174,6 +182,8 @@ builder.Services.AddScoped<AccountActivatedHandler>();
 builder.Services.AddScoped<SignatureInvitationHandler>();
 builder.Services.AddScoped<PartiallySignedHandler>();
 builder.Services.AddScoped<FullySignedHandler>();
+builder.Services.AddScoped<CustomerLoginEnabledEventHandler>();
+builder.Services.AddScoped<CustomerLoginDisabledEventHandler>();
 
 var app = builder.Build();
 
@@ -189,6 +199,8 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<SignatureInvitationEvent, SignatureInvitationHandler>();
     bus.Subscribe<DocumentPartiallySignedEvent, PartiallySignedHandler>();
     bus.Subscribe<DocumentFullySignedEvent, FullySignedHandler>();
+    bus.Subscribe<CustomerLoginEnabledEvent, CustomerLoginEnabledEventHandler>();
+    bus.Subscribe<CustomerLoginDisabledEvent, CustomerLoginDisabledEventHandler>();
 
     // Log successful subscriptions
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();

@@ -1,5 +1,5 @@
-using AuthService.DTOs.SessionDTOs;
 using AuthService.Domains.Sessions;
+using AuthService.DTOs.SessionDTOs;
 using AutoMapper;
 
 namespace AuthService.Profiles.Sessions;

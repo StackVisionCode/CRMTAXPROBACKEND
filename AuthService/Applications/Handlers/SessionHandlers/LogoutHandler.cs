@@ -17,27 +17,39 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, ApiResponse<bool>>
         _logger = logger;
     }
 
-    public async Task<ApiResponse<bool>> Handle(LogoutCommand request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<bool>> Handle(
+        LogoutCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            var session = await _context.Sessions
-                .FirstOrDefaultAsync(s => s.Id == request.SessionId 
-                                && s.TaxUserId == request.UserId, cancellationToken);
+            var session = await _context.Sessions.FirstOrDefaultAsync(
+                s => s.Id == request.SessionId && s.TaxUserId == request.UserId,
+                cancellationToken
+            );
 
             if (session == null)
             {
-                _logger.LogWarning("Logout failed: Session {Session} not found for user {User}", request.SessionId, request.UserId);
+                _logger.LogWarning(
+                    "Logout failed: Session {Session} not found for user {User}",
+                    request.SessionId,
+                    request.UserId
+                );
                 return new ApiResponse<bool>(false, "Session not found");
             }
 
             // Revocar la sesión
             session.IsRevoke = true;
             session.UpdatedAt = DateTime.UtcNow;
-            
+
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {User} logged out. Session {Session} revoked", request.UserId, request.SessionId);
+            _logger.LogInformation(
+                "User {User} logged out. Session {Session} revoked",
+                request.UserId,
+                request.SessionId
+            );
             return new ApiResponse<bool>(true, "Logout successful", true);
         }
         catch (Exception ex)

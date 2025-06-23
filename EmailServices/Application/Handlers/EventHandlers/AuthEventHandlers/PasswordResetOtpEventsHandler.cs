@@ -4,9 +4,9 @@ using MediatR;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 
-namespace AuthService.Handlers.EventsHandler;
+namespace EmailServices.Handlers.EventsHandler;
 
-public class PasswordResetOtpEventsHandler : IIntegrationEventHandler<PasswordResetOtpEvent>
+public sealed class PasswordResetOtpEventsHandler : IIntegrationEventHandler<PasswordResetOtpEvent>
 {
     private readonly IMediator _mediator;
 

@@ -18,6 +18,7 @@ public sealed class RequireGatewayHeaderMiddleware(RequestDelegate next)
         "/api/Password/otp/validate",
         "/api/Password/reset",
         "/api/account/confirm",
+        "/api/auth/customer/login",
         "/api/auth/login",
         "/api/taxuser/register",
         "/api/taxcompany/register",
@@ -26,6 +27,8 @@ public sealed class RequireGatewayHeaderMiddleware(RequestDelegate next)
         "/api/auth/password/otp/validate",
         "/api/auth/password/reset",
         "/api/auth/confirm",
+        "/api/ContactInfo/Internal/AuthInfo",
+        "/api/ContactInfo/Internal/Profile",
     };
 
     public async Task InvokeAsync(HttpContext ctx)

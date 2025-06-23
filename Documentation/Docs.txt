@@ -1,0 +1,153 @@
+1 · Crear/asegurar conversación
+(solo si tuviste expuesto el endpoint EnsureConversation)
+
+bash
+Copy
+Edit
+POST  {{base_url}}/conversation/{{otherUserId}}
+Headers
+  Authorization: Bearer {{token}}
+Respuesta (200)
+
+json
+Copy
+Edit
+{
+  "success": true,
+  "message": "Conversation created successfully",
+  "data": "a0f2b1d9-7743-4734-b3b5-0a47ce38fa31"   // Id de la conversación
+}
+2 · Enviar mensaje
+bash
+Copy
+Edit
+POST  {{base_url}}/conversation/{{conversationId}}/messages
+Headers
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+Body (raw JSON)
+{
+  "content": "Hello! Here is the PDF.",
+  "hasAttachment": true,
+  "attachmentUrl": "https://files.mycdn.com/abc.pdf"
+}
+Respuesta (200)
+
+json
+Copy
+Edit
+{
+  "success": true,
+  "message": "Message sent",
+  "data": {
+    "id": "39f9b9ad-d781-41df-a2d1-d6c5b9db06c4",
+    "senderId": "USER-GUID-OF-TOKEN",
+    "content": "Hello! Here is the PDF.",
+    "hasAttachment": true,
+    "attachmentUrl": "https://files.mycdn.com/abc.pdf",
+    "sentAt": "2025-06-22T18:58:01Z"
+  }
+}
+3 · Iniciar llamada (voz o vídeo)
+bash
+Copy
+Edit
+POST  {{base_url}}/conversation/{{conversationId}}/call
+Headers
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+Body
+{
+  "callType": "Video"         // "Voice" o "Video" (sensible a mayúsculas)
+}
+Respuesta
+
+json
+Copy
+Edit
+{
+  "success": true,
+  "message": "Call started",
+  "data": "5c2add90-c200-4e78-8634-32c48153fe8e"   // callId
+}
+(los dos participantes recibirán por SignalR el evento CallStarted)
+
+4 · Terminar llamada
+css
+Copy
+Edit
+POST  {{base_url}}/call/end
+Headers
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+Body
+{
+  "conversationId": "a0f2b1d9-7743-4734-b3b5-0a47ce38fa31",
+  "callId":        "5c2add90-c200-4e78-8634-32c48153fe8e"
+}
+Respuesta
+
+json
+Copy
+Edit
+{
+  "success": true,
+  "message": "Ok",
+  "data": {
+    "conversationId": "a0f2b1d9-7743-4734-b3b5-0a47ce38fa31",
+    "callId": "5c2add90-c200-4e78-8634-32c48153fe8e",
+    "endedById": "USER-GUID-OF-TOKEN",
+    "durationSeconds": 142,
+    "endedAt": "2025-06-22T19:03:19Z"
+  }
+}
+(ambos clientes reciben por SignalR CallEnded)
+
+5 · Listar conversaciones del usuario
+bash
+Copy
+Edit
+GET   {{base_url}}/conversations
+Headers
+  Authorization: Bearer {{token}}
+json
+Copy
+Edit
+{
+  "success": true,
+  "message": "Ok",
+  "data": [
+    {
+      "id": "a0f2b1d9-7743-4734-b3b5-0a47ce38fa31",
+      "otherUserId": "PREPARER-GUID",
+      "lastActivity": "2025-06-22T18:58:01Z",
+      "lastSnippet": "Hello! Here is the PDF."
+    },
+    ...
+  ]
+}
+6 · Obtener historial de mensajes
+bash
+Copy
+Edit
+GET   {{base_url}}/conversation/{{conversationId}}/messages?after=2025-06-01T00:00:00Z
+Headers
+  Authorization: Bearer {{token}}
+json
+Copy
+Edit
+{
+  "success": true,
+  "message": "Ok",
+  "data": [
+    {
+      "id": "...",
+      "senderId": "...",
+      "content": "...",
+      "hasAttachment": false,
+      "attachmentUrl": null,
+      "sentAt": "..."
+    }
+  ]
+}
+El parámetro after es opcional; envíalo para hacer sync incremental.

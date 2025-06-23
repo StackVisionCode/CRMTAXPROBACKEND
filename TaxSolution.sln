@@ -7,7 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthService", "AuthService\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomerService", "CustomerService\CustomerService.csproj", "{1C24AA80-91B1-4DCC-BBCF-570FB13116F4}"
 EndProject
-
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiGateway", "ApiGateway\ApiGateway.csproj", "{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedLibrary", "SharedLibrary\SharedLibrary.csproj", "{BC0838DD-D8AD-4846-8F33-B51D42377275}"
@@ -17,6 +16,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "signature", "signature\signature.csproj", "{F82CF378-0DEF-46DE-BD25-C203888E7E19}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankStaments", "BankStaments\BankStaments.csproj", "{60002CF0-A743-469C-883B-4A7A765F67F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommLinkServices", "CommLinkServices\CommLinkServices.csproj", "{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -52,18 +53,6 @@ Global
 		{1C24AA80-91B1-4DCC-BBCF-570FB13116F4}.Release|x64.Build.0 = Release|Any CPU
 		{1C24AA80-91B1-4DCC-BBCF-570FB13116F4}.Release|x86.ActiveCfg = Release|Any CPU
 		{1C24AA80-91B1-4DCC-BBCF-570FB13116F4}.Release|x86.Build.0 = Release|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Debug|x64.Build.0 = Debug|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Debug|x86.Build.0 = Debug|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Release|x64.ActiveCfg = Release|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Release|x64.Build.0 = Release|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Release|x86.ActiveCfg = Release|Any CPU
-		{9B7E70A4-2161-454A-9476-0361332E3502}.Release|x86.Build.0 = Release|Any CPU
 		{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59739000-57F3-4E31-9EB1-72EB5B8FF9B9}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -124,6 +113,18 @@ Global
 		{60002CF0-A743-469C-883B-4A7A765F67F8}.Release|x64.Build.0 = Release|Any CPU
 		{60002CF0-A743-469C-883B-4A7A765F67F8}.Release|x86.ActiveCfg = Release|Any CPU
 		{60002CF0-A743-469C-883B-4A7A765F67F8}.Release|x86.Build.0 = Release|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Debug|x64.Build.0 = Debug|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Debug|x86.Build.0 = Debug|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Release|x64.ActiveCfg = Release|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Release|x64.Build.0 = Release|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Release|x86.ActiveCfg = Release|Any CPU
+		{2BA98194-E334-41CA-8D1B-01B1C8F2DF83}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

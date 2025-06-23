@@ -10,6 +10,4 @@ public class CreateContactInfoDTOs
     [EmailAddress]
     public required string Email { get; set; }
     public Guid PreferredContactId { get; set; }
-    public required bool IsLoggin { get; set; }
-    public string? PasswordClient { get; set; }
 }

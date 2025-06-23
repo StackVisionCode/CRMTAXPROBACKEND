@@ -4,4 +4,4 @@ using MediatR;
 
 namespace CustomerService.Queries.ContactInfoQueries;
 
-public record class GetByIdContactInfoQueries(Guid Id) : IRequest<ApiResponse<ReadContactInfoDTO>>; 
+public record class GetByIdContactInfoQueries(Guid Id) : IRequest<ApiResponse<ReadContactInfoDTO>>;

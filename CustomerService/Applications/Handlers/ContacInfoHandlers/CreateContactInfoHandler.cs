@@ -1,6 +1,7 @@
 using AutoMapper;
 using Common;
 using CustomerService.Commands.ContactInfoCommands;
+using CustomerService.Domains.Customers;
 using CustomerService.Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -52,7 +53,9 @@ public class CreateContactInfoHandler
                 );
             }
 
-            var contactInfo = _mapper.Map<Domains.Customers.ContactInfo>(request.contactInfo);
+            var contactInfo = _mapper.Map<ContactInfo>(request.contactInfo);
+            contactInfo.IsLoggin = false;
+            contactInfo.PasswordClient = null;
             contactInfo.CreatedAt = DateTime.UtcNow;
             await _dbContext.ContactInfos.AddAsync(contactInfo, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
