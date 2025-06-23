@@ -1,4 +1,5 @@
 using Application.Helpers;
+using AutoMapper;
 using Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -14,16 +15,19 @@ public class ValidateTokenHandler
     private readonly SignatureDbContext _db;
     private readonly ISignatureValidToken _tokenSvc;
     private readonly ILogger<ValidateTokenHandler> _log;
+    private readonly IMapper _mapper;
 
     public ValidateTokenHandler(
         SignatureDbContext db,
         ISignatureValidToken tokenSvc,
         ILogger<ValidateTokenHandler> log
+        , IMapper mapper
     )
     {
         _db = db;
         _tokenSvc = tokenSvc;
         _log = log;
+        _mapper = mapper;
     }
 
     public async Task<ApiResponse<ValidateTokenResultDto>> Handle(
@@ -52,10 +56,22 @@ public class ValidateTokenHandler
         var dto = new ValidateTokenResultDto
         {
             SignatureRequestId = req.Id,
-            SignerId = signer.Id,
             DocumentId = req.DocumentId,
-            SignerEmail = signer.Email,
-            SignerStatus = signer.Status,
+            Signer = new SignerInfoDto
+            {
+                CustomerId = signer.CustomerId,
+                Email = signer.Email,
+                Order = signer.Order,
+                Page = signer.PageNumber,
+                PosX = signer.PositionX,
+                PosY = signer.PositionY,
+                Width = signer.Width,
+                Height = signer.Height,
+                Status = signer.Status,
+                InitialEntity = _mapper.Map<InitialEntityDto>(signer.InitialEntity),
+                FechaSigner = _mapper.Map<FechaSignerDto>(signer.FechaSigner),
+
+            },
             RequestStatus = req.Status,
         };
 

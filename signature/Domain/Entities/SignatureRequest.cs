@@ -28,8 +28,12 @@ public class SignatureRequest : BaseEntity
         int page,
         float x,
         float y,
+        float width,
+        float height,
+        IntialEntity? initialEntity,
+        FechaSigner? fechaSigner,
         string token
-    ) => _signers.Add(new Signer(signerId, custId, email, order, Id, page, x, y, token));
+    ) => _signers.Add(new Signer(signerId, custId, email, order, Id, page, width, height, x, y, initialEntity, fechaSigner, token));
 
     public void ReceiveSignature(Guid signerId, string img, DigitalCertificate cert)
     {

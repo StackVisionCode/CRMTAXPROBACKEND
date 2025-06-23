@@ -20,4 +20,11 @@ public class SignerInfoDto
 
     [Range(0, float.MaxValue)]
     public float PosY { get; set; }
+
+    public float Width { get; set; } // en puntos PDF
+    public float Height { get; set; } // en puntos PDF
+
+    public InitialEntityDto? InitialEntity { get; set; }
+    public SignerStatus Status { get; set; }
+    public FechaSignerDto? FechaSigner { get; set; }
 }

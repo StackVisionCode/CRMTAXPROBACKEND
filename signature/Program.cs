@@ -9,6 +9,7 @@ using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.Extensions;
 using SharedLibrary.Services.ConfirmAccountService;
+using signature.Application.Profiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
