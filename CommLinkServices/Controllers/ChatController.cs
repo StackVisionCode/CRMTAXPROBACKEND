@@ -3,90 +3,124 @@ using CommLinkServices.Application.DTOs;
 using CommLinkServices.Infrastructure.Commands;
 using CommLinkServices.Infrastructure.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CommLinkServices.Controllers
+namespace CommLinkServices.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize] // ⬅️ all endpoints require a valid JWT
+public sealed class ChatController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ChatController : ControllerBase
+    private readonly IMediator _mediator;
+    private readonly ILogger<ChatController> _log;
+
+    public ChatController(IMediator mediator, ILogger<ChatController> log)
     {
-        private readonly IMediator _mediator;
+        _mediator = mediator;
+        _log = log;
+    }
 
-        public ChatController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+    /// <summary>Helper: extracts the GUID stored in the JWT ("sub" or NameIdentifier).</summary>
+    private Guid CurrentUserId()
+    {
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
 
-        private Guid UserId() =>
-            Guid.Parse(
-                User.FindFirst(
-                    ClaimTypes.NameIdentifier /* ó "sub" */
-                )!.Value
-            );
+        if (!Guid.TryParse(raw, out var id))
+            throw new InvalidOperationException("Invalid or missing subject claim");
 
-        [HttpPost("conversation/{conversationId}/messages")]
-        public async Task<IActionResult> Send(
-            Guid conversationId,
-            Guid UserId,
-            [FromBody] SendMessageRequestDto body
-        )
-        {
-            var command = new SendMessageCommand(conversationId, UserId, body);
-            var result = await _mediator.Send(command);
-            if (result.Success == false)
-                return BadRequest(new { result });
+        return id;
+    }
 
-            return Ok(result);
-        }
+    // ──────────────────────────────────────────────
+    // 1️⃣  NEW – Ensure (or create) conversation
+    // ──────────────────────────────────────────────
+    /// <remarks>
+    /// Returns <c>ApiResponse&lt;Guid&gt;</c> with the conversation Id.
+    /// If it already exists, you still get the same Id.
+    /// </remarks>
+    [HttpPost("conversation/{otherUserId:guid}")]
+    public async Task<IActionResult> EnsureConversation(Guid otherUserId, CancellationToken ct)
+    {
+        var cmd = new EnsureConversationCommand(CurrentUserId(), otherUserId);
+        var result = await _mediator.Send(cmd, ct);
 
-        [HttpPost("conversation/{conversationId}/call")]
-        public async Task<IActionResult> StartCall(
-            Guid conversationId,
-            Guid UserId,
-            [FromBody] StartCallRequestDto body
-        )
-        {
-            var command = new StartCallCommand(conversationId, UserId, body);
-            var result = await _mediator.Send(command);
-            if (result.Success == false)
-                return BadRequest(new { result });
+        return result.Success is true ? Ok(result) : BadRequest(result);
+    }
 
-            return Ok(result);
-        }
+    // ──────────────────────────────────────────────
+    // 2️⃣  Chat – send a message
+    // ──────────────────────────────────────────────
+    [HttpPost("conversation/{conversationId:guid}/messages")]
+    public async Task<IActionResult> SendMessage(
+        Guid conversationId,
+        [FromBody] SendMessageRequestDto body,
+        CancellationToken ct
+    )
+    {
+        var cmd = new SendMessageCommand(conversationId, CurrentUserId(), body);
+        var result = await _mediator.Send(cmd, ct);
 
-        [HttpPost("call/end")]
-        public async Task<IActionResult> EndCall([FromBody] EndCallRequestDto body, Guid UserId)
-        {
-            var result = await _mediator.Send(new EndCallCommand(UserId, body));
+        return result.Success is true ? Ok(result) : BadRequest(result);
+    }
 
-            return result.Success == true ? Ok(result) : BadRequest(result);
-        }
+    // ──────────────────────────────────────────────
+    // 3️⃣  Chat – list messages
+    // ──────────────────────────────────────────────
+    [HttpGet("conversation/{conversationId:guid}/messages")]
+    public async Task<IActionResult> GetMessages(
+        Guid conversationId,
+        DateTime? after,
+        CancellationToken ct
+    )
+    {
+        var qry = new GetMessagesQuery(conversationId, CurrentUserId(), after);
+        var result = await _mediator.Send(qry, ct);
 
-        [HttpGet("conversations")]
-        public async Task<IActionResult> Conversations(Guid UserId)
-        {
-            var command = new GetConversationsQuery(UserId);
-            var result = await _mediator.Send(command);
-            if (result.Success == false)
-                return BadRequest(new { result });
+        return result.Success is true ? Ok(result) : BadRequest(result);
+    }
 
-            return Ok(result);
-        }
+    // ──────────────────────────────────────────────
+    // 4️⃣  Conversations list (sidebar)
+    // ──────────────────────────────────────────────
+    [HttpGet("conversations")]
+    public async Task<IActionResult> GetConversations(CancellationToken ct)
+    {
+        var qry = new GetConversationsQuery(CurrentUserId());
+        var result = await _mediator.Send(qry, ct);
 
-        [HttpGet("conversation/{conversationId}/messages")]
-        public async Task<IActionResult> Messages(
-            Guid conversationId,
-            Guid UserId,
-            DateTime? after = null
-        )
-        {
-            var command = new GetMessagesQuery(conversationId, UserId, after);
-            var result = await _mediator.Send(command);
-            if (result.Success == false)
-                return BadRequest(new { result });
+        return result.Success is true ? Ok(result) : BadRequest(result);
+    }
 
-            return Ok(result);
-        }
+    // ──────────────────────────────────────────────
+    // 5️⃣  Start call
+    // ──────────────────────────────────────────────
+    [HttpPost("conversation/{conversationId:guid}/call")]
+    public async Task<IActionResult> StartCall(
+        Guid conversationId,
+        [FromBody] StartCallRequestDto body,
+        CancellationToken ct
+    )
+    {
+        var cmd = new StartCallCommand(conversationId, CurrentUserId(), body);
+        var result = await _mediator.Send(cmd, ct);
+
+        return result.Success is true ? Ok(result) : BadRequest(result);
+    }
+
+    // ──────────────────────────────────────────────
+    // 6️⃣  End call
+    // ──────────────────────────────────────────────
+    [HttpPost("call/end")]
+    public async Task<IActionResult> EndCall(
+        [FromBody] EndCallRequestDto body,
+        CancellationToken ct
+    )
+    {
+        var cmd = new EndCallCommand(CurrentUserId(), body);
+        var result = await _mediator.Send(cmd, ct);
+
+        return result.Success is true ? Ok(result) : BadRequest(result);
     }
 }

@@ -5,5 +5,6 @@ public sealed record AccountConfirmedEvent(
     DateTime OccurredOn,
     Guid UserId,
     string Email,
-    string DisplayName
+    string DisplayName,
+    bool IsCompany
 ) : IntegrationEvent(Id, OccurredOn);

@@ -34,9 +34,25 @@ public class ConfirmAccountHandler : IRequestHandler<AccountConfirmCommands, Api
 
     public async Task<ApiResponse<Unit>> Handle(AccountConfirmCommands c, CancellationToken ct)
     {
-        var user = await _db.TaxUsers.FirstOrDefaultAsync(u => u.Email == c.Email, ct);
-        if (user is null)
+        var data = await (
+            from u in _db.TaxUsers
+            where u.Email == c.Email
+            join p in _db.TaxUserProfiles on u.Id equals p.TaxUserId into prof
+            from p in prof.DefaultIfEmpty() // ← LEFT JOIN perfil
+            join co in _db.Companies on u.CompanyId equals co.Id into comp
+            from co in comp.DefaultIfEmpty() // ← LEFT JOIN compañía
+            select new
+            {
+                User = u,
+                Profile = p,
+                Company = co,
+            }
+        ).FirstOrDefaultAsync(ct);
+
+        if (data is null)
             return new(false, "Cuenta no encontrada");
+
+        var user = data.User;
 
         if (user.Confirm is true)
             return new(false, "La cuenta ya está confirmada");
@@ -70,13 +86,22 @@ public class ConfirmAccountHandler : IRequestHandler<AccountConfirmCommands, Api
         // user.ConfirmToken = null;
         await _db.SaveChangesAsync(ct);
 
+        bool isCompany = data.Company is not null;
+
         // ► Evento de cuenta activada
-        string display = user.TaxUserProfile?.Name is { Length: > 0 }
-            ? $"{user.TaxUserProfile.Name} {user.TaxUserProfile.LastName}".Trim()
-            : user.Company?.CompanyName ?? user.Email;
+        string display = isCompany
+            ? data.Company!.CompanyName ?? user.Email
+            : $"{data.Profile?.Name} {data.Profile?.LastName}".Trim();
 
         _eventBus.Publish(
-            new AccountConfirmedEvent(Guid.NewGuid(), DateTime.UtcNow, user.Id, user.Email, display)
+            new AccountConfirmedEvent(
+                Guid.NewGuid(),
+                DateTime.UtcNow,
+                user.Id,
+                user.Email,
+                display,
+                isCompany
+            )
         );
 
         _log.LogInformation("Cuenta {Email} confirmada", c.Email);

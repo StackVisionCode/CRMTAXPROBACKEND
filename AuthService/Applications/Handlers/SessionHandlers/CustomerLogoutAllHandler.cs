@@ -3,19 +3,24 @@ using Common;
 using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 public class CustomerLogoutAllHandler : IRequestHandler<CustomerLogoutAllCommand, ApiResponse<bool>>
 {
     private readonly ILogger<CustomerLogoutAllHandler> _logger;
     private readonly ApplicationDbContext _context;
+    private readonly IEventBus _bus;
 
     public CustomerLogoutAllHandler(
         ILogger<CustomerLogoutAllHandler> logger,
-        ApplicationDbContext context
+        ApplicationDbContext context,
+        IEventBus bus
     )
     {
         _logger = logger;
         _context = context;
+        _bus = bus;
     }
 
     public async Task<ApiResponse<bool>> Handle(
@@ -31,6 +36,16 @@ public class CustomerLogoutAllHandler : IRequestHandler<CustomerLogoutAllCommand
             await q.ExecuteUpdateAsync(
                 s => s.SetProperty(p => p.IsRevoke, true),
                 cancellationToken
+            );
+
+            _bus.Publish(
+                new UserPresenceChangedEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    request.CustomerId,
+                    "Customer",
+                    false
+                )
             );
 
             return new ApiResponse<bool>(true, "Sesiones revocadas", true);

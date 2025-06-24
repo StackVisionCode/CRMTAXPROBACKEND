@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 using SharedLibrary.DTOs.AuthEvents;
+using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.UserTaxHandlers;
 
@@ -33,9 +34,9 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         IMapper mapper,
         IPasswordHash passwordHash,
         IEventBus eventBus,
-        IConfirmTokenService confirmTokenService
-  ,
-        LinkBuilder linkBuilder)
+        IConfirmTokenService confirmTokenService,
+        LinkBuilder linkBuilder
+    )
     {
         _dbContext = dbContext;
         _logger = logger;
@@ -47,9 +48,9 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
     }
 
     public async Task<ApiResponse<bool>> Handle(
-          CreateTaxCompanyCommands request,
-          CancellationToken cancellationToken
-      )
+        CreateTaxCompanyCommands request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -89,7 +90,11 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             await _dbContext.TaxUsers.AddAsync(MapToUser);
             var ResultUserSaved = await _dbContext.SaveChangesAsync() > 0;
 
-            string link = _linkBuilder.BuildConfirmationLink(request.Origin, MapToUser.Email, token);
+            string link = _linkBuilder.BuildConfirmationLink(
+                request.Origin,
+                MapToUser.Email,
+                token
+            );
 
             if (!ResultUserSaved)
             {
@@ -105,11 +110,13 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     DateTime.UtcNow,
                     MapToUser.Id,
                     MapToUser.Email,
-                    request.Companytax.FullName
-                        ?? request.Companytax.CompanyName
-                        ?? MapToUser.Email,
+                    request.Companytax.CompanyName ?? MapToUser.Email,
                     link,
-                    expiration
+                    expiration,
+                    true,
+                    CompanyName: request.Companytax.CompanyName,
+                    AdminName: request.Companytax.FullName,
+                    Domain: request.Companytax.Domain
                 )
             );
 
@@ -127,6 +134,18 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     request.Companytax.FullName,
                     request.Companytax.CompanyName,
                     request.Companytax.Domain
+                )
+            );
+
+            // Notificar a CommLinkService que se creo que el usuario para los chats.
+            _eventBus.Publish(
+                new UserCreatedEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    MapToUser.Id,
+                    "TaxUser",
+                    $"{request.Companytax.CompanyName}".Trim(),
+                    MapToUser.Email
                 )
             );
 

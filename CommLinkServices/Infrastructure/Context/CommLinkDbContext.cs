@@ -11,6 +11,7 @@ public class CommLinkDbContext : DbContext
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Call> Calls => Set<Call>();
+    public DbSet<UserDirectory> UserDirectories => Set<UserDirectory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,5 +23,7 @@ public class CommLinkDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<Message>().HasIndex(m => new { m.ConversationId, m.SentAt });
+
+        modelBuilder.Entity<UserDirectory>().HasKey(us => us.UserId);
     }
 }

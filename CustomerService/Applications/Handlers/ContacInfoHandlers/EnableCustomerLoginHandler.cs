@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.Contracts.Security;
+using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 using SharedLibrary.DTOs.CustomerEventsDTO;
 using SharedLibrary.Services.Security;
 
@@ -73,6 +74,18 @@ public class EnableCustomerLoginHandler
                         plain
                     )
                 );
+
+                // Habilitar CommLink para cliente poder chatear
+                _bus.Publish(
+                    new UserPresenceChangedEvent(
+                        Guid.NewGuid(),
+                        DateTime.UtcNow,
+                        cust.Id,
+                        "Customer", /* isLogin */
+                        true
+                    )
+                );
+
                 _logger.LogInformation("Login habilitado para cliente {Id}", cust.Id);
                 return new ApiResponse<bool>(true, "Login habilitado", true);
             }

@@ -33,6 +33,12 @@ public sealed class RequireGatewayHeaderMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(HttpContext ctx)
     {
+        if (ctx.WebSockets.IsWebSocketRequest)
+        {
+            await next(ctx); // downstream = SignalR
+            return;
+        }
+
         if (
             PublicEndpoints.Any(p =>
                 ctx.Request.Path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase)

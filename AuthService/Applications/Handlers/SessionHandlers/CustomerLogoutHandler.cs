@@ -2,6 +2,8 @@ using Commands.SessionCommands;
 using Common;
 using Infraestructure.Context;
 using MediatR;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.SessionHandlers;
 
@@ -9,14 +11,17 @@ public class CustomerLogoutHandler : IRequestHandler<CustomerLogoutCommand, ApiR
 {
     private readonly ILogger<CustomerLogoutHandler> _logger;
     private readonly ApplicationDbContext _context;
+    private readonly IEventBus _eventBus;
 
     public CustomerLogoutHandler(
         ILogger<CustomerLogoutHandler> logger,
-        ApplicationDbContext context
+        ApplicationDbContext context,
+        IEventBus eventBus
     )
     {
         _logger = logger;
         _context = context;
+        _eventBus = eventBus;
     }
 
     public async Task<ApiResponse<bool>> Handle(
@@ -35,6 +40,16 @@ public class CustomerLogoutHandler : IRequestHandler<CustomerLogoutCommand, ApiR
 
             sess.IsRevoke = true;
             await _context.SaveChangesAsync(cancellationToken);
+
+            _eventBus.Publish(
+                new UserPresenceChangedEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    sess.CustomerId,
+                    "Customer",
+                    false
+                )
+            );
 
             return new ApiResponse<bool>(true, "Sesión revocada", true);
         }

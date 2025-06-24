@@ -19,8 +19,7 @@ public sealed class AccountActivatedHandler : IIntegrationEventHandler<AccountCo
 
     public Task Handle(AccountConfirmedEvent e)
     {
-        bool isCompany = e.DisplayName.Contains(' ') == false;
-        string tpl = isCompany ? "TaxUsers/CompanyActivated.html" : "TaxUsers/UserActivated.html";
+        string tpl = e.IsCompany ? "TaxUsers/CompanyActivated.html" : "TaxUsers/UserActivated.html";
 
         var dto = new EmailNotificationDto(
             Template: tpl,
