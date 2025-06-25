@@ -30,6 +30,30 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
+        [HttpPost("EnableLogin")]
+        public async Task<ActionResult<ApiResponse<bool>>> EnableLogin(
+            [FromBody] EnableLoginDTO dto
+        )
+        {
+            var command = new EnableCustomerLoginCommand(dto);
+            var result = await _mediator.Send(command);
+            if (result == null)
+                return BadRequest(new { message = "Failed to enable login" });
+            return Ok(result);
+        }
+
+        [HttpPost("DisableLogin")]
+        public async Task<ActionResult<ApiResponse<bool>>> DisableLogin(
+            [FromBody] DisableLoginDTO dto
+        )
+        {
+            var command = new DisableCustomerLoginCommand(dto.CustomerId);
+            var result = await _mediator.Send(command);
+            if (result == null)
+                return BadRequest(new { message = "Failed to disable login" });
+            return Ok(result);
+        }
+
         [HttpPut("Update")]
         public async Task<ActionResult<ApiResponse<bool>>> Update(
             [FromBody] UpdateContactInfoDTOs contactInfo
@@ -71,6 +95,33 @@ namespace CustomerService.Controllers.ContactInfo
         public async Task<ActionResult> GetById(Guid Id)
         {
             var command = new GetByIdContactInfoQueries(Id);
+            var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
+
+        [HttpGet("Internal/AuthInfo")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<ActionResult<ApiResponse<AuthInfoDTO>>> GetAuthInfo(
+            [FromQuery] string email
+        )
+        {
+            var command = new GetAuthInfoByEmailQuery(email);
+            var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
+
+        [HttpGet("Internal/Profile")]
+        public async Task<ActionResult<ApiResponse<CustomerProfileDTO>>> Profile(
+            [FromQuery] Guid customerId
+        )
+        {
+            var command = new GetCustomerProfileQuery(customerId);
             var result = await _mediator.Send(command);
             if (result.Success == false)
                 return BadRequest(new { result });

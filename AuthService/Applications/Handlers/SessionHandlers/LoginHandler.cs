@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
+using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.SessionHandlers;
 
@@ -139,6 +140,17 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 fullName ?? string.Empty,
                 displayName, // <-- Nombre Completo de Usuario Individual calculado
                 DateTime.Now.Year
+            );
+
+            // 3.6 Publicamos un evento de para indicar que estamo online en CommLinkService
+            _eventBus.Publish(
+                new UserPresenceChangedEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    user.Id,
+                    "TaxUser",
+                    true
+                )
             );
 
             _eventBus.Publish(loginEvent);

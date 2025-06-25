@@ -4,4 +4,5 @@ using MediatR;
 
 namespace CustomerService.Commands.ContactInfoCommands;
 
-public record class CreateContactInfoCommands(CreateContactInfoDTOs contactInfo) : IRequest<ApiResponse<bool>>;
+public record class CreateContactInfoCommands(CreateContactInfoDTOs contactInfo)
+    : IRequest<ApiResponse<bool>>;

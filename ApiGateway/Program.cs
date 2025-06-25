@@ -79,8 +79,16 @@ try
     app.UseSessionValidation();
     app.UseAuthorization();
 
+    /* --- AÑADE ESTO --- */
+    var wsOptions = new WebSocketOptions
+    {
+        // opcional: mantén los defaults o ajusta si quieres
+        KeepAliveInterval = TimeSpan.FromSeconds(30),
+    };
+    app.UseWebSockets(wsOptions);
+
     // Use Ocelot middleware
-    app.UseOcelot().Wait();
+    await app.UseOcelot();
 
     app.Run();
 }

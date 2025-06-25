@@ -1,9 +1,12 @@
 using AutoMapper;
 using Common;
 using CustomerService.Commands.ContactInfoCommands;
+using CustomerService.Domains.Customers;
 using CustomerService.Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace CustomerService.Handlers.ContactInfoHandlers;
 
@@ -13,16 +16,19 @@ public class CreateContactInfoHandler
     private readonly ILogger<CreateContactInfoHandler> _logger;
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
+    private readonly IEventBus _eventBus;
 
     public CreateContactInfoHandler(
         ILogger<CreateContactInfoHandler> logger,
         ApplicationDbContext dbContext,
-        IMapper mapper
+        IMapper mapper,
+        IEventBus eventBus
     )
     {
         _logger = logger;
         _dbContext = dbContext;
         _mapper = mapper;
+        _eventBus = eventBus;
     }
 
     public async Task<ApiResponse<bool>> Handle(
@@ -52,10 +58,34 @@ public class CreateContactInfoHandler
                 );
             }
 
-            var contactInfo = _mapper.Map<Domains.Customers.ContactInfo>(request.contactInfo);
+            var contactInfo = _mapper.Map<ContactInfo>(request.contactInfo);
+            contactInfo.IsLoggin = false;
+            contactInfo.PasswordClient = null;
             contactInfo.CreatedAt = DateTime.UtcNow;
             await _dbContext.ContactInfos.AddAsync(contactInfo, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+
+            if (result)
+            {
+                // Rescatamos datos básicos del cliente para el display-name
+                var customer = await _dbContext
+                    .Customers.AsNoTracking()
+                    .FirstAsync(c => c.Id == contactInfo.CustomerId, cancellationToken);
+
+                _eventBus.Publish(
+                    new UserCreatedEvent(
+                        Guid.NewGuid(),
+                        DateTime.UtcNow,
+                        customer.Id, // ➜ UserId
+                        "Customer", // ➜ UserType
+                        $"{customer.FirstName} {customer.LastName}".Trim(),
+                        contactInfo.Email.Trim()
+                    )
+                );
+
+                _logger.LogInformation("UserCreatedEvent published for Customer {Id}", customer.Id);
+            }
+
             _logger.LogInformation("ContactInfo created successfully: {ContactInfo}", contactInfo);
             return new ApiResponse<bool>(
                 result,

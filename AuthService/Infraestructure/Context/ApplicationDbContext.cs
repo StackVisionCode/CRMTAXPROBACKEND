@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RolePermissions> RolePermissions { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<Session> Sessions { get; set; }
+    public DbSet<CustomerSession> CustomerSessions { get; set; }
     public DbSet<Company> Companies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -51,6 +52,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<RolePermissions>().ToTable("RolePermissions");
         modelBuilder.Entity<Permission>().ToTable("Permissions");
         modelBuilder.Entity<Session>().ToTable("Sessions");
+        modelBuilder.Entity<CustomerSession>().ToTable("CustomerSessions");
         modelBuilder.Entity<Company>().ToTable("Companies");
 
         modelBuilder.Entity<TaxUserProfile>().HasKey(t => t.Id);
@@ -59,6 +61,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<RolePermissions>().HasKey(t => t.Id);
         modelBuilder.Entity<Permission>().HasKey(t => t.Id);
         modelBuilder.Entity<Session>().HasKey(t => t.Id);
+        modelBuilder.Entity<CustomerSession>().HasKey(t => t.Id);
         modelBuilder.Entity<Company>().HasKey(t => t.Id);
 
         // Relación TaxUser - TaxUserProfile (1:1)

@@ -18,9 +18,7 @@ public sealed class AccountConfirmationLinkHandler
 
     public Task Handle(AccountConfirmationLinkEvent e)
     {
-        string tpl = e.ConfirmLink.Contains("company", StringComparison.OrdinalIgnoreCase)
-            ? "TaxUsers/CompanyWelcome.html"
-            : "TaxUsers/UserWelcome.html";
+        string tpl = e.IsCompany ? "TaxUsers/CompanyWelcome.html" : "TaxUsers/UserWelcome.html";
 
         var dto = new EmailNotificationDto(
             Template: tpl,
@@ -28,6 +26,9 @@ public sealed class AccountConfirmationLinkHandler
             {
                 DisplayName = e.DisplayName,
                 ConfirmLink = e.ConfirmLink,
+                CompanyName = e.CompanyName,
+                AdminName = e.AdminName,
+                Domain = e.Domain,
                 Year = DateTime.UtcNow.Year,
             },
             Subject: "Confirma tu cuenta en TaxCloud",

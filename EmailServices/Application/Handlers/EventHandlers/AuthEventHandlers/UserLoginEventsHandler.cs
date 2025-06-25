@@ -8,6 +8,8 @@ using MediatR;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 
+namespace EmailServices.Handlers.EventsHandler;
+
 public sealed class UserLoginEventsHandler : IIntegrationEventHandler<UserLoginEvent>
 {
     private readonly IMediator _mediator;

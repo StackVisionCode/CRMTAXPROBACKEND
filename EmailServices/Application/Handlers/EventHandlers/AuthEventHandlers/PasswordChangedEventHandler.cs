@@ -4,9 +4,9 @@ using MediatR;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 
-namespace AuthService.Handlers.PasswordEventsHandler;
+namespace EmailServices.Handlers.PasswordEventsHandler;
 
-public class PasswordChangedEventHandler : IIntegrationEventHandler<PasswordChangedEvent>
+public sealed class PasswordChangedEventHandler : IIntegrationEventHandler<PasswordChangedEvent>
 {
     private readonly IMediator _med;
     private readonly IWebHostEnvironment _env;

@@ -12,5 +12,4 @@ public class CreateCustomerDTO
     public DateTime DateOfBirth { get; set; }
     public required string SsnOrItin { get; set; }
     public required bool IsActive { get; set; }
-    public required bool IsLogin { get; set; }
 }

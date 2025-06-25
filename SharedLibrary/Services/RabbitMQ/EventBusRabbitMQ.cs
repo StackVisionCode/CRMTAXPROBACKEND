@@ -104,10 +104,10 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
             // 2️⃣  Fallback: reflexión genérica (por si llega un evento
             //      que este microservicio aún no maneja pero podría necesitar
             //      más adelante)
-            type ??= AppDomain.CurrentDomain
-                            .GetAssemblies()
-                            .SelectMany(a => a.GetTypes())
-                            .FirstOrDefault(t => t.Name == eventName);
+            type ??= AppDomain
+                .CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .FirstOrDefault(t => t.Name == eventName);
 
             if (type is null)
             {

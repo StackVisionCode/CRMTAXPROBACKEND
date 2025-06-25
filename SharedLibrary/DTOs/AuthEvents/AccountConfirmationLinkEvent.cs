@@ -7,5 +7,9 @@ public sealed record AccountConfirmationLinkEvent(
     string Email,
     string DisplayName,
     string ConfirmLink,
-    DateTime ExpiresAt
+    DateTime ExpiresAt,
+    bool IsCompany,
+    string? CompanyName = null,
+    string? AdminName = null,
+    string? Domain = null
 ) : IntegrationEvent(Id, OccurredOn);

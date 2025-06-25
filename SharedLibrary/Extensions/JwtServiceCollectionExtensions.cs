@@ -2,8 +2,10 @@ using Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SharedLibrary.Contracts;
+using SharedLibrary.Contracts.Security;
 using SharedLibrary.Services;
 using SharedLibrary.Services.ConfirmAccountService;
+using SharedLibrary.Services.Security;
 using SharedLibrary.Services.SignatureToken;
 
 namespace SharedLibrary.Extensions;
@@ -21,6 +23,7 @@ public static class JwtServiceCollectionExtensions
         services.AddScoped<IOtpService, OtpService>();
         services.AddScoped<IConfirmTokenService, ConfirmTokenService>();
         services.AddScoped<ISignatureValidToken, SignatureValidToken>();
+        services.AddScoped<IPasswordHash, PasswordHash>();
 
         return services;
     }

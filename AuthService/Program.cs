@@ -79,6 +79,22 @@ try
     // Configurar JWT
     builder.Services.AddJwtAuth(builder.Configuration);
 
+    builder.Services.AddHttpClient(
+        "Customers",
+        c =>
+        {
+            var customerServiceUrl = builder.Configuration["Services:Customer"];
+            if (string.IsNullOrWhiteSpace(customerServiceUrl))
+            {
+                throw new InvalidOperationException(
+                    "Customer service URL is not configured. Please set 'Services:Customer' in your configuration."
+                );
+            }
+            c.BaseAddress = new Uri(customerServiceUrl); // http://localhost:5002
+            c.DefaultRequestHeaders.Add("X-From-Gateway", "Api-Gateway");
+        }
+    );
+
     // Configurar caché en memoria en lugar de Redis
     builder.Services.AddSessionCache();
 

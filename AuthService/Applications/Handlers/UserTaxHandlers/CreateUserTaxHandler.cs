@@ -11,6 +11,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.AuthEvents;
+using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.UserTaxHandlers;
 
@@ -30,9 +31,9 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
         ILogger<CreateUserTaxHandler> logger,
         IPasswordHash passwordHash,
         IEventBus eventBus,
-        IConfirmTokenService confirmTokenService
-  ,
-        LinkBuilder linkBuilder)
+        IConfirmTokenService confirmTokenService,
+        LinkBuilder linkBuilder
+    )
     {
         _dbContext = dbContext;
         _mapper = mapper;
@@ -44,9 +45,9 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
     }
 
     public async Task<ApiResponse<bool>> Handle(
-          CreateTaxUserCommands request,
-          CancellationToken cancellationToken
-      )
+        CreateTaxUserCommands request,
+        CancellationToken cancellationToken
+    )
     {
         // Usar transacción para asegurar atomicidad
         using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -99,10 +100,15 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
             {
                 await transaction.CommitAsync(cancellationToken);
 
-                string link = _linkBuilder.BuildConfirmationLink(request.Origin, userTax.Email, token);
+                string link = _linkBuilder.BuildConfirmationLink(
+                    request.Origin,
+                    userTax.Email,
+                    token
+                );
 
                 _logger.LogInformation("User tax created successfully: {UserId}", userTax.Id);
 
+                // Notificar que se creo el usuario a CloudShield para crear nube.
                 _eventBus.Publish(
                     new AccountRegisteredEvent(
                         Guid.NewGuid(),
@@ -120,6 +126,7 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
                     )
                 );
 
+                // Notificar que se creo el usuario para enviar link de confirmación.
                 _eventBus.Publish(
                     new AccountConfirmationLinkEvent(
                         Guid.NewGuid(),
@@ -128,7 +135,20 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
                         userTax.Email,
                         $"{request.Usertax.Name} {request.Usertax.LastName}".Trim(),
                         link,
-                        expiration
+                        expiration,
+                        false
+                    )
+                );
+
+                // Notificar a CommLinkService que se creo que el usuario para los chats.
+                _eventBus.Publish(
+                    new UserCreatedEvent(
+                        Guid.NewGuid(),
+                        DateTime.UtcNow,
+                        userTax.Id,
+                        "TaxUser",
+                        $"{request.Usertax.Name} {request.Usertax.LastName}".Trim(),
+                        userTax.Email
                     )
                 );
 
