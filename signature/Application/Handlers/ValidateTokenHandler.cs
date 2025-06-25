@@ -16,18 +16,21 @@ public class ValidateTokenHandler
     private readonly ISignatureValidToken _tokenSvc;
     private readonly ILogger<ValidateTokenHandler> _log;
     private readonly IMapper _mapper;
+    private readonly IEventBus _eventBus;
 
     public ValidateTokenHandler(
         SignatureDbContext db,
         ISignatureValidToken tokenSvc,
         ILogger<ValidateTokenHandler> log
-        , IMapper mapper
+        , IMapper mapper,
+        IEventBus eventBus
     )
     {
         _db = db;
         _tokenSvc = tokenSvc;
         _log = log;
         _mapper = mapper;
+        _eventBus = eventBus;
     }
 
     public async Task<ApiResponse<ValidateTokenResultDto>> Handle(
@@ -47,10 +50,13 @@ public class ValidateTokenHandler
 
         if (req is null)
             return new(false, "Solicitud no encontrada");
-
+           
+      
         var signer = req.Signers.FirstOrDefault(s => s.Id == signerId);
         if (signer is null)
             return new(false, "Firmante no encontrado para este token");
+
+            
 
         /* 3 ▸ Construye DTO */
         var dto = new ValidateTokenResultDto

@@ -8,6 +8,7 @@ using Serilog;
 using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.Extensions;
+using SharedLibrary.Services;
 using SharedLibrary.Services.ConfirmAccountService;
 using signature.Application.Profiles;
 
