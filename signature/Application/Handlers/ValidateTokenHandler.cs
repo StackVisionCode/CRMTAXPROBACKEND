@@ -4,6 +4,7 @@ using Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
+using SharedLibrary.DTOs.SignatureEvents;
 using signature.Application.DTOs;
 using signature.Infrastruture.Queries;
 
@@ -21,8 +22,8 @@ public class ValidateTokenHandler
     public ValidateTokenHandler(
         SignatureDbContext db,
         ISignatureValidToken tokenSvc,
-        ILogger<ValidateTokenHandler> log
-        , IMapper mapper,
+        ILogger<ValidateTokenHandler> log,
+        IMapper mapper,
         IEventBus eventBus
     )
     {
@@ -50,23 +51,44 @@ public class ValidateTokenHandler
 
         if (req is null)
             return new(false, "Solicitud no encontrada");
-           
-      
+
         var signer = req.Signers.FirstOrDefault(s => s.Id == signerId);
         if (signer is null)
             return new(false, "Firmante no encontrado para este token");
 
-            
+        // 2.1 NUEVO: Genera token de acceso temporal al documento
+        var sessionId = Guid.NewGuid().ToString("N")[..16]; // Session ID corto
+        var (documentAccessToken, expiresAt) = _tokenSvc.Generate(
+            signerId,
+            req.DocumentId,
+            "document-access"
+        );
+
+        // 2.4 ▸ NUEVO: Publica evento para que CloudShield prepare el documento
+        var documentAccessEvent = new DocumentAccessRequestedEvent(
+            Guid.NewGuid(),
+            DateTime.UtcNow,
+            req.DocumentId,
+            signerId,
+            signer.Email ?? string.Empty,
+            documentAccessToken,
+            expiresAt,
+            sessionId
+        );
+
+        _eventBus.Publish(documentAccessEvent);
 
         /* 3 ▸ Construye DTO */
         var dto = new ValidateTokenResultDto
         {
             SignatureRequestId = req.Id,
             DocumentId = req.DocumentId,
+            DocumentAccessToken = documentAccessToken,
+            SessionId = sessionId,
             Signer = new SignerInfoDto
             {
                 CustomerId = signer.CustomerId,
-                Email = signer.Email,
+                Email = signer.Email ?? string.Empty,
                 Order = signer.Order,
                 Page = signer.PageNumber,
                 PosX = signer.PositionX,
@@ -76,7 +98,6 @@ public class ValidateTokenHandler
                 Status = signer.Status,
                 InitialEntity = _mapper.Map<InitialEntityDto>(signer.InitialEntity),
                 FechaSigner = _mapper.Map<FechaSignerDto>(signer.FechaSigner),
-
             },
             RequestStatus = req.Status,
         };
