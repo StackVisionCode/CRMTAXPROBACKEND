@@ -1,9 +1,12 @@
+using System.Security.Cryptography;
+using System.Text;
 using Application.Helpers;
 using AutoMapper;
 using Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
+using SharedLibrary.Contracts.Security;
 using SharedLibrary.DTOs.SignatureEvents;
 using signature.Application.DTOs;
 using signature.Infrastruture.Queries;
@@ -18,13 +21,15 @@ public class ValidateTokenHandler
     private readonly ILogger<ValidateTokenHandler> _log;
     private readonly IMapper _mapper;
     private readonly IEventBus _eventBus;
+    private readonly IEncryptionService _encryption;
 
     public ValidateTokenHandler(
         SignatureDbContext db,
         ISignatureValidToken tokenSvc,
         ILogger<ValidateTokenHandler> log,
         IMapper mapper,
-        IEventBus eventBus
+        IEventBus eventBus,
+        IEncryptionService encryption
     )
     {
         _db = db;
@@ -32,6 +37,7 @@ public class ValidateTokenHandler
         _log = log;
         _mapper = mapper;
         _eventBus = eventBus;
+        _encryption = encryption;
     }
 
     public async Task<ApiResponse<ValidateTokenResultDto>> Handle(
@@ -56,27 +62,57 @@ public class ValidateTokenHandler
         if (signer is null)
             return new(false, "Firmante no encontrado para este token");
 
-        // 2.1 NUEVO: Genera token de acceso temporal al documento
-        var sessionId = Guid.NewGuid().ToString("N")[..16]; // Session ID corto
+        // 2.1 Genera token de acceso temporal al documento
+        var sessionId = GenerateSecureSessionId();
         var (documentAccessToken, expiresAt) = _tokenSvc.Generate(
             signerId,
             req.DocumentId,
             "document-access"
         );
 
-        // 2.4 ▸ NUEVO: Publica evento para que CloudShield prepare el documento
-        var documentAccessEvent = new DocumentAccessRequestedEvent(
-            Guid.NewGuid(),
-            DateTime.UtcNow,
-            req.DocumentId,
+        // 2.2 Crear payload sensible a cifrar
+        var requestFingerprint = GenerateRequestFingerprint(req.Id, signerId, sessionId);
+        var sensitivePayload = new DocumentAccessPayload(
             signerId,
             signer.Email ?? string.Empty,
             documentAccessToken,
-            expiresAt,
-            sessionId
+            sessionId,
+            requestFingerprint
         );
 
-        _eventBus.Publish(documentAccessEvent);
+        try
+        {
+            // 2.3 Cifrar datos sensibles
+            var encryptedPayload = _encryption.Encrypt(sensitivePayload);
+            var payloadHash = ComputePayloadHash(sensitivePayload);
+
+            // 2.4 Publicar evento seguro
+            var secureEvent = new SecureDocumentAccessRequestedEvent(
+                Guid.NewGuid(),
+                DateTime.UtcNow,
+                req.DocumentId,
+                encryptedPayload,
+                payloadHash,
+                expiresAt
+            );
+
+            _eventBus.Publish(secureEvent);
+
+            _log.LogInformation(
+                "Evento seguro publicado para documento {DocumentId}, sesión {SessionId}",
+                req.DocumentId,
+                sessionId
+            );
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(
+                ex,
+                "Error publicando evento seguro para documento {DocumentId}",
+                req.DocumentId
+            );
+            return new(false, "Error interno procesando solicitud");
+        }
 
         /* 3 ▸ Construye DTO */
         var dto = new ValidateTokenResultDto
@@ -103,5 +139,30 @@ public class ValidateTokenHandler
         };
 
         return new(true, "Token válido", dto);
+    }
+
+    private string GenerateSecureSessionId()
+    {
+        using var rng = RandomNumberGenerator.Create();
+        var bytes = new byte[16];
+        rng.GetBytes(bytes);
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private string GenerateRequestFingerprint(Guid requestId, Guid signerId, string sessionId)
+    {
+        var data = $"{requestId}:{signerId}:{sessionId}:{DateTime.UtcNow:yyyyMMddHHmmss}";
+        using var sha256 = SHA256.Create();
+        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
+        return Convert.ToHexString(hash)[..16].ToLowerInvariant();
+    }
+
+    private string ComputePayloadHash(DocumentAccessPayload payload)
+    {
+        var data =
+            $"{payload.SignerId}:{payload.AccessToken}:{payload.SessionId}:{payload.RequestFingerprint}";
+        using var sha256 = SHA256.Create();
+        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
+        return Convert.ToHexString(hash);
     }
 }

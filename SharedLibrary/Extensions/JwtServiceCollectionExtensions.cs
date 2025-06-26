@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics.Arm;
 using Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,7 @@ public static class JwtServiceCollectionExtensions
         services.AddScoped<IConfirmTokenService, ConfirmTokenService>();
         services.AddScoped<ISignatureValidToken, SignatureValidToken>();
         services.AddScoped<IPasswordHash, PasswordHash>();
+        services.AddSingleton<IEncryptionService, AesEncryptionService>();
 
         return services;
     }
