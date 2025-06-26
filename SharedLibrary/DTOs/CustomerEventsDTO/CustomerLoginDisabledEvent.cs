@@ -4,6 +4,6 @@ public sealed record CustomerLoginDisabledEvent(
     Guid Id,
     DateTime OccurredOn,
     Guid CustomerId,
-    string DisplayName,
-    string Email
+    string Email,
+    string DisplayName
 ) : IntegrationEvent(Id, OccurredOn);
