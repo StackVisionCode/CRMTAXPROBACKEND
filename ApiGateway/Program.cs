@@ -77,6 +77,7 @@ try
 
     app.UseAuthentication();
     app.UseSessionValidation();
+  
     app.UseAuthorization();
 
     /* --- AÑADE ESTO --- */
