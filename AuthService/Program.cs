@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Extensions;
+using SharedLibrary.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -162,7 +163,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseMiddleware<RequireGatewayHeaderMiddleware>();
-     app.usemiddleware<ExceptionHandlerMiddleware>("AuthService");
+    app.UseMiddleware<ExceptionMiddleware>("AuthService");
     app.MapControllers();
 
     app.Run();
