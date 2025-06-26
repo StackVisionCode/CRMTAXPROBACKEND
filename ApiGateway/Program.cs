@@ -77,6 +77,7 @@ try
 
     app.UseAuthentication();
     app.UseSessionValidation();
+    app.usemiddleware<ExceptionHandlerMiddleware>("ApiGateway");
     app.UseAuthorization();
 
     /* --- AÑADE ESTO --- */

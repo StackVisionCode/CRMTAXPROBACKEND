@@ -162,6 +162,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseMiddleware<RequireGatewayHeaderMiddleware>();
+     app.usemiddleware<ExceptionHandlerMiddleware>("AuthService");
     app.MapControllers();
 
     app.Run();
