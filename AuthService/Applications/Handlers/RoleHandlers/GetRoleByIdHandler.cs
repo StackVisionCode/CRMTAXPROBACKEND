@@ -10,34 +10,65 @@ namespace Handlers.RoleHandlers;
 
 public class GetRoleByIdHandler : IRequestHandler<GetRoleByIdQuery, ApiResponse<RoleDTO>>
 {
-  private readonly ApplicationDbContext _dbContext;
-  private readonly IMapper _mapper;
-  private readonly ILogger<GetRoleByIdHandler> _logger;
-  public GetRoleByIdHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<GetRoleByIdHandler> logger)
-  {
-    _dbContext = dbContext;
-    _mapper = mapper;
-    _logger = logger;
-  }
-  public async Task<ApiResponse<RoleDTO>> Handle(GetRoleByIdQuery request, CancellationToken cancellationToken)
-  {
-    try
+    private readonly ApplicationDbContext _dbContext;
+    private readonly IMapper _mapper;
+    private readonly ILogger<GetRoleByIdHandler> _logger;
+
+    public GetRoleByIdHandler(
+        ApplicationDbContext dbContext,
+        IMapper mapper,
+        ILogger<GetRoleByIdHandler> logger
+    )
     {
-      var role = await _dbContext.Roles
-                              .AsNoTracking()
-                              .FirstOrDefaultAsync(u => u.Id == request.RoleId, cancellationToken);
-
-      if (role is null)
-        return new(false, "Role not found");
-
-      var roleDto = _mapper.Map<RoleDTO>(role);
-
-      return new ApiResponse<RoleDTO>(true, "Ok", roleDto);
+        _dbContext = dbContext;
+        _mapper = mapper;
+        _logger = logger;
     }
-    catch (Exception ex)
+
+    public async Task<ApiResponse<RoleDTO>> Handle(
+        GetRoleByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
-      _logger.LogError(ex, "Error fetching role {Id}", request.RoleId);
-      return new(false, ex.Message);
+        try
+        {
+            var role = await (
+                from r in _dbContext.Roles
+                where r.Id == request.RoleId
+                join rp in _dbContext.RolePermissions on r.Id equals rp.RoleId into rps
+                from rp in rps.DefaultIfEmpty()
+                join p in _dbContext.Permissions on rp.PermissionId equals p.Id into ps
+                from p in ps.DefaultIfEmpty()
+
+                group p by new
+                {
+                    r.Id,
+                    r.Name,
+                    r.Description,
+                } into g
+                select new RoleDTO
+                {
+                    Id = g.Key.Id,
+                    Name = g.Key.Name,
+                    Description = g.Key.Description,
+                    PermissionCodes = g.Where(p => p != null)
+                        .Select(p => p!.Code)
+                        .Distinct()
+                        .ToList(),
+                }
+            ).FirstOrDefaultAsync(cancellationToken);
+
+            if (role is null)
+                return new ApiResponse<RoleDTO>(false, "Role not found");
+
+            var roleDto = _mapper.Map<RoleDTO>(role);
+
+            return new ApiResponse<RoleDTO>(true, "Ok", roleDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching role {Id}", request.RoleId);
+            return new(false, ex.Message);
+        }
     }
-  }
 }

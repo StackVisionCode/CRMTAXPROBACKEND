@@ -4,8 +4,9 @@ namespace AuthService.DTOs.RoleDTOs;
 
 public class RoleDTO
 {
-  [Key]
-  public Guid Id { get; set; }
-  public required string Name { get; set; }
-  public string? Description { get; set; }
+    [Key]
+    public Guid Id { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public ICollection<string> PermissionCodes { get; set; } = new List<string>();
 }

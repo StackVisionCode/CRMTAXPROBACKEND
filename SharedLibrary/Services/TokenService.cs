@@ -69,6 +69,12 @@ internal sealed class TokenService : ITokenService
         if (!string.IsNullOrWhiteSpace(req.User.CompanyBrand))
             claims.Add(new Claim("companyBrand", req.User.CompanyBrand));
 
+        foreach (var role in req.User.Roles.Distinct())
+            claims.Add(new Claim("roles", role));
+
+        foreach (var perm in req.User.Permissions.Distinct())
+            claims.Add(new Claim("perms", perm));
+
         var token = handler.CreateToken(
             new SecurityTokenDescriptor
             {

@@ -4,4 +4,5 @@ using MediatR;
 
 namespace Commands.PermissionCommands;
 
-public record class GetPermissionByIdQuery(Guid PermissionId) : IRequest<ApiResponse<PermissionDTO>>;
+public record class GetPermissionByIdQuery(Guid PermissionId)
+    : IRequest<ApiResponse<PermissionDTO>>;

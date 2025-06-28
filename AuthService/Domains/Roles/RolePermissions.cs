@@ -3,10 +3,10 @@ using Common;
 
 namespace AuthService.Domains.Roles;
 
-public class RolePermissions : BaseEntity
+public class RolePermission : BaseEntity
 {
     public required Guid RoleId { get; set; }
-    public required Guid PermissionsId { get; set; }
-    public required virtual Role Role { get; set; }
-    public required virtual Permission Permissions { get; set; }
+    public required Guid PermissionId { get; set; }
+    public Role Role { get; set; } = null!;
+    public Permission Permission { get; set; } = null!;
 }

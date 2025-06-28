@@ -60,6 +60,20 @@ public class EnableCustomerLoginHandler
 
                 cust.Contact.PasswordClient = _hash.HashPassword(plain);
                 cust.Contact.IsLoggin = true;
+
+                // Si RoleId no viene ⇒ cae en rol por defecto (Customer).
+                if (dto.RoleId is Guid roleId && roleId != Guid.Empty)
+                {
+                    _bus.Publish(
+                        new CustomerRoleAssignedEvent(
+                            Guid.NewGuid(),
+                            DateTime.UtcNow,
+                            cust.Id,
+                            roleId
+                        )
+                    );
+                }
+
                 _db.Update(cust);
                 await _db.SaveChangesAsync(ct);
 

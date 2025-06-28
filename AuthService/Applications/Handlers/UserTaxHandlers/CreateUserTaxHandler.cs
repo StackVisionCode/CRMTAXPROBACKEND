@@ -69,8 +69,13 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
             userTax.Confirm = false;
             userTax.IsActive = false;
             userTax.CreatedAt = DateTime.UtcNow;
-            var roleGuid = await GetAllRoles();
-            userTax.RoleId = roleGuid?.Id ?? Guid.Empty;
+
+            // 1.1)  Rol “User”
+            var role = await _dbContext
+                .Roles.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Name == "TaxPreparer", cancellationToken);
+            if (role is null)
+                return new(false, "TaxPreparer role not found", false);
 
             // Crear el perfil asociado
             userTax.TaxUserProfile = new TaxUserProfile
@@ -85,6 +90,18 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             };
+
+            // 1.3)  UserRole
+            await _dbContext.UserRoles.AddAsync(
+                new UserRole
+                {
+                    Id = Guid.NewGuid(),
+                    TaxUserId = userTax.Id,
+                    RoleId = role.Id,
+                    CreatedAt = DateTime.UtcNow,
+                },
+                cancellationToken
+            );
 
             // Generar y asignar el token de confirmación
             var (token, expiration) = _confirmTokenService.Generate(userTax.Id, userTax.Email);
@@ -185,18 +202,5 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
             _logger.LogError(ex, "Error occurred while checking if user exists.");
             throw new Exception("Error occurred while checking if user exists.");
         }
-    }
-
-    private async Task<Role> GetAllRoles()
-    {
-        var result = await _dbContext
-            .Roles.AsNoTracking()
-            .Where(a => a.Name.Contains("user"))
-            .FirstAsync();
-        if (result is null)
-        {
-            return null!;
-        }
-        return result;
     }
 }

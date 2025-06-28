@@ -11,7 +11,9 @@ public sealed record UserInfo(
     Guid CompanyId,
     string? CompanyName,
     string? FullName,
-    string? CompanyBrand
+    string? CompanyBrand,
+    IEnumerable<string> Roles,
+    IEnumerable<string> Permissions
 );
 
 /// Información de la sesión (podrían añadirse IP, device, etc.)

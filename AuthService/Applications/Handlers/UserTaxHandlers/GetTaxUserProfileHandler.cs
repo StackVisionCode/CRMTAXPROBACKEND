@@ -34,12 +34,48 @@ public class GetTaxUserProfileHandler
     {
         try
         {
-            var user = await _db
-                .TaxUsers.Include(u => u.TaxUserProfile)
-                .Include(u => u.Company)
-                .Include(u => u.Role)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            var user = await (
+                from u in _db.TaxUsers
+                where u.Id == request.UserId
+                join p in _db.TaxUserProfiles on u.Id equals p.TaxUserId
+                join c in _db.Companies on u.CompanyId equals c.Id into cs
+                from c in cs.DefaultIfEmpty()
+                join ur in _db.UserRoles on u.Id equals ur.TaxUserId into urs
+                from ur in urs.DefaultIfEmpty()
+                join r in _db.Roles on ur.RoleId equals r.Id into rs
+                from r in rs.DefaultIfEmpty()
+
+                group new
+                {
+                    u,
+                    p,
+                    c,
+                    r,
+                } by new
+                {
+                    u,
+                    p,
+                    c,
+                } into g
+                select new UserProfileDTO
+                {
+                    Id = g.Key.u.Id,
+                    Email = g.Key.u.Email,
+                    Domain = g.Key.u.Domain,
+                    Name = g.Key.p.Name,
+                    LastName = g.Key.p.LastName,
+                    Address = g.Key.p.Address,
+                    PhotoUrl = g.Key.p.PhotoUrl,
+                    CompanyId = g.Key.u.CompanyId ?? Guid.Empty,
+                    FullName = g.Key.c != null ? g.Key.c.FullName : null,
+                    CompanyName = g.Key.c != null ? g.Key.c.CompanyName : null,
+                    CompanyBrand = g.Key.c != null ? g.Key.c.Brand : null,
+                    RoleNames = g.Where(x => x.r != null)
+                        .Select(x => x.r!.Name)
+                        .Distinct()
+                        .ToList(),
+                }
+            ).FirstOrDefaultAsync(cancellationToken);
 
             if (user is null)
                 return new(false, "User not found");

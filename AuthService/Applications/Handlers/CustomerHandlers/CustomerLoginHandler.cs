@@ -68,19 +68,44 @@ public class CustomerLoginHandler
             if (!_hash.Verify(req.Petition.Password, data.PasswordHash))
                 return new ApiResponse<LoginResponseDTO>(false, "Credenciales inválidas");
 
+            /* ------------------------------------------------------------------
+             * Cargamos roles y permisos reales del cliente
+             * -----------------------------------------------------------------*/
+            var roleNames = await (
+                from cr in _db.CustomerRoles
+                where cr.CustomerId == data.CustomerId
+                join r in _db.Roles on cr.RoleId equals r.Id
+                select r.Name
+            ).ToListAsync(ct);
+
+            if (!roleNames.Any()) // fallback: rol genérico
+                roleNames.Add("Customer");
+
+            var permCodes = await (
+                from cr in _db.CustomerRoles
+                where cr.CustomerId == data.CustomerId
+                join rp in _db.RolePermissions on cr.RoleId equals rp.RoleId
+                join p in _db.Permissions on rp.PermissionId equals p.Id
+                select p.Code
+            )
+                .Distinct()
+                .ToListAsync(ct);
+
             // 3) generar token
             var sessionId = Guid.NewGuid();
             var userInfo = new UserInfo(
-                data.CustomerId,
-                data.Email,
-                data.DisplayName, // Name
-                string.Empty, // LastName
-                null,
-                null,
-                Guid.Empty,
-                null,
-                null,
-                null
+                UserId: data.CustomerId,
+                Email: data.Email,
+                Name: data.DisplayName, // ⟵ para clientes guardamos DisplayName en Name
+                LastName: null,
+                Address: null,
+                PhotoUrl: null,
+                CompanyId: Guid.Empty,
+                CompanyName: null,
+                FullName: null,
+                CompanyBrand: null,
+                Roles: roleNames,
+                Permissions: permCodes
             );
 
             var sessionInfo = new SessionInfo(sessionId);

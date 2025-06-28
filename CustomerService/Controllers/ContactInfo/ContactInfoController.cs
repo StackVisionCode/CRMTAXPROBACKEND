@@ -4,6 +4,7 @@ using CustomerService.DTOs.ContactInfoDTOs;
 using CustomerService.Queries.ContactInfoQueries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using SharedLibrary.Authorizations;
 
 namespace CustomerService.Controllers.ContactInfo
 {
@@ -18,6 +19,7 @@ namespace CustomerService.Controllers.ContactInfo
             _mediator = mediator;
         }
 
+        [HasPermission("Customer.Create")]
         [HttpPost("Create")]
         public async Task<ActionResult<ApiResponse<bool>>> Create(
             [FromBody] CreateContactInfoDTOs contactInfo
@@ -30,6 +32,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
+        [HasPermission("Customer.Create")]
         [HttpPost("EnableLogin")]
         public async Task<ActionResult<ApiResponse<bool>>> EnableLogin(
             [FromBody] EnableLoginDTO dto
@@ -42,6 +45,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
+        [HasPermission("Customer.Delete")]
         [HttpPost("DisableLogin")]
         public async Task<ActionResult<ApiResponse<bool>>> DisableLogin(
             [FromBody] DisableLoginDTO dto
@@ -54,6 +58,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
+        [HasPermission("Customer.Update")]
         [HttpPut("Update")]
         public async Task<ActionResult<ApiResponse<bool>>> Update(
             [FromBody] UpdateContactInfoDTOs contactInfo
@@ -68,6 +73,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
+        [HasPermission("Customer.Delete")]
         [HttpDelete("Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
         {
@@ -80,6 +86,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
+        [HasPermission("Customer.Read")]
         [HttpGet("GetAll")]
         public async Task<ActionResult> GetAll()
         {
@@ -91,6 +98,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
+        [HasPermission("Customer.Read")]
         [HttpGet("GetById")]
         public async Task<ActionResult> GetById(Guid Id)
         {

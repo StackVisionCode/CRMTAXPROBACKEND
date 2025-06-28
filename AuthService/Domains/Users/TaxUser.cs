@@ -8,7 +8,6 @@ namespace AuthService.Domains.Users;
 public class TaxUser : BaseEntity
 {
     public Guid? CompanyId { get; set; }
-    public required Guid RoleId { get; set; }
     public required string Email { get; set; }
     public required string Password { get; set; }
     public string? Domain { get; set; }
@@ -22,7 +21,7 @@ public class TaxUser : BaseEntity
     public bool OtpVerified { get; set; }
     public DateTime? OtpExpires { get; set; }
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public virtual required TaxUserProfile TaxUserProfile { get; set; }
     public virtual Company? Company { get; set; }
-    public virtual required Role Role { get; set; }
 }

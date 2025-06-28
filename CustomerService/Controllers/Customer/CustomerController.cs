@@ -6,6 +6,7 @@ using CustomerService.DTOs.CustomerDTOs;
 using CustomerService.Queries.CustomerQueries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using SharedLibrary.Authorizations;
 
 namespace CustomerService.Controllers.Customer
 {
@@ -20,6 +21,7 @@ namespace CustomerService.Controllers.Customer
             _mediator = mediator;
         }
 
+        [HasPermission("Customer.Create")]
         [HttpPost("Create")]
         public async Task<ActionResult<ApiResponse<bool>>> Create(
             [FromBody] CreateCustomerDTO customer
@@ -32,6 +34,7 @@ namespace CustomerService.Controllers.Customer
             return Ok(result);
         }
 
+        [HasPermission("Customer.Update")]
         [HttpPut("Update")]
         public async Task<ActionResult<ApiResponse<bool>>> Update(
             [FromBody] UpdateCustomerDTO customer
@@ -46,6 +49,7 @@ namespace CustomerService.Controllers.Customer
             return Ok(result);
         }
 
+        [HasPermission("Customer.Delete")]
         [HttpDelete("Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
         {
@@ -58,6 +62,7 @@ namespace CustomerService.Controllers.Customer
             return Ok(result);
         }
 
+        [HasPermission("Customer.Read")]
         [HttpGet("GetAll")]
         public async Task<ActionResult> GetAll()
         {
@@ -69,6 +74,7 @@ namespace CustomerService.Controllers.Customer
             return Ok(result);
         }
 
+        [HasPermission("Customer.Read")]
         [HttpGet("GetOwnCustomers")]
         public async Task<ActionResult> GetOwnCustomers()
         {
@@ -91,6 +97,7 @@ namespace CustomerService.Controllers.Customer
             return Ok(result);
         }
 
+        [HasPermission("Customer.Read")]
         [HttpGet("GetById")]
         public async Task<ActionResult> GetById(Guid Id)
         {

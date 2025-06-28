@@ -22,7 +22,10 @@ namespace AuthService.Controllers
         }
 
         [HttpPost("Create")]
-        public async Task<ActionResult<ApiResponse<bool>>> Create([FromBody] NewUserDTO userDto, [FromHeader(Name = "Origin")] string origin)
+        public async Task<ActionResult<ApiResponse<bool>>> Create(
+            [FromBody] NewUserDTO userDto,
+            [FromHeader(Name = "Origin")] string origin
+        )
         {
             // Mapeas el DTO al Command (usando AutoMapper)
             var command = new CreateTaxUserCommands(userDto, origin);
