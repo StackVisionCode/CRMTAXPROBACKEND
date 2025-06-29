@@ -8,6 +8,8 @@ public class ApiResponse<T>
 
     public ApiResponse() { }
 
+    public int? StatusCode { get; set; }
+
     public ApiResponse(bool success, string message, T data)
     {
         Success = success;
@@ -30,5 +32,13 @@ public class ApiResponse<T>
     public ApiResponse(bool success)
     {
         Success = success;
+    }
+
+    public ApiResponse(bool success, string message, T data, int? statusCode = null)
+    {
+        Success = success;
+        Message = message;
+        Data = data;
+        StatusCode = statusCode;
     }
 }

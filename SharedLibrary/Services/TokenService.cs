@@ -74,6 +74,8 @@ internal sealed class TokenService : ITokenService
 
         foreach (var perm in req.User.Permissions.Distinct())
             claims.Add(new Claim("perms", perm));
+        foreach (var portal in req.User.Portals.Distinct())
+            claims.Add(new("portal", portal));
 
         var token = handler.CreateToken(
             new SecurityTokenDescriptor

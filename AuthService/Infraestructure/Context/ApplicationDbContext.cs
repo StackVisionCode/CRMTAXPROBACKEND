@@ -402,6 +402,7 @@ public class ApplicationDbContext : DbContext
                     Name = "Administrator",
                     Description =
                         "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
+                    PortalAccess = PortalAccess.Staff,
                 },
                 new Role
                 {
@@ -409,6 +410,7 @@ public class ApplicationDbContext : DbContext
                     Name = "User",
                     Description =
                         "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
+                    PortalAccess = PortalAccess.Staff,
                 },
                 new Role
                 {
@@ -416,6 +418,7 @@ public class ApplicationDbContext : DbContext
                     Name = "TaxPreparer",
                     Description =
                         "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
+                    PortalAccess = PortalAccess.Staff,
                 },
                 new Role
                 {
@@ -423,6 +426,7 @@ public class ApplicationDbContext : DbContext
                     Name = "Customer",
                     Description =
                         "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
+                    PortalAccess = PortalAccess.Customer,
                 }
             );
     }

@@ -46,12 +46,14 @@ public class GetAllRoleHandler : IRequestHandler<GetAllRoleQuery, ApiResponse<Li
                     r.Id,
                     r.Name,
                     r.Description,
+                    r.PortalAccess,
                 } into g
                 select new RoleDTO
                 {
                     Id = g.Key.Id,
                     Name = g.Key.Name,
                     Description = g.Key.Description,
+                    PortalAccess = g.Key.PortalAccess,
                     PermissionCodes = g.Where(p => p != null)
                         .Select(p => p!.Code)
                         .Distinct()

@@ -7,6 +7,7 @@ public class Role : BaseEntity
 {
     public required string Name { get; set; }
     public string? Description { get; set; }
+    public PortalAccess PortalAccess { get; set; } = PortalAccess.Staff;
     public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

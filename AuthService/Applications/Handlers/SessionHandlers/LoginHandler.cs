@@ -64,6 +64,12 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 .Select(ur => ur.Role.Name)
                 .ToListAsync(cancellationToken);
 
+            var portals = await _context
+                .Roles.Where(r => roleNames.Contains(r.Name))
+                .Select(r => r.PortalAccess.ToString()) // enum → string
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
             var permCodes = await (
                 from ur in _context.UserRoles
                 where ur.TaxUserId == user.Id
@@ -73,6 +79,30 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             )
                 .Distinct()
                 .ToListAsync(cancellationToken);
+
+            bool allowed = await _context
+                .Roles.Where(r => roleNames.Contains(r.Name)) // ← COMPARO POR NOMBRE
+                .AnyAsync(
+                    r =>
+                        r.PortalAccess == PortalAccess.Staff // STAFF   ✔
+                        || r.PortalAccess == PortalAccess.Both, // BOTH    ✔
+                    cancellationToken
+                );
+
+            if (!allowed)
+            {
+                _logger.LogWarning(
+                    "Role {Roles} not authorized for Staff login",
+                    string.Join(",", roleNames)
+                );
+                return new ApiResponse<LoginResponseDTO>(
+                    false,
+                    "You do not have permission to log in here."
+                )
+                {
+                    StatusCode = 403,
+                }; // ◄─ sin crear sesión
+            }
 
             if (!_passwordHasher.Verify(request.Petition.Password, user.Password))
             {
@@ -113,7 +143,8 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 fullName ?? string.Empty,
                 companyBrand ?? string.Empty,
                 roleNames,
-                permCodes
+                permCodes,
+                portals
             );
 
             var sessionInfo = new SessionInfo(sessionId);

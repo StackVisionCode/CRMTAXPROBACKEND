@@ -13,7 +13,8 @@ public sealed record UserInfo(
     string? FullName,
     string? CompanyBrand,
     IEnumerable<string> Roles,
-    IEnumerable<string> Permissions
+    IEnumerable<string> Permissions,
+    IReadOnlyCollection<string> Portals
 );
 
 /// Información de la sesión (podrían añadirse IP, device, etc.)
