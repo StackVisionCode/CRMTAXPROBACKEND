@@ -1,13 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Application.Common.DTO;
 
 public class EmailConfigDTO
 {
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string ProviderType { get; set; } = "Smtp"; // “Smtp” | “Gmail”
     public string? SmtpServer { get; set; }
@@ -22,6 +20,5 @@ public class EmailConfigDTO
     public DateTime? GmailTokenExpiry { get; set; }
     public string? GmailEmailAddress { get; set; }
     public int DailyLimit { get; set; } = 100;
-    public int CompanyId { get; set; }
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
 }

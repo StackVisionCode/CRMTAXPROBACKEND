@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EmailServices.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class ChangesIdToGuid : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,8 +15,7 @@ namespace EmailServices.Migrations
                 name: "EmailConfigs",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
                     ProviderType = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     SmtpServer = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
@@ -31,8 +30,7 @@ namespace EmailServices.Migrations
                     GmailTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     GmailEmailAddress = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
                     DailyLimit = table.Column<int>(type: "int", nullable: false, defaultValue: 100),
-                    CompanyId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false)
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -43,9 +41,8 @@ namespace EmailServices.Migrations
                 name: "Emails",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ConfigId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ConfigId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FromAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ToAddresses = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CcAddresses = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -56,7 +53,7 @@ namespace EmailServices.Migrations
                     CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     SentOn = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ErrorMessage = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SentByUserId = table.Column<int>(type: "int", nullable: false)
+                    SentByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -68,11 +65,6 @@ namespace EmailServices.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_EmailConfigs_CompanyId",
-                table: "EmailConfigs",
-                column: "CompanyId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EmailConfigs_UserId",

@@ -11,18 +11,22 @@ public sealed class EmailConfigValidator : IEmailConfigValidator
 
         if (cfg.ProviderType.Equals("Smtp", StringComparison.OrdinalIgnoreCase))
         {
-            if (string.IsNullOrWhiteSpace(cfg.SmtpServer)
+            if (
+                string.IsNullOrWhiteSpace(cfg.SmtpServer)
                 || !cfg.SmtpPort.HasValue
                 || string.IsNullOrWhiteSpace(cfg.SmtpUsername)
-                || string.IsNullOrWhiteSpace(cfg.SmtpPassword))
+                || string.IsNullOrWhiteSpace(cfg.SmtpPassword)
+            )
                 throw new ArgumentException("SMTP fields are mandatory");
         }
         else if (cfg.ProviderType.Equals("Gmail", StringComparison.OrdinalIgnoreCase))
         {
-            if (string.IsNullOrWhiteSpace(cfg.GmailClientId)
+            if (
+                string.IsNullOrWhiteSpace(cfg.GmailClientId)
                 || string.IsNullOrWhiteSpace(cfg.GmailClientSecret)
                 || string.IsNullOrWhiteSpace(cfg.GmailRefreshToken)
-                || string.IsNullOrWhiteSpace(cfg.GmailEmailAddress))
+                || string.IsNullOrWhiteSpace(cfg.GmailEmailAddress)
+            )
                 throw new ArgumentException("Gmail OAuth2 fields are mandatory");
         }
         else

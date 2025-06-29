@@ -219,7 +219,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<RequireGatewayHeaderMiddleware>();
+
+// app.UseMiddleware<RequireGatewayHeaderMiddleware>();
 app.MapControllers();
 
 app.Run();

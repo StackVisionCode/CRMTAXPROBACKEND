@@ -5,7 +5,7 @@ public record EmailNotificationDto(
     object Model, // datos anónimos o DTO concreto
     string Subject,
     string To,
-    int? CompanyId = null,
-    int? UserId = null,
+    Guid? CompanyId = null,
+    Guid? UserId = null,
     string? InlineLogoPath = null // opcional
 );

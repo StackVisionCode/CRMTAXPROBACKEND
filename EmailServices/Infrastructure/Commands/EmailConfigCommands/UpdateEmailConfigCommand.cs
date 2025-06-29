@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Infrastructure.Commands;
 
-public record UpdateEmailConfigCommand(int Id, EmailConfigDTO Config) : IRequest<EmailConfigDTO>;
+public record UpdateEmailConfigCommand(Guid Id, EmailConfigDTO Config) : IRequest<EmailConfigDTO>;
