@@ -34,48 +34,53 @@ public class GetTaxUserProfileHandler
     {
         try
         {
-            var user = await (
+            // ────────────────────────────────────────────────────────────────
+            // 1. Traemos TODA la info en una única consulta
+            // ────────────────────────────────────────────────────────────────
+            var rows = await (
                 from u in _db.TaxUsers
                 where u.Id == request.UserId
                 join p in _db.TaxUserProfiles on u.Id equals p.TaxUserId
-                join c in _db.Companies on u.CompanyId equals c.Id into cs
+                join c0 in _db.Companies on u.CompanyId equals c0.Id into cs
                 from c in cs.DefaultIfEmpty()
                 join ur in _db.UserRoles on u.Id equals ur.TaxUserId into urs
                 from ur in urs.DefaultIfEmpty()
-                join r in _db.Roles on ur.RoleId equals r.Id into rs
+                join r0 in _db.Roles on ur.RoleId equals r0.Id into rs
                 from r in rs.DefaultIfEmpty()
-
-                group new
+                select new
                 {
-                    u,
-                    p,
-                    c,
-                    r,
-                } by new
-                {
-                    u,
-                    p,
-                    c,
-                } into g
-                select new UserProfileDTO
-                {
-                    Id = g.Key.u.Id,
-                    Email = g.Key.u.Email,
-                    Domain = g.Key.u.Domain,
-                    Name = g.Key.p.Name,
-                    LastName = g.Key.p.LastName,
-                    Address = g.Key.p.Address,
-                    PhotoUrl = g.Key.p.PhotoUrl,
-                    CompanyId = g.Key.u.CompanyId ?? Guid.Empty,
-                    FullName = g.Key.c != null ? g.Key.c.FullName : null,
-                    CompanyName = g.Key.c != null ? g.Key.c.CompanyName : null,
-                    CompanyBrand = g.Key.c != null ? g.Key.c.Brand : null,
-                    RoleNames = g.Where(x => x.r != null)
-                        .Select(x => x.r!.Name)
-                        .Distinct()
-                        .ToList(),
+                    u, // entidad usuario
+                    p, // perfil
+                    c, // compañía (nullable)
+                    RoleName = r != null ? r.Name : null,
                 }
-            ).FirstOrDefaultAsync(cancellationToken);
+            ).ToListAsync(cancellationToken);
+
+            if (!rows.Any())
+                return new ApiResponse<UserProfileDTO>(false, "User not found");
+
+            // ────────────────────────────────────────────────────────────────
+            // 2. Armamos el DTO en memoria (¡sin GroupBy en SQL!)
+            // ────────────────────────────────────────────────────────────────
+            var first = rows.First(); // todas las filas comparten u/p/c
+            var user = new UserProfileDTO
+            {
+                Id = first.u.Id,
+                Email = first.u.Email,
+                Domain = first.u.Domain,
+                Name = first.p.Name,
+                LastName = first.p.LastName,
+                Address = first.p.Address,
+                PhotoUrl = first.p.PhotoUrl,
+                CompanyId = first.u.CompanyId ?? Guid.Empty,
+                FullName = first.c?.FullName,
+                CompanyName = first.c?.CompanyName,
+                CompanyBrand = first.c?.Brand,
+                RoleNames = rows.Where(x => x.RoleName != null)
+                    .Select(x => x.RoleName!)
+                    .Distinct()
+                    .ToList(),
+            };
 
             if (user is null)
                 return new(false, "User not found");
