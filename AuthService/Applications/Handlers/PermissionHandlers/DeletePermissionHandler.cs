@@ -28,17 +28,17 @@ public class DeletePermissionHandler : IRequestHandler<DeletePermissionCommands,
     {
         try
         {
-            var assigned = await _dbContext.RolePermissions.AnyAsync(
-                rp => rp.PermissionId == request.PermissionId,
-                cancellationToken
-            );
+            // var assigned = await _dbContext.RolePermissions.AnyAsync(
+            //     rp => rp.PermissionId == request.PermissionId,
+            //     cancellationToken
+            // );
 
-            if (assigned)
-                return new(
-                    false,
-                    "Permission is linked to one or more roles; remove links first",
-                    false
-                );
+            // if (assigned)
+            //     return new(
+            //         false,
+            //         "Permission is linked to one or more roles; remove links first",
+            //         false
+            //     );
 
             var permission = await _dbContext.Permissions.FirstOrDefaultAsync(
                 x => x.Id == request.PermissionId,
@@ -49,9 +49,20 @@ public class DeletePermissionHandler : IRequestHandler<DeletePermissionCommands,
                 return new ApiResponse<bool>(false, "Permission not found", false);
             }
 
+            var links =
+                from rp in _dbContext.RolePermissions
+                where rp.PermissionId == permission.Id
+                select rp;
+
+            _dbContext.RolePermissions.RemoveRange(links);
             _dbContext.Permissions.Remove(permission);
+
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0 ? true : false;
-            _logger.LogInformation("Permission deleted successfully: {Permission}", permission);
+            _logger.LogInformation(
+                "Permission {Code} deleted with {Links} link(s) purged",
+                permission.Code,
+                await links.CountAsync(cancellationToken)
+            );
             return new ApiResponse<bool>(
                 result,
                 result ? "Permission deleted successfully" : "Failed to delete permission",

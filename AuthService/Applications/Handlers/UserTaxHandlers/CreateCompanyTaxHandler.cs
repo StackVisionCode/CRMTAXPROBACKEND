@@ -146,7 +146,7 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     MapToUser.Email,
                     string.Empty,
                     string.Empty,
-                    string.Empty,
+                    request.Companytax.Phone ?? string.Empty,
                     true, // IsCompany
                     companyTax.Id,
                     request.Companytax.FullName,

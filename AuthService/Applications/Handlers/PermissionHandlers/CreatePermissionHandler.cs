@@ -1,4 +1,5 @@
 using AuthService.Domains.Permissions;
+using AuthService.Domains.Roles;
 using AutoMapper;
 using Commands.PermissionCommands;
 using Common;
@@ -38,9 +39,54 @@ public class CreatePermissionHandler : IRequestHandler<CreatePermissionCommands,
             );
             if (exists)
                 return new(false, "Permission code already exists", false);
+
             var permission = _mapper.Map<Permission>(request.Permission);
             permission.CreatedAt = DateTime.UtcNow;
+
+            /* ──────────────────────────────────────────────────────────────── */
+            /*    Elegir los roles a enlazar                                   */
+            /*    a) si el caller mandó RoleIds => usar esos                   */
+            /*    b) caso contrario => buscar el rol “Administrator”           */
+            /* ──────────────────────────────────────────────────────────────── */
+
+            IEnumerable<Guid> targetRoles;
+
+            if (request.Permission.RoleIds is { Count: > 0 })
+            {
+                targetRoles = request.Permission.RoleIds!;
+            }
+            else
+            {
+                targetRoles = await _dbContext
+                    .Roles.Where(r => r.Name == "Administrator")
+                    .Select(r => r.Id)
+                    .ToListAsync(cancellationToken);
+
+                if (!targetRoles.Any())
+                    return new(
+                        false,
+                        "No target roles supplied and Administrator role not found",
+                        false
+                    );
+            }
+
+            /* ──────────────────────────────────────────────────────────────── */
+            /* Construir RolePermission (n registros)                       */
+            /* ──────────────────────────────────────────────────────────────── */
+            var links = targetRoles.Select(rid => new RolePermission
+            {
+                Id = Guid.NewGuid(),
+                RoleId = rid,
+                PermissionId = permission.Id,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+            /* ──────────────────────────────────────────────────────────────── */
+            /* Guardar todo en una sola tx                                  */
+            /* ──────────────────────────────────────────────────────────────── */
             await _dbContext.Permissions.AddAsync(permission, cancellationToken);
+            await _dbContext.RolePermissions.AddRangeAsync(links, cancellationToken);
+
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
             _logger.LogInformation("Permission created successfully: {Permission}", permission);
             return new ApiResponse<bool>(

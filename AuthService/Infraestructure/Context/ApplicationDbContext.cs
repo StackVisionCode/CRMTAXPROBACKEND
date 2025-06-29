@@ -349,10 +349,48 @@ public class ApplicationDbContext : DbContext
             );
 
         // ------------------------------------------------------------------
-        // 3. Seeding de datos iniciales
+        // 0.  PERMISOS NUEVOS
+        // ------------------------------------------------------------------
+        var extraPerms = new[]
+        {
+            (27, "Disable customer login", "Customer.DisableLogin"),
+            (28, "Enable customer login", "Customer.EnableLogin"),
+            (29, "Read sessions", "Sessions.Read"),
+            (30, "Create dependent", "Dependent.Create"),
+            (31, "Update dependent", "Dependent.Update"),
+            (32, "Delete dependent", "Dependent.Delete"),
+            (33, "Read dependent", "Dependent.Read"),
+            (34, "View dependent", "Dependent.Viewer"),
+            (35, "Create tax info", "TaxInformation.Create"),
+            (36, "Update tax info", "TaxInformation.Update"),
+            (37, "Delete tax info", "TaxInformation.Delete"),
+            (38, "Read tax info", "TaxInformation.Read"),
+            (39, "View tax info", "TaxInformation.Viewer"),
+        }.Select(t => new Permission
+        {
+            Id = NewPerm(t.Item1),
+            Name = t.Item2,
+            Code = t.Item3,
+        });
+
+        modelBuilder.Entity<Permission>().HasData(extraPerms);
+
+        // ------------------------------------------------------------------
+        // 1. Seeding de datos iniciales
         // ------------------------------------------------------------------
         SeedCustomerRolePermissions(modelBuilder);
-        SeedAdministratorRolePermissions(modelBuilder);
+        // ------------------------------------------------------------------
+        // 2.  ROLE-PERMISSIONS  Administrator  (ahora 1-39)
+        // ------------------------------------------------------------------
+        SeedAdministratorRolePermissions(modelBuilder); // ← ver método re-hecho abajo
+        // ------------------------------------------------------------------
+        // 3.  ROLE-PERMISSIONS  TaxPreparer
+        // ------------------------------------------------------------------
+        SeedTaxPreparerRolePermissions(modelBuilder);
+        // ------------------------------------------------------------------
+        // 4.  COMPANY + ADMIN USER
+        // ------------------------------------------------------------------
+        SeedCompanyAndAdmin(modelBuilder);
 
         //todo Role data default
         modelBuilder
@@ -393,7 +431,7 @@ public class ApplicationDbContext : DbContext
     {
         var customerRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441004");
         var selfReadPermId = Guid.Parse("550e8400-e29b-41d4-a716-446655440026");
-        var selfReadRpId = Guid.Parse("660e8400-e29b-41d4-a716-446655450026");
+        var selfReadRpId = Guid.Parse("770e8400-e29b-41d4-a716-556655450026");
 
         modelBuilder
             .Entity<RolePermission>()
@@ -407,29 +445,141 @@ public class ApplicationDbContext : DbContext
             );
     }
 
-    private static void SeedAdministratorRolePermissions(ModelBuilder modelBuilder)
-    {
-        var adminId = Guid.Parse("550e8400-e29b-41d4-a716-446655441001");
+    // private static void SeedAdministratorRolePermissions(ModelBuilder modelBuilder)
+    // {
+    //     var adminId = Guid.Parse("550e8400-e29b-41d4-a716-446655441001");
 
-        // IDs 001-025 → asignar a Administrator
+    //     // IDs 001-025 → asignar a Administrator
+    //     var entries = Enumerable
+    //         .Range(1, 25)
+    //         .Select(i =>
+    //         {
+    //             var permGuid = Guid.Parse(
+    //                 $"550e8400-e29b-41d4-a716-44665544{(i).ToString("0000")}"
+    //             );
+    //             var rolePermGuid = Guid.Parse(
+    //                 $"660e8400-e29b-41d4-a716-44665545{(i).ToString("0000")}"
+    //             );
+    //             return new RolePermission
+    //             {
+    //                 Id = rolePermGuid,
+    //                 RoleId = adminId,
+    //                 PermissionId = permGuid,
+    //             };
+    //         });
+
+    //     modelBuilder.Entity<RolePermission>().HasData(entries);
+    // }
+
+    private static Guid NewPerm(int n) => Guid.Parse($"550e8400-e29b-41d4-a716-44665544{n:0000}");
+
+    static readonly Guid CompanySeedId = Guid.Parse("770e8400-e29b-41d4-a716-556655441000");
+    static readonly Guid AdminUserSeedId = Guid.Parse("880e8400-e29b-41d4-a716-556655441000");
+    static readonly Guid AdministratorRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441001");
+    static readonly Guid TaxPreparerRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441003");
+
+    private static void SeedAdministratorRolePermissions(ModelBuilder mb)
+    {
+        // ahora cubrimos 1..39
         var entries = Enumerable
-            .Range(1, 25)
-            .Select(i =>
+            .Range(1, 39)
+            .Select(i => new RolePermission
             {
-                var permGuid = Guid.Parse(
-                    $"550e8400-e29b-41d4-a716-44665544{(i).ToString("0000")}"
-                );
-                var rolePermGuid = Guid.Parse(
-                    $"660e8400-e29b-41d4-a716-44665545{(i).ToString("0000")}"
-                );
-                return new RolePermission
-                {
-                    Id = rolePermGuid,
-                    RoleId = adminId,
-                    PermissionId = permGuid,
-                };
+                Id = Guid.Parse($"660e8400-e29b-41d4-a716-44665545{i:0000}"),
+                RoleId = AdministratorRoleId,
+                PermissionId = Guid.Parse($"550e8400-e29b-41d4-a716-44665544{i:0000}"),
             });
 
-        modelBuilder.Entity<RolePermission>().HasData(entries);
+        mb.Entity<RolePermission>().HasData(entries);
+    }
+
+    private static void SeedTaxPreparerRolePermissions(ModelBuilder mb)
+    {
+        // lista blanca según tu especificación
+        var allowedCodes = new[]
+        {
+            // Customer
+            "Customer.Create",
+            "Customer.Read",
+            "Customer.View",
+            "Customer.Update",
+            "Customer.DisableLogin",
+            "Customer.EnableLogin",
+            // Permission
+            "Permission.Create",
+            "Permission.Delete",
+            // Dependent
+            "Dependent.Create",
+            "Dependent.Update",
+            "Dependent.Delete",
+            "Dependent.Read",
+            "Dependent.Viewer",
+            // TaxInformation
+            "TaxInformation.Create",
+            "TaxInformation.Update",
+            "TaxInformation.Delete",
+            "TaxInformation.Read",
+            "TaxInformation.Viewer",
+        };
+
+        var rp = allowedCodes.Select(
+            (code, idx) =>
+                new RolePermission
+                {
+                    Id = Guid.Parse($"770e8400-e29b-41d4-a716-55665546{idx:0000}"), // serie distinta
+                    RoleId = TaxPreparerRoleId,
+                    PermissionId = (Guid)
+                        mb
+                            .Model.FindEntityType(typeof(Permission))!
+                            .GetSeedData()
+                            .Cast<Dictionary<string, object>>()
+                            .First(p => (string)p["Code"] == code)["Id"],
+                }
+        );
+        mb.Entity<RolePermission>().HasData(rp);
+    }
+
+    private static void SeedCompanyAndAdmin(ModelBuilder mb)
+    {
+        /* --- company --- */
+        mb.Entity<Company>()
+            .HasData(
+                new Company
+                {
+                    Id = CompanySeedId,
+                    FullName = "Vision Software",
+                    CompanyName = "StackVsion Sofwatre S.R.L.",
+                    Phone = "8298981594",
+                    Address = "Calle C, Brisa Oriental VIII",
+                    Description = "Sofwatre Developers Assembly.",
+                    UserLimit = 25,
+                    Brand = "https://images5.example.com/",
+                }
+            );
+
+        mb.Entity<TaxUser>()
+            .HasData(
+                new
+                {
+                    Id = AdminUserSeedId,
+                    CompanyId = CompanySeedId,
+                    Email = "stackvisionsoftware@gmail.com",
+                    Password = "zBLVJHyDUQKSp3ZYdgIeOEDnoeD61Zg566QoP2165AQAPHxzvJlAWjt1dV+Qinc7",
+                    Domain = "stackvision",
+                    IsActive = true,
+                    Confirm = true,
+                    OtpVerified = false,
+                }
+            );
+        /* --- user → Administrator role --- */
+        mb.Entity<UserRole>()
+            .HasData(
+                new UserRole
+                {
+                    Id = Guid.Parse("880e8400-e29b-41d4-a716-556655442000"),
+                    TaxUserId = AdminUserSeedId,
+                    RoleId = AdministratorRoleId,
+                }
+            );
     }
 }
