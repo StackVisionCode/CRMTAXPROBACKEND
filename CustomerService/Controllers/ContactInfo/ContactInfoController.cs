@@ -32,7 +32,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
-        [HasPermission("Customer.Create")]
+        [HasPermission("Customer.EnableLogin")]
         [HttpPost("EnableLogin")]
         public async Task<ActionResult<ApiResponse<bool>>> EnableLogin(
             [FromBody] EnableLoginDTO dto
@@ -45,7 +45,7 @@ namespace CustomerService.Controllers.ContactInfo
             return Ok(result);
         }
 
-        [HasPermission("Customer.Delete")]
+        [HasPermission("Customer.DisableLogin")]
         [HttpPost("DisableLogin")]
         public async Task<ActionResult<ApiResponse<bool>>> DisableLogin(
             [FromBody] DisableLoginDTO dto

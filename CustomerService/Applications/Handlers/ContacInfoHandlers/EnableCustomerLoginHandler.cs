@@ -3,6 +3,7 @@ using CustomerService.Commands.ContactInfoCommands;
 using CustomerService.Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SharedLibrary.Constants;
 using SharedLibrary.Contracts;
 using SharedLibrary.Contracts.Security;
 using SharedLibrary.DTOs.CommEvents.IdentityEvents;
@@ -54,15 +55,25 @@ public class EnableCustomerLoginHandler
                 if (cust.Contact.IsLoggin)
                     return new ApiResponse<bool>(false, "Ya estaba habilitado", false);
 
-                string plain = string.IsNullOrWhiteSpace(dto.Password)
-                    ? PasswordUtil.GenerateSecure()
-                    : dto.Password!;
+                string? plain = null;
 
-                cust.Contact.PasswordClient = _hash.HashPassword(plain);
+                bool firstTime = string.IsNullOrEmpty(cust.Contact.PasswordClient);
+                bool wantsReset = dto.ResetPassword || !string.IsNullOrWhiteSpace(dto.Password);
+
+                if (firstTime || wantsReset)
+                {
+                    plain = string.IsNullOrWhiteSpace(dto.Password)
+                        ? PasswordUtil.GenerateSecure()
+                        : dto.Password!;
+
+                    cust.Contact.PasswordClient = _hash.HashPassword(plain);
+                }
+
                 cust.Contact.IsLoggin = true;
 
-                // Si RoleId no viene ⇒ cae en rol por defecto (Customer).
-                if (dto.RoleId is Guid roleId && roleId != Guid.Empty)
+                var roleId =
+                    (dto.RoleId is Guid guid && guid != Guid.Empty) ? guid : RoleIds.Customer; // ← constante común
+
                 {
                     _bus.Publish(
                         new CustomerRoleAssignedEvent(
