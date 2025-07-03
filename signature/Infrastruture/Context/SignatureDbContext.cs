@@ -28,6 +28,12 @@ public class SignatureDbContext : DbContext
 
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
 
+            // *** INICIO DE LA CORRECCIÓN ***
+            // Especificar explícitamente que SignatureImage debe ser de longitud máxima.
+            // Esto se traduce a NVARCHAR(MAX) en SQL Server.
+            b.Property(x => x.SignatureImage).HasColumnType("nvarchar(max)");
+            // *** FIN DE LA CORRECCIÓN ***
+
             // Value-object mapeado en columnas propias
             b.OwnsOne(
                 x => x.Certificate,
@@ -37,10 +43,13 @@ public class SignatureDbContext : DbContext
                     c.Property(p => p.Subject).HasColumnName("CertSubject").HasMaxLength(256);
                     c.Property(p => p.NotBefore).HasColumnName("CertNotBefore");
                     c.Property(p => p.NotAfter).HasColumnName("CertNotAfter");
-                    b.Property(x => x.PositionX).HasColumnType("float");
-                    b.Property(x => x.PositionY).HasColumnType("float");
                 }
             );
+
+            // He movido las propiedades de posición fuera del OwnsOne del certificado,
+            // ya que parecen pertenecer directamente al Signer.
+            b.Property(x => x.PositionX).HasColumnType("float");
+            b.Property(x => x.PositionY).HasColumnType("float");
 
             // Value-object mapeado en columnas propias
             b.OwnsOne(
@@ -48,10 +57,18 @@ public class SignatureDbContext : DbContext
                 d =>
                 {
                     d.Property(p => p.InitalValue).HasColumnName("InitialValue").HasMaxLength(4);
-                    d.Property(p => p.WidthIntial).HasColumnName("WidthIntial").HasColumnType("float");
-                    d.Property(p => p.HeightIntial).HasColumnName("HeightIntial").HasColumnType("float");
-                    d.Property(p => p.PositionXIntial).HasColumnName("PositionXIntial").HasColumnType("float");
-                    d.Property(p => p.PositionYIntial).HasColumnName("PositionYIntial").HasColumnType("float");
+                    d.Property(p => p.WidthIntial)
+                        .HasColumnName("WidthIntial")
+                        .HasColumnType("float");
+                    d.Property(p => p.HeightIntial)
+                        .HasColumnName("HeightIntial")
+                        .HasColumnType("float");
+                    d.Property(p => p.PositionXIntial)
+                        .HasColumnName("PositionXIntial")
+                        .HasColumnType("float");
+                    d.Property(p => p.PositionYIntial)
+                        .HasColumnName("PositionYIntial")
+                        .HasColumnType("float");
                 }
             );
 
@@ -61,10 +78,18 @@ public class SignatureDbContext : DbContext
                 e =>
                 {
                     e.Property(p => p.FechaValue).HasColumnName("FechaValue");
-                    e.Property(p => p.WidthFechaSigner).HasColumnName("WidthFechaSigner").HasColumnType("float");
-                    e.Property(p => p.HeightFechaSigner).HasColumnName("HeightFechaSigner").HasColumnType("float");
-                    e.Property(p => p.PositionXFechaSigner).HasColumnName("PositionXFechaSigner").HasColumnType("float");
-                    e.Property(p => p.PositionYFechaSigner).HasColumnName("PositionYFechaSigner").HasColumnType("float");
+                    e.Property(p => p.WidthFechaSigner)
+                        .HasColumnName("WidthFechaSigner")
+                        .HasColumnType("float");
+                    e.Property(p => p.HeightFechaSigner)
+                        .HasColumnName("HeightFechaSigner")
+                        .HasColumnType("float");
+                    e.Property(p => p.PositionXFechaSigner)
+                        .HasColumnName("PositionXFechaSigner")
+                        .HasColumnType("float");
+                    e.Property(p => p.PositionYFechaSigner)
+                        .HasColumnName("PositionYFechaSigner")
+                        .HasColumnType("float");
                 }
             );
         });

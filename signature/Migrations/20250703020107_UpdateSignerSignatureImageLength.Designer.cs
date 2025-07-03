@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace signature.Migrations
 {
     [DbContext(typeof(SignatureDbContext))]
-    [Migration("20250702033742_AddedAgentConsent")]
-    partial class AddedAgentConsent
+    [Migration("20250703020107_UpdateSignerSignatureImageLength")]
+    partial class UpdateSignerSignatureImageLength
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
