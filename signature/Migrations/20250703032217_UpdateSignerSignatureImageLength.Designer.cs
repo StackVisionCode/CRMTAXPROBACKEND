@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace signature.Migrations
 {
     [DbContext(typeof(SignatureDbContext))]
-    [Migration("20250703020107_UpdateSignerSignatureImageLength")]
+    [Migration("20250703032217_UpdateSignerSignatureImageLength")]
     partial class UpdateSignerSignatureImageLength
     {
         /// <inheritdoc />
@@ -65,7 +65,7 @@ namespace signature.Migrations
                         .HasColumnType("float");
 
                     b.Property<string>("SignatureImage")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("varchar(max)");
 
                     b.Property<Guid>("SignatureRequestId")
                         .HasColumnType("uniqueidentifier");

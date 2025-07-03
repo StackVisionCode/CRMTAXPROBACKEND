@@ -31,7 +31,7 @@ public class SignatureDbContext : DbContext
             // *** INICIO DE LA CORRECCIÓN ***
             // Especificar explícitamente que SignatureImage debe ser de longitud máxima.
             // Esto se traduce a NVARCHAR(MAX) en SQL Server.
-            b.Property(x => x.SignatureImage).HasColumnType("nvarchar(max)");
+            b.Property(x => x.SignatureImage).HasColumnType("varchar(max)");
             // *** FIN DE LA CORRECCIÓN ***
 
             // Value-object mapeado en columnas propias

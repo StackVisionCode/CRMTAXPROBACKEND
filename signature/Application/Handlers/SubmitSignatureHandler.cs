@@ -6,6 +6,7 @@ using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.SignatureEvents;
 using signature.Application.DTOs;
 using signature.Infrastruture.Commands;
+using SixLabors.ImageSharp;
 
 namespace signature.Application.Handlers
 {
@@ -61,6 +62,11 @@ namespace signature.Application.Handlers
                 if (command.Payload.Certificate.NotAfter < DateTime.UtcNow)
                     return new ApiResponse<bool>(false, "El certificado digital ha expirado");
 
+                if (!IsValidPngBase64(command.Payload.SignatureImageBase64, out var cleanB64))
+                    return new(false, "La imagen de la firma está corrupta o incompleta.");
+
+                command.Payload.SignatureImageBase64 = cleanB64; // normalizado
+
                 // 4. Crear certificado digital
                 var cert = new DigitalCertificate(
                     command.Payload.Certificate.Thumbprint,
@@ -72,7 +78,7 @@ namespace signature.Application.Handlers
                 // 5. Registrar firma (solo metadatos en la BD)
                 req.ReceiveSignature(
                     signerId,
-                    command.Payload.SignatureImageBase64,
+                    cleanB64,
                     cert,
                     command.Payload.SignedAtUtc,
                     command.Payload.ClientIp,
@@ -164,6 +170,26 @@ namespace signature.Application.Handlers
             {
                 _log.LogError(ex, "Error al procesar la firma");
                 return new ApiResponse<bool>(false, "Error interno del servidor");
+            }
+        }
+
+        private static bool IsValidPngBase64(string base64, out string clean)
+        {
+            clean = base64;
+            var comma = base64.IndexOf(',');
+            if (comma >= 0)
+                clean = base64[(comma + 1)..];
+
+            try
+            {
+                var bytes = Convert.FromBase64String(clean); // valida B64
+                // Valida CRC pero SIN lanzar excepción al usuario:
+                using var _ = Image.Load(bytes); // SixLabors.ImageSharp
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
     }

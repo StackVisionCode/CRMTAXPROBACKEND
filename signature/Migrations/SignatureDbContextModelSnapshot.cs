@@ -62,7 +62,7 @@ namespace signature.Migrations
                         .HasColumnType("float");
 
                     b.Property<string>("SignatureImage")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("varchar(max)");
 
                     b.Property<Guid>("SignatureRequestId")
                         .HasColumnType("uniqueidentifier");

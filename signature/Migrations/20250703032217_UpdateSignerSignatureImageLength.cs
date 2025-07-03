@@ -37,7 +37,7 @@ namespace signature.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Order = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    SignatureImage = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SignatureImage = table.Column<string>(type: "varchar(max)", nullable: true),
                     CertThumbprint = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
                     CertSubject = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     CertNotBefore = table.Column<DateTime>(type: "datetime2", nullable: true),
