@@ -33,12 +33,37 @@ public class SignatureRequest : BaseEntity
         IntialEntity? initialEntity,
         FechaSigner? fechaSigner,
         string token
-    ) => _signers.Add(new Signer(signerId, custId, email, order, Id, page, width, height, x, y, initialEntity, fechaSigner, token));
+    ) =>
+        _signers.Add(
+            new Signer(
+                signerId,
+                custId,
+                email,
+                order,
+                Id,
+                page,
+                width,
+                height,
+                x,
+                y,
+                initialEntity,
+                fechaSigner,
+                token
+            )
+        );
 
-    public void ReceiveSignature(Guid signerId, string img, DigitalCertificate cert)
+    public void ReceiveSignature(
+        Guid signerId,
+        string img,
+        DigitalCertificate cert,
+        DateTime signedAtUtc,
+        string ip,
+        string ua,
+        DateTime consentAgreedAtUtc
+    )
     {
         var s = _signers.Single(x => x.Id == signerId);
-        s.MarkSigned(img, cert);
+        s.MarkSigned(img, cert, signedAtUtc, ip, ua, consentAgreedAtUtc);
 
         if (_signers.All(x => x.Status == SignerStatus.Signed))
             Status = SignatureStatus.Completed;

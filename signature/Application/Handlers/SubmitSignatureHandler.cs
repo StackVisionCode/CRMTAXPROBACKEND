@@ -70,12 +70,51 @@ namespace signature.Application.Handlers
                 );
 
                 // 5. Registrar firma (solo metadatos en la BD)
-                req.ReceiveSignature(signerId, command.Payload.SignatureImageBase64, cert);
+                req.ReceiveSignature(
+                    signerId,
+                    command.Payload.SignatureImageBase64,
+                    cert,
+                    command.Payload.SignedAtUtc,
+                    command.Payload.ClientIp,
+                    command.Payload.UserAgent,
+                    command.Payload.ConsentAgreedAtUtc
+                );
                 await _db.SaveChangesAsync(cancellationToken);
 
                 //6 ▸ ¿faltan firmas o ya está completo?
 
                 bool hasPending = req.Signers.Any(s => s.Status == SignerStatus.Pending);
+
+                if (!hasPending)
+                {
+                    var signedImages = req
+                        .Signers.Select(s => new SignedImageDto(
+                            s.Id,
+                            s.Email!,
+                            s.PageNumber,
+                            s.PositionX,
+                            s.PositionY,
+                            s.Width,
+                            s.Height,
+                            s.SignatureImage!,
+                            s.Certificate!.Thumbprint,
+                            s.SignedAtUtc!.Value,
+                            s.ClientIp ?? string.Empty,
+                            s.UserAgent ?? string.Empty,
+                            s.ConsentAgreedAtUtc!.Value
+                        ))
+                        .ToList();
+
+                    _bus.Publish(
+                        new DocumentReadyToSealEvent(
+                            Guid.NewGuid(),
+                            DateTime.UtcNow,
+                            req.Id,
+                            req.DocumentId,
+                            signedImages
+                        )
+                    );
+                }
 
                 if (hasPending)
                 {
