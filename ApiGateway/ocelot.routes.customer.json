@@ -10,7 +10,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -31,7 +33,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/update",
-      "UpstreamHttpMethod": ["PUT"],
+      "UpstreamHttpMethod": [
+        "PUT"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -52,7 +56,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/delete",
-      "UpstreamHttpMethod": ["DELETE"],
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -73,7 +79,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -94,7 +102,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/getowncustomers",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -115,7 +125,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customers/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -136,7 +148,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customertypes",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -157,7 +171,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/customertype/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -178,7 +194,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/address/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -199,7 +217,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/address/update",
-      "UpstreamHttpMethod": ["PUT"],
+      "UpstreamHttpMethod": [
+        "PUT"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -220,7 +240,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/address/delete",
-      "UpstreamHttpMethod": ["DELETE"],
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -241,7 +263,32 @@
         }
       ],
       "UpstreamPathTemplate": "/api/addresses",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Address/GetByCustomerId?customerId={customerId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/address/customer/{customerId}",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -262,7 +309,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/address/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -283,7 +332,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -304,7 +355,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/enablelogin",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -325,7 +378,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/disablelogin",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -346,7 +401,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/update",
-      "UpstreamHttpMethod": ["PUT"],
+      "UpstreamHttpMethod": [
+        "PUT"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -367,7 +424,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/delete",
-      "UpstreamHttpMethod": ["DELETE"],
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -388,7 +447,32 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactsinfo",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "customer"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ContactInfo/GetByCustomerId?customerId={customerId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ],
+      "UpstreamPathTemplate": "/api/contactinfo/customer/{customerId}",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -409,7 +493,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/contactinfo/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -430,7 +516,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -451,7 +539,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/update",
-      "UpstreamHttpMethod": ["PUT"],
+      "UpstreamHttpMethod": [
+        "PUT"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -472,7 +562,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/delete",
-      "UpstreamHttpMethod": ["DELETE"],
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -493,7 +585,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/dependents",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -514,7 +608,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/dependent/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -535,7 +631,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -556,7 +654,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/update",
-      "UpstreamHttpMethod": ["PUT"],
+      "UpstreamHttpMethod": [
+        "PUT"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -577,7 +677,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/delete",
-      "UpstreamHttpMethod": ["DELETE"],
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -598,7 +700,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformations",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -619,7 +723,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxinformation/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -640,7 +746,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatus/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -661,7 +769,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatuses",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -682,7 +792,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/filingstatus/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -703,7 +815,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatus/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -724,7 +838,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatuses",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -745,7 +861,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/maritalstatus/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -766,7 +884,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/occupation/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -787,7 +907,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/occupations",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -808,7 +930,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/occupation/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -829,7 +953,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontact/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -850,7 +976,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontacts",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -871,7 +999,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/preferredcontact/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -892,7 +1022,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/relationship/create",
-      "UpstreamHttpMethod": ["POST"],
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -913,7 +1045,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/relationships",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -934,7 +1068,9 @@
         }
       ],
       "UpstreamPathTemplate": "/api/relationship/{id}",
-      "UpstreamHttpMethod": ["GET"],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
