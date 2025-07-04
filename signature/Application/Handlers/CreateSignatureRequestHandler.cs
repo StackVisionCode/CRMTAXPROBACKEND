@@ -55,7 +55,7 @@ public sealed class CreateSignatureRequestHandler
 
             req.AddSigner(
                 signerId, // ← mismo Guid en el JWT (sub)
-                inDto.CustomerId,
+                inDto.CustomerId ?? Guid.Empty,
                 inDto.Email,
                 inDto.Order,
                 inDto.Page,
@@ -63,25 +63,28 @@ public sealed class CreateSignatureRequestHandler
                 inDto.PosY,
                 inDto.Width,
                 inDto.Height,
-                inDto.InitialEntity is null ? null : new IntialEntity(
-                inDto.InitialEntity.InitalValue,
-                inDto.InitialEntity.WidthIntial,
-                inDto.InitialEntity.HeightIntial,
-                inDto.InitialEntity.PositionXIntial,
-                inDto.InitialEntity.PositionYIntial
-                ),
-                inDto.FechaSigner is null ? null : new FechaSigner(
-                inDto.FechaSigner.FechaValue,
-                inDto.FechaSigner.WidthFechaSigner,
-                inDto.FechaSigner.HeightFechaSigner,
-                inDto.FechaSigner.PositionXFechaSigner,
-                inDto.FechaSigner.PositionYFechaSigner
-                ),
-
+                inDto.InitialEntity is null
+                    ? null
+                    : new IntialEntity(
+                        inDto.InitialEntity.InitalValue,
+                        inDto.InitialEntity.WidthIntial,
+                        inDto.InitialEntity.HeightIntial,
+                        inDto.InitialEntity.PositionXIntial,
+                        inDto.InitialEntity.PositionYIntial
+                    ),
+                inDto.FechaSigner is null
+                    ? null
+                    : new FechaSigner(
+                        inDto.FechaSigner.FechaValue,
+                        inDto.FechaSigner.WidthFechaSigner,
+                        inDto.FechaSigner.HeightFechaSigner,
+                        inDto.FechaSigner.PositionXFechaSigner,
+                        inDto.FechaSigner.PositionYFechaSigner
+                    ),
                 token
             ); // ← se persiste para auditoría
-          
-              _log.LogInformation("InitialEntity: {@InitialEntity}", inDto.InitialEntity);
+
+            _log.LogInformation("InitialEntity: {@InitialEntity}", inDto.InitialEntity);
 
             pendingEvents.Add(
                 new SignatureInvitationEvent(

@@ -22,7 +22,7 @@ public class SignatureRequest : BaseEntity
 
     public void AddSigner(
         Guid signerId,
-        Guid custId,
+        Guid? custId,
         string email,
         int order,
         int page,

@@ -27,6 +27,7 @@ public class SignatureDbContext : DbContext
             b.HasKey(x => x.Id);
 
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
+            b.Property(x => x.CustomerId).IsRequired(false);
 
             // *** INICIO DE LA CORRECCIÓN ***
             // Especificar explícitamente que SignatureImage debe ser de longitud máxima.

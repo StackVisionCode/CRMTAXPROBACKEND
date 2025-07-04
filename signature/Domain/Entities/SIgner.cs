@@ -4,7 +4,7 @@ namespace Entities;
 
 public class Signer : BaseEntity
 {
-    public Guid CustomerId { get; private set; }
+    public Guid? CustomerId { get; private set; }
     public string? Email { get; private set; }
     public int Order { get; private set; }
     public SignerStatus Status { get; private set; }
@@ -29,7 +29,7 @@ public class Signer : BaseEntity
 
     public Signer(
         Guid signerId,
-        Guid custId,
+        Guid? custId,
         string email,
         int order,
         Guid reqId,
