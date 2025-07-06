@@ -8,7 +8,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# ---------- Variables globales ----------
 env:
   REGISTRY: docker.io
   REGISTRY_PREFIX: jturbi/crmtaxpro
@@ -24,13 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create services build tracker
-        run: echo "" > built-services.txt
-
-      # 1️⃣ Setup Buildx (con soporte de caché)
+      # Setup Buildx
       - uses: docker/setup-buildx-action@v3
 
-      # 2️⃣ Cache para Docker layers
+      # Cache Docker layers
       - name: Docker layer cache
         uses: actions/cache@v3
         with:
@@ -39,31 +35,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      # 3️⃣ Login DockerHub
+      # Login Docker Hub
       - uses: docker/login-action@v3
         with:
           username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4️⃣ Build + Push + Usar cache solo si hay cambios
-      - name: Build & push images (.NET 9) with cache
+      # Build y Push de imágenes
+      - name: Build & push images (.NET 9)
         shell: bash
         run: |
           declare -A DF=(
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
             [customer-service]=CustomerService/Dockerfile
-            [docu-service]=SignDocuTax/Dockerfile
             [email-service]=EmailServices/Dockerfile
             [auth-migrator]=AuthService/Dockerfile.migrator
             [customer-migrator]=CustomerService/Dockerfile.migrator
-            [docu-migrator]=SignDocuTax/Dockerfile.migrator
             [email-migrator]=EmailServices/Dockerfile.migrator
           )
           for svc in "${!DF[@]}"; do
             dockerfile_path="${DF[$svc]}"
-
-            # Si no hay cambios en el path asociado al Dockerfile, omitir
             if ! git diff --name-only origin/main | grep -qE "${dockerfile_path%/*}"; then
               echo "⏩ Skipping $svc (no changes detected)"
               continue
@@ -80,15 +72,7 @@ jobs:
               --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
               --push \
               .
-
-            echo "$svc" >> built-services.txt
           done
-
-      - name: Upload built-services file
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-services
-          path: built-services.txt
 
 ###############################################################################
 # 2) DEPLOY — runner self-hosted (Ubuntu 24.04)
@@ -108,18 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download built-services artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: built-services
-
-      - name: Read built-services into variable
-        id: services
-        run: |
-          mapfile -t lines < built-services.txt
-          echo "services=${lines[*]}" >> $GITHUB_OUTPUT
-
-      # 1️⃣ Verificar que Docker Compose v2 esté disponible
+      # Verificar que Docker Compose v2 esté disponible
       - name: Ensure Docker Compose v2
         run: |
           if ! docker compose version >/dev/null 2>&1; then
@@ -127,37 +100,32 @@ jobs:
             exit 1
           fi
 
-      # 2️⃣ Login en Docker Hub
+      # Login Docker
       - name: Docker login
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login $REGISTRY -u jturbi --password-stdin
 
-      # 3️⃣ Exportar variables y generar .env
+      # Generar archivo .env con TAG y REGISTRY_PREFIX
       - name: Export vars & create .env
         run: |
           echo "REGISTRY_PREFIX=${{ env.REGISTRY_PREFIX }}" > .env
           echo "TAG=${{ env.TAG }}" >> .env
           cat .env
 
-      # 4️⃣ Descargar imágenes de servicios construidos
-      - name: Pull only built images
-        run: |
-          while IFS= read -r svc; do
-            docker compose pull "$svc" || echo "⚠️ Skipping $svc — image not found"
-          done < built-services.txt
+      # Pull de imágenes
+      - name: Pull all services
+        run: docker compose pull
 
-      # 5️⃣ Levantar / actualizar solo servicios construidos
-      - name: Up / update only built services
-        run: |
-          while IFS= read -r svc; do
-            docker compose up -d "$svc" || echo "⚠️ Could not start $svc"
-          done < built-services.txt
-          docker image prune -f
+      # Levantar todos los servicios definidos
+      - name: Up all services
+        run: docker compose up -d
 
-      # 6️⃣ Ejecutar migraciones solo para servicios construidos
+      # Ejecutar migradores
       - name: Run DB Migrations
         run: |
-          while IFS= read -r svc; do
-            if [[ "$svc" == *-migrator ]]; then
-              docker compose run --rm "$svc" || echo "⚠️ Migrator $svc failed or not built"
-            fi
-          done < built-services.txt
+          for svc in $(docker compose config --services | grep migrator); do
+            docker compose run --rm "$svc" || echo "⚠️ Migrator $svc failed or not defined"
+          done
+
+      # Limpiar imágenes no usadas
+      - name: Cleanup unused images
+        run: docker image prune -f
