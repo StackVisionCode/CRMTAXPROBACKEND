@@ -83,7 +83,9 @@ namespace signature.Application.Handlers
                     command.Payload.SignedAtUtc,
                     command.Payload.ClientIp,
                     command.Payload.UserAgent,
-                    command.Payload.ConsentAgreedAtUtc
+                    command.Payload.ConsentAgreedAtUtc,
+                    command.Payload.Consent_text,
+                    command.Payload.Consent_button_text
                 );
                 await _db.SaveChangesAsync(cancellationToken);
 

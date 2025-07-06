@@ -24,6 +24,8 @@ public class Signer : BaseEntity
     public string? ClientIp { get; private set; }
     public string? UserAgent { get; private set; }
     public DateTime? ConsentAgreedAtUtc { get; private set; }
+     public string? Consent_text { get; private set; } 
+    public bool? Consent_button_text { get; private set; }
 
     private Signer() { } // EF
 
@@ -44,7 +46,9 @@ public class Signer : BaseEntity
         DateTime? signedAtUtc = null,
         string? clientIp = null,
         string? userAgent = null,
-        DateTime? consentAgreedAtUtc = null
+        DateTime? consentAgreedAtUtc = null,
+        string? consent_text = null,
+        bool? consent_button_text = null
     )
     {
         Id = signerId;
@@ -66,6 +70,9 @@ public class Signer : BaseEntity
         ClientIp = clientIp;
         UserAgent = userAgent;
         ConsentAgreedAtUtc = consentAgreedAtUtc;
+        Consent_text = consent_text;
+        Consent_button_text = consent_button_text;
+        
     }
 
     internal void MarkSigned(
@@ -74,7 +81,9 @@ public class Signer : BaseEntity
         DateTime signedUtc,
         string ip,
         string ua,
-        DateTime consentAgreedAtUtc
+        DateTime consentAgreedAtUtc,
+        string? consent_text,
+        bool? consent_button_text
     )
     {
         SignatureImage = img;
@@ -84,5 +93,8 @@ public class Signer : BaseEntity
         UserAgent = ua;
         Status = SignerStatus.Signed;
         ConsentAgreedAtUtc = consentAgreedAtUtc;
+        Consent_text = consent_text;
+        Consent_button_text = consent_button_text;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

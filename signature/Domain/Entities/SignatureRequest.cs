@@ -59,11 +59,13 @@ public class SignatureRequest : BaseEntity
         DateTime signedAtUtc,
         string ip,
         string ua,
-        DateTime consentAgreedAtUtc
+        DateTime consentAgreedAtUtc,
+        string? consent_text ,
+        bool? consent_button_text
     )
     {
         var s = _signers.Single(x => x.Id == signerId);
-        s.MarkSigned(img, cert, signedAtUtc, ip, ua, consentAgreedAtUtc);
+        s.MarkSigned(img, cert, signedAtUtc, ip, ua, consentAgreedAtUtc, consent_text, consent_button_text);
 
         if (_signers.All(x => x.Status == SignerStatus.Signed))
             Status = SignatureStatus.Completed;

@@ -9,4 +9,6 @@ public class SignDocumentDto
     public required string UserAgent { get; set; } // NEW
     public DateTime SignedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime ConsentAgreedAtUtc { get; set; } = DateTime.UtcNow;
+    public string? Consent_text { get; set; } // NEW
+    public bool? Consent_button_text { get; set; } // NEW
 }
