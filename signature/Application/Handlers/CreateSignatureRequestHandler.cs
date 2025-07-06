@@ -92,7 +92,7 @@ public sealed class CreateSignatureRequestHandler
                     DateTime.UtcNow,
                     signerId, // sub
                     inDto.Email,
-                    $"{baseUrl}/firmar?token={token}",
+                    $"{baseUrl}/customer-signature?token={token}",
                     exp
                 )
             );
