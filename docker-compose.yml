@@ -49,6 +49,16 @@ services:
       RabbitMQ__Password: guest
     depends_on: [rabbitmq, sqlserver]
     networks: [backend]
+  calendar-service:
+    image: ${REGISTRY_PREFIX}-calendar-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."    
+    depends_on: [sqlserver]
+    networks: [backend]
 
   # --- Customer Service ------------------------------------------------------
   customer-service:
@@ -92,6 +102,14 @@ services:
 
   customer-migrator:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
+    depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+  calendar-migrator:
+    image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
     depends_on: [sqlserver]
     environment:
       DB_SERVER: sqlserver

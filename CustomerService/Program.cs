@@ -48,7 +48,7 @@ try
 
     // Configurar CORS
     builder.Services.AddCustomCors();
-builder.Services.AddQuartzShared();
+
 
     // Configurar caché en memoria en lugar de Redis
     builder.Services.AddSessionCache();

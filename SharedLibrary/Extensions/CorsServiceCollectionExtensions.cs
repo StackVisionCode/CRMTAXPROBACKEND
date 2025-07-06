@@ -15,8 +15,7 @@ public static class CorsServiceCollectionExtensions
                     policy
                         .AllowAnyOrigin()
                         .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .SetIsOriginAllowed(_ => true);
+                        .AllowAnyHeader();
                 }
             );
         });
