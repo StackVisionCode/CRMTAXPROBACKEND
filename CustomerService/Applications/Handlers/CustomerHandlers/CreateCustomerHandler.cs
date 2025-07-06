@@ -69,7 +69,7 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommands, Api
                     FirstName: customer.FirstName,
                     MiddleName: customer.MiddleName,
                     LastName: customer.LastName,
-                    Folders: new[] { "Documents", "Firms" }
+                    Folders: new[] { "Documents", "Firms", "Requests" }
                 );
 
                 _eventBus.Publish(customerCreatedEvent);

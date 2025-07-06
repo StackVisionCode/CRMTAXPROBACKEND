@@ -20,8 +20,7 @@ public class GetEmailByIdQueryHandler : IRequestHandler<GetEmailByIdQuery, Email
 
     public async Task<EmailDTO?> Handle(GetEmailByIdQuery q, CancellationToken ct)
     {
-        var entity = await _ctx.Emails
-                            .FirstOrDefaultAsync(e => e.Id == q.EmailId, ct);
+        var entity = await _ctx.Emails.FirstOrDefaultAsync(e => e.Id == q.EmailId, ct);
         return entity is null ? null : _map.Map<EmailDTO>(entity);
     }
 }

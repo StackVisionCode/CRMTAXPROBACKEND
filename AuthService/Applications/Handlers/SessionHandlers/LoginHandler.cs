@@ -49,7 +49,62 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 .Include(s => s.Sessions)
                 .FirstOrDefaultAsync(x => x.Email == request.Petition.Email, cancellationToken);
 
-            if (user is null || !_passwordHasher.Verify(request.Petition.Password, user.Password))
+            if (user is null)
+            {
+                _logger.LogWarning(
+                    "Login failed for user {Email}: Invalid credentials",
+                    request.Petition.Email
+                );
+                return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
+            }
+
+            // 1) Consultar roles y permisos
+            var roleNames = await _context
+                .UserRoles.Where(ur => ur.TaxUserId == user.Id)
+                .Select(ur => ur.Role.Name)
+                .ToListAsync(cancellationToken);
+
+            var portals = await _context
+                .Roles.Where(r => roleNames.Contains(r.Name))
+                .Select(r => r.PortalAccess.ToString()) // enum → string
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var permCodes = await (
+                from ur in _context.UserRoles
+                where ur.TaxUserId == user.Id
+                join rp in _context.RolePermissions on ur.RoleId equals rp.RoleId
+                join p in _context.Permissions on rp.PermissionId equals p.Id
+                select p.Code
+            )
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            bool allowed = await _context
+                .Roles.Where(r => roleNames.Contains(r.Name)) // ← COMPARO POR NOMBRE
+                .AnyAsync(
+                    r =>
+                        r.PortalAccess == PortalAccess.Staff // STAFF   ✔
+                        || r.PortalAccess == PortalAccess.Both, // BOTH    ✔
+                    cancellationToken
+                );
+
+            if (!allowed)
+            {
+                _logger.LogWarning(
+                    "Role {Roles} not authorized for Staff login",
+                    string.Join(",", roleNames)
+                );
+                return new ApiResponse<LoginResponseDTO>(
+                    false,
+                    "You do not have permission to log in here."
+                )
+                {
+                    StatusCode = 403,
+                }; // ◄─ sin crear sesión
+            }
+
+            if (!_passwordHasher.Verify(request.Petition.Password, user.Password))
             {
                 _logger.LogWarning(
                     "Login failed for user {Email}: Invalid credentials",
@@ -86,7 +141,10 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 companyId ?? Guid.Empty,
                 companyName ?? string.Empty,
                 fullName ?? string.Empty,
-                companyBrand ?? string.Empty
+                companyBrand ?? string.Empty,
+                roleNames,
+                permCodes,
+                portals
             );
 
             var sessionInfo = new SessionInfo(sessionId);

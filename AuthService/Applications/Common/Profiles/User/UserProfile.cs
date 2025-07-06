@@ -20,19 +20,23 @@ public class UserProfile : Profile
             .ForMember(d => d.LastName, o => o.MapFrom(s => s.TaxUserProfile.LastName))
             .ForMember(d => d.Address, o => o.MapFrom(s => s.TaxUserProfile.Address))
             .ForMember(d => d.PhotoUrl, o => o.MapFrom(s => s.TaxUserProfile.PhotoUrl))
-            .ForMember(d => d.RoleName, o => o.MapFrom(s => s.Role.Name))
             .ForMember(
-                dest => dest.FullName,
-                opt => opt.MapFrom(src => src.Company != null ? src.Company.FullName : null)
+                d => d.RoleNames,
+                o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role.Name))
             )
             .ForMember(
-                dest => dest.CompanyName,
-                opt => opt.MapFrom(src => src.Company != null ? src.Company.CompanyName : null)
+                d => d.FullName,
+                o => o.MapFrom(s => s.Company != null ? s.Company.FullName : null)
             )
             .ForMember(
-                dest => dest.CompanyBrand,
-                opt => opt.MapFrom(src => src.Company != null ? src.Company.Brand : null)
-            );
+                d => d.CompanyName,
+                o => o.MapFrom(s => s.Company != null ? s.Company.CompanyName : null)
+            )
+            .ForMember(
+                d => d.CompanyBrand,
+                o => o.MapFrom(s => s.Company != null ? s.Company.Brand : null)
+            )
+            .ReverseMap();
         CreateMap<NewUserDTO, CreateTaxUserCommands>().ReverseMap();
         CreateMap<UpdateUserDTO, UpdateTaxUserCommands>().ReverseMap();
         CreateMap<CreateTaxUserCommands, TaxUser>().ReverseMap();

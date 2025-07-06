@@ -4,7 +4,7 @@ namespace signature.Application.DTOs;
 
 public class SignerInfoDto
 {
-    public required Guid CustomerId { get; set; }
+    public Guid? CustomerId { get; set; }
 
     [EmailAddress]
     public required string Email { get; set; }

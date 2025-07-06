@@ -10,7 +10,7 @@ namespace Application.Handlers;
 public class GetEmailsQueryHandler : IRequestHandler<GetEmailsQuery, IEnumerable<EmailDTO>>
 {
     private readonly EmailContext _ctx;
-    private readonly IMapper      _map;
+    private readonly IMapper _map;
 
     public GetEmailsQueryHandler(EmailContext ctx, IMapper map)
     {
@@ -23,15 +23,6 @@ public class GetEmailsQueryHandler : IRequestHandler<GetEmailsQuery, IEnumerable
     // public async Task<IEnumerable<EmailDTO>> Handle(GetEmailsQuery q, CancellationToken ct)
     // {
     //     var query = _ctx.Emails.AsQueryable();
-
-    //     if (q.CompanyId.HasValue)
-    //     {
-    //         var cfgIds = await _ctx.EmailConfigs
-    //                     .Where(c => c.CompanyId == q.CompanyId)
-    //                     .Select(c => c.Id)
-    //                     .ToListAsync(ct);
-    //         query = query.Where(e => cfgIds.Contains(e.ConfigId));
-    //     }
 
     //     if (q.UserId.HasValue)
     //         query = query.Where(e => e.SentByUserId == q.UserId);
@@ -48,8 +39,7 @@ public class GetEmailsQueryHandler : IRequestHandler<GetEmailsQuery, IEnumerable
         var query =
             from e in _ctx.Emails
             join c in _ctx.EmailConfigs on e.ConfigId equals c.Id
-            where (!q.CompanyId.HasValue || c.CompanyId == q.CompanyId)
-                && (!q.UserId.HasValue    || e.SentByUserId == q.UserId)
+            where !q.UserId.HasValue || e.SentByUserId == q.UserId
             orderby e.CreatedOn descending
             select e;
 

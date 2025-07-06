@@ -7,6 +7,7 @@ using Common;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Queries.CustomerQueries;
+using SharedLibrary.Authorizations;
 
 namespace AuthService.Controllers;
 
@@ -56,6 +57,7 @@ public class CustomerAuthController : ControllerBase
         return Ok(result);
     }
 
+    [HasPermission("Customer.SelfRead")]
     [HttpGet("profile")]
     public async Task<ApiResponse<RemoteProfileDTO>> Profile()
     {

@@ -8,25 +8,33 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Handlers.PermissionHandlers;
 
-public class GetPermissionByIdHandler : IRequestHandler<GetPermissionByIdQuery, ApiResponse<PermissionDTO>>
+public class GetPermissionByIdHandler
+    : IRequestHandler<GetPermissionByIdQuery, ApiResponse<PermissionDTO>>
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<GetPermissionByIdHandler> _logger;
 
-    public GetPermissionByIdHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<GetPermissionByIdHandler> logger)
+    public GetPermissionByIdHandler(
+        ApplicationDbContext dbContext,
+        IMapper mapper,
+        ILogger<GetPermissionByIdHandler> logger
+    )
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
     }
 
-    public async Task<ApiResponse<PermissionDTO>> Handle(GetPermissionByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<PermissionDTO>> Handle(
+        GetPermissionByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            var permission = await _dbContext.Permissions
-                .AsNoTracking()
+            var permission = await _dbContext
+                .Permissions.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == request.PermissionId, cancellationToken);
 
             if (permission is null)

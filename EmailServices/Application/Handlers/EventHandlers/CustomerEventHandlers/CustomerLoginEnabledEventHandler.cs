@@ -20,8 +20,12 @@ public sealed class CustomerLoginEnabledEventHandler
 
     public Task Handle(CustomerLoginEnabledEvent e)
     {
+        var template = e.TempPassword is null
+            ? "Customers/CustomerReenabled.html"
+            : "Customers/CustomerWelcome.html";
+
         var dto = new EmailNotificationDto(
-            Template: "Customers/CustomerWelcome.html",
+            Template: template,
             Model: new
             {
                 DisplayName = e.DisplayName,

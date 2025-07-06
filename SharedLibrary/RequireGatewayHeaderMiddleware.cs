@@ -18,7 +18,7 @@ public sealed class RequireGatewayHeaderMiddleware(RequestDelegate next)
         "/api/Password/otp/validate",
         "/api/Password/reset",
         "/api/account/confirm",
-        "/api/auth/customer/login",
+        "/api/auth/client/login",
         "/api/auth/login",
         "/api/taxuser/register",
         "/api/taxcompany/register",

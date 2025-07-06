@@ -78,5 +78,15 @@ namespace CustomerService.Controllers.Address
 
             return Ok(result);
         }
+
+        [HttpGet("GetByCustomerId")] // New endpoint
+        public async Task<ActionResult> GetByCustomerId([FromQuery] Guid customerId)
+        {
+            var command = new GetAddressByCustomerIdQueries(customerId);
+            var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return NotFound(new { result.Message }); // Use NotFound if no data for customer
+            return Ok(result);
+        }
     }
 }

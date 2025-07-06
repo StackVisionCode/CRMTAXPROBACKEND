@@ -8,20 +8,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Handlers.PermissionHandlers;
 
-public class GetAllPermissionHandler : IRequestHandler<GetAllPermissionQuery, ApiResponse<List<PermissionDTO>>>
+public class GetAllPermissionHandler
+    : IRequestHandler<GetAllPermissionQuery, ApiResponse<List<PermissionDTO>>>
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly ILogger<GetAllPermissionHandler> _logger;
 
-    public GetAllPermissionHandler(ApplicationDbContext dbContext, IMapper mapper, ILogger<GetAllPermissionHandler> logger)
+    public GetAllPermissionHandler(
+        ApplicationDbContext dbContext,
+        IMapper mapper,
+        ILogger<GetAllPermissionHandler> logger
+    )
     {
         _dbContext = dbContext;
         _mapper = mapper;
         _logger = logger;
     }
 
-    public async Task<ApiResponse<List<PermissionDTO>>> Handle(GetAllPermissionQuery request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<List<PermissionDTO>>> Handle(
+        GetAllPermissionQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -32,8 +40,15 @@ public class GetAllPermissionHandler : IRequestHandler<GetAllPermissionQuery, Ap
             }
 
             var permissionDtos = _mapper.Map<List<PermissionDTO>>(permissions);
-            _logger.LogInformation("Permissions retrieved successfully: {Permissions}", permissionDtos);
-            return new ApiResponse<List<PermissionDTO>>(true, "Permissions retrieved successfully", permissionDtos);
+            _logger.LogInformation(
+                "Permissions retrieved successfully: {Permissions}",
+                permissionDtos
+            );
+            return new ApiResponse<List<PermissionDTO>>(
+                true,
+                "Permissions retrieved successfully",
+                permissionDtos
+            );
         }
         catch (Exception ex)
         {

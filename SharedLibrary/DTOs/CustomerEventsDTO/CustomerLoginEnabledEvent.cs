@@ -7,5 +7,5 @@ public sealed record CustomerLoginEnabledEvent(
     Guid CustomerId,
     string Email,
     string DisplayName,
-    string TempPassword // en claro SOLO para el email; NO se almacena
+    string? TempPassword // en claro SOLO para el email; NO se almacena
 ) : IntegrationEvent(Id, OccurredOn);

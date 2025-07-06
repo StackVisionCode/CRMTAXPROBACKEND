@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Infrastructure.Commands;
 
-public record class SendEmailCommand(int EmailId, int? UserId) : IRequest<EmailDTO>;
+public record class SendEmailCommand(Guid EmailId, Guid? UserId) : IRequest<EmailDTO>;

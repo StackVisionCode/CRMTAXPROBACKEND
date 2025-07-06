@@ -29,7 +29,12 @@ try
 {
     Log.Information("Starting up the application");
 
+    // Configurar Rbac
+    builder.Services.AddRbac(builder.Configuration);
+
+    // Configurar JWT
     builder.Services.AddJwtAuth(builder.Configuration);
+
     builder
         .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(

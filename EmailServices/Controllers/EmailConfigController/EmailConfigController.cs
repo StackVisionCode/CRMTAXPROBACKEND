@@ -26,16 +26,16 @@ public class EmailConfigController : ControllerBase
     }
 
     // update
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<EmailConfigDTO>> Update(int id, [FromBody] EmailConfigDTO dto)
+    [HttpPut("{id:Guid}")]
+    public async Task<ActionResult<EmailConfigDTO>> Update(Guid id, [FromBody] EmailConfigDTO dto)
     {
         var updated = await _med.Send(new UpdateEmailConfigCommand(id, dto));
         return Ok(updated);
     }
 
     // delete
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
+    [HttpDelete("{id:Guid}")]
+    public async Task<IActionResult> Delete(Guid id)
     {
         await _med.Send(new DeleteEmailConfigCommand(id));
         return NoContent();
@@ -43,18 +43,15 @@ public class EmailConfigController : ControllerBase
 
     // list
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<EmailConfigDTO>>> List(
-        [FromQuery] int? companyId,
-        [FromQuery] int? userId
-    )
+    public async Task<ActionResult<IEnumerable<EmailConfigDTO>>> List([FromQuery] Guid? userId)
     {
-        var list = await _med.Send(new GetEmailConfigsQuery(companyId, userId));
+        var list = await _med.Send(new GetEmailConfigsQuery(userId));
         return Ok(list);
     }
 
     // detail
-    [HttpGet("{id:int}", Name = "GetEmailConfigById")]
-    public async Task<ActionResult<EmailConfigDTO>> Get(int id)
+    [HttpGet("{id:Guid}", Name = "GetEmailConfigById")]
+    public async Task<ActionResult<EmailConfigDTO>> Get(Guid id)
     {
         var cfg = await _med.Send(new GetEmailConfigByIdQuery(id));
         if (cfg is null)

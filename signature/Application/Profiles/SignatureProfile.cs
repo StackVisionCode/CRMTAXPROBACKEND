@@ -12,15 +12,17 @@ public class SignatureProfile : Profile
         CreateMap<SignerInfoDto, Signer>().ReverseMap();
 
         CreateMap<SignerInfoDto, Signer>()
-               .ForMember(dest => dest.InitialEntity, opt => opt.MapFrom(src => src.InitialEntity))
-               .ForMember(dest => dest.FechaSigner, opt => opt.MapFrom(src => src.FechaSigner))
-               .ReverseMap();
+            .ForMember(dest => dest.InitialEntity, opt => opt.MapFrom(src => src.InitialEntity))
+            .ForMember(dest => dest.FechaSigner, opt => opt.MapFrom(src => src.FechaSigner))
+            .ForMember(d => d.CustomerId, c => c.MapFrom(s => s.CustomerId))
+            .ReverseMap();
+
         CreateMap<DigitalCertificateDto, DigitalCertificate>();
 
         CreateMap<FechaSigner, FechaSignerDto>().ReverseMap();
 
         CreateMap<InitialEntityDto, IntialEntity>() // O usa el nombre corregido InitialEntity si lo renombras
-             .ConstructUsing(src => new IntialEntity(
+            .ConstructUsing(src => new IntialEntity(
                 src.InitalValue,
                 src.WidthIntial,
                 src.HeightIntial,
@@ -29,6 +31,5 @@ public class SignatureProfile : Profile
             ));
 
         CreateMap<IntialEntity, InitialEntityDto>();
-
     }
 }

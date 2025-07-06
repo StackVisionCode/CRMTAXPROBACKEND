@@ -32,11 +32,31 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
     {
         try
         {
-            var user = await _dbContext
-                .TaxUsers.Include(u => u.TaxUserProfile)
-                .Include(u => u.Role)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken);
+            var user = await (
+                from u in _dbContext.TaxUsers
+                where u.Id == request.Id
+                join ur in _dbContext.UserRoles on u.Id equals ur.TaxUserId into urs
+                from ur in urs.DefaultIfEmpty()
+                join r in _dbContext.Roles on ur.RoleId equals r.Id into rs
+                from r in rs.DefaultIfEmpty()
+                join p in _dbContext.TaxUserProfiles on u.Id equals p.TaxUserId
+
+                group r by new
+                {
+                    u.Id,
+                    u.CompanyId,
+                    u.Email,
+                    FullName = p.Name + " " + p.LastName,
+                } into g
+                select new UserGetDTO
+                {
+                    Id = g.Key.Id,
+                    CompanyId = g.Key.CompanyId,
+                    Email = g.Key.Email,
+                    FullName = g.Key.FullName.Trim(),
+                    RoleNames = g.Where(r => r != null!).Select(r => r!.Name).Distinct().ToList(),
+                }
+            ).FirstOrDefaultAsync(cancellationToken);
 
             if (user is null)
                 return new(false, "User not found");

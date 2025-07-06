@@ -1,0 +1,70 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/Permission/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/permissions/create",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Permission/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/permissions/update",
+      "UpstreamHttpMethod": [ "PUT" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Permission/Delete",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/permissions/delete",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Permission/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/permissions",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Permission/GetById?Id={id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/permissions/{id}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Permission/user/{userId}/codes",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/permissions/user/{userId}/codes",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    }
+  ]
+}

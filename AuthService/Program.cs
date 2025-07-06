@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using Applications.Common;
+using Applications.EventHandlers.CustomerEventHandlers;
 using AuthService.Applications.Services;
 using AuthService.Infraestructure.Services;
 using Infraestructure.Context;
@@ -8,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs.CustomerEventsDTO;
 using SharedLibrary.Extensions;
 using SharedLibrary.Middleware;
 
@@ -77,6 +80,9 @@ try
         );
     });
 
+    // Configurar Rbac
+    builder.Services.AddRbac(builder.Configuration);
+
     // Configurar JWT
     builder.Services.AddJwtAuth(builder.Configuration);
 
@@ -143,7 +149,25 @@ try
         options.UseSqlServer(connectionString);
     });
 
+    // Configurar el contexto de eventos
+    builder.Services.AddScoped<
+        IIntegrationEventHandler<CustomerRoleAssignedEvent>,
+        CustomerRoleAssignedHandler
+    >();
+
+    builder.Services.AddScoped<CustomerRoleAssignedHandler>();
+
     var app = builder.Build();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+        bus.Subscribe<CustomerRoleAssignedEvent, CustomerRoleAssignedHandler>();
+
+        // Log successful subscriptions
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("EmailService subscribed to all integration events");
+    }
 
     // Middlewares
     app.UseCors("AllowAll");

@@ -1,11 +1,10 @@
 using Application.Helpers;
 
-
 namespace Entities;
 
 public class Signer : BaseEntity
 {
-    public Guid CustomerId { get; private set; }
+    public Guid? CustomerId { get; private set; }
     public string? Email { get; private set; }
     public int Order { get; private set; }
     public SignerStatus Status { get; private set; }
@@ -21,12 +20,16 @@ public class Signer : BaseEntity
     public float PositionX { get; private set; } // en puntos PDF
     public float PositionY { get; private set; }
     public string? Token { get; private set; }
+    public DateTime? SignedAtUtc { get; private set; }
+    public string? ClientIp { get; private set; }
+    public string? UserAgent { get; private set; }
+    public DateTime? ConsentAgreedAtUtc { get; private set; }
 
     private Signer() { } // EF
 
     public Signer(
         Guid signerId,
-        Guid custId,
+        Guid? custId,
         string email,
         int order,
         Guid reqId,
@@ -37,7 +40,11 @@ public class Signer : BaseEntity
         float y,
         IntialEntity? initialEntity,
         FechaSigner? fechaSigner,
-        string token
+        string token,
+        DateTime? signedAtUtc = null,
+        string? clientIp = null,
+        string? userAgent = null,
+        DateTime? consentAgreedAtUtc = null
     )
     {
         Id = signerId;
@@ -55,13 +62,27 @@ public class Signer : BaseEntity
         Status = SignerStatus.Pending;
         SignatureRequestId = reqId;
         CreatedAt = DateTime.UtcNow;
+        SignedAtUtc = signedAtUtc;
+        ClientIp = clientIp;
+        UserAgent = userAgent;
+        ConsentAgreedAtUtc = consentAgreedAtUtc;
     }
 
-    internal void MarkSigned(string img, DigitalCertificate cert)
+    internal void MarkSigned(
+        string img,
+        DigitalCertificate cert,
+        DateTime signedUtc,
+        string ip,
+        string ua,
+        DateTime consentAgreedAtUtc
+    )
     {
         SignatureImage = img;
         Certificate = cert;
+        SignedAtUtc = signedUtc;
+        ClientIp = ip;
+        UserAgent = ua;
         Status = SignerStatus.Signed;
-        UpdatedAt = DateTime.UtcNow;
+        ConsentAgreedAtUtc = consentAgreedAtUtc;
     }
 }

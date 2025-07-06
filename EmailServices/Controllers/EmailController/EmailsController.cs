@@ -23,8 +23,8 @@ public class EmailsController : ControllerBase
     }
 
     // enviar email
-    [HttpPost("{id:int}/send")]
-    public async Task<ActionResult<EmailDTO>> Send(int id)
+    [HttpPost("{id:Guid}/send")]
+    public async Task<ActionResult<EmailDTO>> Send(Guid id)
     {
         var sent = await _mediator.Send(new SendEmailCommand(id, null));
         return Ok(sent);
@@ -32,18 +32,15 @@ public class EmailsController : ControllerBase
 
     // listar
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<EmailDTO>>> List(
-        [FromQuery] int? companyId,
-        [FromQuery] int? userId
-    )
+    public async Task<ActionResult<IEnumerable<EmailDTO>>> List([FromQuery] Guid? userId)
     {
-        var result = await _mediator.Send(new GetEmailsQuery(companyId, userId));
+        var result = await _mediator.Send(new GetEmailsQuery(userId));
         return Ok(result);
     }
 
     // detalle
-    [HttpGet("{id:int}", Name = "GetEmailById")]
-    public async Task<ActionResult<EmailDTO>> Get(int id)
+    [HttpGet("{id:Guid}", Name = "GetEmailById")]
+    public async Task<ActionResult<EmailDTO>> Get(Guid id)
     {
         var mail = await _mediator.Send(new GetEmailByIdQuery(id));
         if (mail is null)

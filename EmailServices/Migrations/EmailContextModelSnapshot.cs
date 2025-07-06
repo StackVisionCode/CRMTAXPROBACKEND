@@ -24,11 +24,9 @@ namespace EmailServices.Migrations
 
             modelBuilder.Entity("Domain.Email", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("BccAddresses")
                         .HasColumnType("nvarchar(max)");
@@ -40,8 +38,8 @@ namespace EmailServices.Migrations
                     b.Property<string>("CcAddresses")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ConfigId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ConfigId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedOn")
                         .ValueGeneratedOnAdd()
@@ -54,8 +52,8 @@ namespace EmailServices.Migrations
                     b.Property<string>("FromAddress")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SentByUserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("SentByUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("SentOn")
                         .HasColumnType("datetime2");
@@ -88,14 +86,9 @@ namespace EmailServices.Migrations
 
             modelBuilder.Entity("Domain.EmailConfig", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("DailyLimit")
                         .ValueGeneratedOnAdd()
@@ -150,12 +143,10 @@ namespace EmailServices.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CompanyId");
 
                     b.HasIndex("UserId");
 

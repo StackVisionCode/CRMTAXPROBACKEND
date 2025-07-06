@@ -1,4 +1,5 @@
 namespace signature.Application.DTOs;
+
 public class FechaSignerDto
 {
     public string FechaValue { get; set; } = string.Empty;

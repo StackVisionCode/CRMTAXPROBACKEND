@@ -5,8 +5,8 @@ namespace Domain;
 
 public class Email
 {
-    public int Id { get; set; }
-    public int ConfigId { get; set; }
+    public Guid Id { get; set; }
+    public Guid ConfigId { get; set; }
     public string? FromAddress { get; set; }
     public string? ToAddresses { get; set; }
     public string? CcAddresses { get; set; }
@@ -17,5 +17,5 @@ public class Email
     public DateTime CreatedOn { get; set; }
     public DateTime? SentOn { get; set; }
     public string? ErrorMessage { get; set; }
-    public int SentByUserId { get; set; }
+    public Guid SentByUserId { get; set; }
 }

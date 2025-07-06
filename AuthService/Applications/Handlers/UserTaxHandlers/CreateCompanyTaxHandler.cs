@@ -73,8 +73,14 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             MapToUser.IsActive = false;
             MapToUser.Confirm = false;
             MapToUser.CreatedAt = DateTime.UtcNow;
-            var RoleGuid = await GetAllRoles();
-            MapToUser.RoleId = RoleGuid?.Id ?? Guid.Empty;
+
+            // Rol “Administrator”
+            var adminRole = await _dbContext
+                .Roles.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Name == "TaxPreparer", cancellationToken);
+
+            if (adminRole is null)
+                return new(false, "TaxPreparer role not found", false);
 
             await _dbContext.Companies.AddAsync(companyTax);
             var CompanyResult = await _dbContext.SaveChangesAsync() > 0;
@@ -88,6 +94,18 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             MapToUser.ConfirmToken = token;
 
             await _dbContext.TaxUsers.AddAsync(MapToUser);
+
+            await _dbContext.UserRoles.AddAsync(
+                new UserRole
+                {
+                    Id = Guid.NewGuid(),
+                    TaxUserId = MapToUser.Id,
+                    RoleId = adminRole.Id,
+                    CreatedAt = DateTime.UtcNow,
+                },
+                cancellationToken
+            );
+
             var ResultUserSaved = await _dbContext.SaveChangesAsync() > 0;
 
             string link = _linkBuilder.BuildConfirmationLink(
@@ -128,7 +146,7 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     MapToUser.Email,
                     string.Empty,
                     string.Empty,
-                    string.Empty,
+                    request.Companytax.Phone ?? string.Empty,
                     true, // IsCompany
                     companyTax.Id,
                     request.Companytax.FullName,
@@ -176,18 +194,5 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             _logger.LogError(ex, "Error occurred while checking if company exists.");
             throw new Exception("Error occurred while checking if company exists.");
         }
-    }
-
-    private async Task<Role> GetAllRoles()
-    {
-        var result = await _dbContext
-            .Roles.AsNoTracking()
-            .Where(a => a.Name.Contains("administrator"))
-            .FirstAsync();
-        if (result is null)
-        {
-            return null!;
-        }
-        return result;
     }
 }

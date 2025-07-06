@@ -6,6 +6,7 @@ using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.SignatureEvents;
 using signature.Application.DTOs;
 using signature.Infrastruture.Commands;
+using SixLabors.ImageSharp;
 
 namespace signature.Application.Handlers
 {
@@ -61,6 +62,11 @@ namespace signature.Application.Handlers
                 if (command.Payload.Certificate.NotAfter < DateTime.UtcNow)
                     return new ApiResponse<bool>(false, "El certificado digital ha expirado");
 
+                if (!IsValidPngBase64(command.Payload.SignatureImageBase64, out var cleanB64))
+                    return new(false, "La imagen de la firma está corrupta o incompleta.");
+
+                command.Payload.SignatureImageBase64 = cleanB64; // normalizado
+
                 // 4. Crear certificado digital
                 var cert = new DigitalCertificate(
                     command.Payload.Certificate.Thumbprint,
@@ -70,12 +76,51 @@ namespace signature.Application.Handlers
                 );
 
                 // 5. Registrar firma (solo metadatos en la BD)
-                req.ReceiveSignature(signerId, command.Payload.SignatureImageBase64, cert);
+                req.ReceiveSignature(
+                    signerId,
+                    cleanB64,
+                    cert,
+                    command.Payload.SignedAtUtc,
+                    command.Payload.ClientIp,
+                    command.Payload.UserAgent,
+                    command.Payload.ConsentAgreedAtUtc
+                );
                 await _db.SaveChangesAsync(cancellationToken);
 
                 //6 ▸ ¿faltan firmas o ya está completo?
 
                 bool hasPending = req.Signers.Any(s => s.Status == SignerStatus.Pending);
+
+                if (!hasPending)
+                {
+                    var signedImages = req
+                        .Signers.Select(s => new SignedImageDto(
+                            s.Id,
+                            s.Email!,
+                            s.PageNumber,
+                            s.PositionX,
+                            s.PositionY,
+                            s.Width,
+                            s.Height,
+                            s.SignatureImage!,
+                            s.Certificate!.Thumbprint,
+                            s.SignedAtUtc!.Value,
+                            s.ClientIp ?? string.Empty,
+                            s.UserAgent ?? string.Empty,
+                            s.ConsentAgreedAtUtc!.Value
+                        ))
+                        .ToList();
+
+                    _bus.Publish(
+                        new DocumentReadyToSealEvent(
+                            Guid.NewGuid(),
+                            DateTime.UtcNow,
+                            req.Id,
+                            req.DocumentId,
+                            signedImages
+                        )
+                    );
+                }
 
                 if (hasPending)
                 {
@@ -125,6 +170,26 @@ namespace signature.Application.Handlers
             {
                 _log.LogError(ex, "Error al procesar la firma");
                 return new ApiResponse<bool>(false, "Error interno del servidor");
+            }
+        }
+
+        private static bool IsValidPngBase64(string base64, out string clean)
+        {
+            clean = base64;
+            var comma = base64.IndexOf(',');
+            if (comma >= 0)
+                clean = base64[(comma + 1)..];
+
+            try
+            {
+                var bytes = Convert.FromBase64String(clean); // valida B64
+                // Valida CRC pero SIN lanzar excepción al usuario:
+                using var _ = Image.Load(bytes); // SixLabors.ImageSharp
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
     }
