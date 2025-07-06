@@ -5,7 +5,7 @@ name: CI-CD Docker (.NET 9)
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -49,10 +49,12 @@ jobs:
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
             [customer-service]=CustomerService/Dockerfile
+            [calendar-service]=CalendarService/Dockerfile
             [email-service]=EmailServices/Dockerfile
             [auth-migrator]=AuthService/Dockerfile.migrator
             [customer-migrator]=CustomerService/Dockerfile.migrator
             [email-migrator]=EmailServices/Dockerfile.migrator
+            [calendar-migrator]=CalendarService/Dockerfile.migrator
           )
           for svc in "${!DF[@]}"; do
             dockerfile_path="${DF[$svc]}"
@@ -69,9 +71,9 @@ jobs:
               .
           done
 
-###############################################################################
-# 2) DEPLOY — runner self-hosted (Ubuntu 24.04)
-###############################################################################
+  ###############################################################################
+  # 2) DEPLOY — runner self-hosted (Ubuntu 24.04)
+  ###############################################################################
   deploy:
     needs: build-and-push
     runs-on: self-hosted
