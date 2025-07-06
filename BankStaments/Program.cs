@@ -77,6 +77,9 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Bank Staments", Version = "v1" });
 });
 
+builder.Services.AddQuartzShared();
+
+
 //
 // ── Cadena de conexión y DbContext
 //
