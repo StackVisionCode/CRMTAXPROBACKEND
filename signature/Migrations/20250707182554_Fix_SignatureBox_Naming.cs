@@ -5,7 +5,7 @@
 namespace signature.Migrations
 {
     /// <inheritdoc />
-    public partial class MakeCustomerIdNullable_AndSignatureImageMax : Migration
+    public partial class Fix_SignatureBox_Naming : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

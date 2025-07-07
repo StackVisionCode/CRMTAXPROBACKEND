@@ -9,6 +9,7 @@ public sealed record DocumentReadyToSealEvent(
 ) : IntegrationEvent(Id, OccurredOn);
 
 public sealed record SignedImageDto(
+    Guid CustomerId,
     Guid SignerId,
     string SignerEmail,
     int Page,

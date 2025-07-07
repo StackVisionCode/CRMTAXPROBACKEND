@@ -1,35 +1,44 @@
 using AutoMapper;
-using Entities;
+using Domain.Entities;
 using signature.Application.DTOs;
+using Signature.Application.DTOs;
 
-namespace signature.Application.Profiles;
+namespace Signature.Application.Profiles;
 
 public class SignatureProfile : Profile
 {
     public SignatureProfile()
     {
-        CreateMap<CreateSignatureRequestDto, SignatureRequest>().ReverseMap();
-        CreateMap<SignerInfoDto, Signer>().ReverseMap();
+        /* --- SignatureBox --- */
+        CreateMap<SignatureBoxDto, SignatureBox>()
+            .ConstructUsing(
+                (src, ctx) =>
+                    new SignatureBox(
+                        src.Page, // pageNumber
+                        src.PosX, // posX
+                        src.PosY, // posY
+                        src.Width, // width
+                        src.Height, // height
+                        ctx.Mapper.Map<IntialEntity?>(src.InitialEntity),
+                        ctx.Mapper.Map<FechaSigner?>(src.FechaSigner)
+                    )
+            )
+            .ReverseMap()
+            .ForMember(d => d.Page, m => m.MapFrom(s => s.PageNumber))
+            .ForMember(d => d.PosX, m => m.MapFrom(s => s.PositionX))
+            .ForMember(d => d.PosY, m => m.MapFrom(s => s.PositionY));
 
+        /* --- Signer --- */
         CreateMap<SignerInfoDto, Signer>()
-            .ForMember(dest => dest.InitialEntity, opt => opt.MapFrom(src => src.InitialEntity))
-            .ForMember(dest => dest.FechaSigner, opt => opt.MapFrom(src => src.FechaSigner))
-            .ForMember(d => d.CustomerId, c => c.MapFrom(s => s.CustomerId))
+            .ForMember(d => d.Boxes, m => m.MapFrom(s => s.Boxes))
             .ReverseMap();
 
-        CreateMap<DigitalCertificateDto, DigitalCertificate>();
+        /* --- Request --- */
+        CreateMap<CreateSignatureRequestDto, SignatureRequest>().ReverseMap();
 
-        CreateMap<FechaSigner, FechaSignerDto>().ReverseMap();
-
-        CreateMap<InitialEntityDto, IntialEntity>() // O usa el nombre corregido InitialEntity si lo renombras
-            .ConstructUsing(src => new IntialEntity(
-                src.InitalValue,
-                src.WidthIntial,
-                src.HeightIntial,
-                src.PositionXIntial,
-                src.PositionYIntial
-            ));
-
-        CreateMap<IntialEntity, InitialEntityDto>();
+        /* --- Value-objects --- */
+        CreateMap<DigitalCertificateDto, DigitalCertificate>().ReverseMap();
+        CreateMap<InitialEntityDto, IntialEntity>().ReverseMap();
+        CreateMap<FechaSignerDto, FechaSigner>().ReverseMap();
     }
 }

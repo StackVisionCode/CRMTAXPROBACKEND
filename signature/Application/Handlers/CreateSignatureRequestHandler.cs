@@ -1,4 +1,6 @@
 using Application.Helpers;
+using AutoMapper;
+using Domain.Entities;
 using Infrastructure.Context;
 using MediatR;
 using SharedLibrary.Contracts;
@@ -13,6 +15,7 @@ public sealed class CreateSignatureRequestHandler
     private readonly ISignatureValidToken _tokens;
     private readonly IEventBus _bus;
     private readonly ILogger<CreateSignatureRequestHandler> _log;
+    private readonly IMapper _mapper;
     private readonly GetOriginURL _getOriginURL;
 
     public CreateSignatureRequestHandler(
@@ -20,7 +23,8 @@ public sealed class CreateSignatureRequestHandler
         ISignatureValidToken tokens,
         IEventBus bus,
         ILogger<CreateSignatureRequestHandler> log,
-        GetOriginURL getOriginURL
+        GetOriginURL getOriginURL,
+        IMapper mapper
     )
     {
         _db = db;
@@ -28,6 +32,7 @@ public sealed class CreateSignatureRequestHandler
         _bus = bus;
         _log = log;
         _getOriginURL = getOriginURL;
+        _mapper = mapper;
     }
 
     public async Task<ApiResponse<bool>> Handle(
@@ -48,50 +53,34 @@ public sealed class CreateSignatureRequestHandler
         /* ╭──────────────────────────────────────────────────────────────╮
         │ 2 ▸ iteramos firmantes, generamos token y los agregamos      │
            ╰──────────────────────────────────────────────────────────────╯ */
-        foreach (var inDto in cmd.Payload.Signers)
+        foreach (var sDto in cmd.Payload.Signers)
         {
             Guid signerId = Guid.NewGuid(); // ► PK real de la fila ‘Signer’
             var (token, exp) = _tokens.Generate(signerId, req.Id, "sign");
 
-            req.AddSigner(
-                signerId, // ← mismo Guid en el JWT (sub)
-                inDto.CustomerId ?? Guid.Empty,
-                inDto.Email,
-                inDto.Order,
-                inDto.Page,
-                inDto.PosX,
-                inDto.PosY,
-                inDto.Width,
-                inDto.Height,
-                inDto.InitialEntity is null
-                    ? null
-                    : new IntialEntity(
-                        inDto.InitialEntity.InitalValue,
-                        inDto.InitialEntity.WidthIntial,
-                        inDto.InitialEntity.HeightIntial,
-                        inDto.InitialEntity.PositionXIntial,
-                        inDto.InitialEntity.PositionYIntial
-                    ),
-                inDto.FechaSigner is null
-                    ? null
-                    : new FechaSigner(
-                        inDto.FechaSigner.FechaValue,
-                        inDto.FechaSigner.WidthFechaSigner,
-                        inDto.FechaSigner.HeightFechaSigner,
-                        inDto.FechaSigner.PositionXFechaSigner,
-                        inDto.FechaSigner.PositionYFechaSigner
-                    ),
+            var signer = new Signer(
+                signerId,
+                sDto.CustomerId,
+                sDto.Email,
+                sDto.Order,
+                req.Id,
                 token
-            ); // ← se persiste para auditoría
+            );
 
-            _log.LogInformation("InitialEntity: {@InitialEntity}", inDto.InitialEntity);
+            signer.AddBoxes(_mapper.Map<IEnumerable<SignatureBox>>(sDto.Boxes));
+
+            // agregamos el firmante a la solicitud
+            req.AttachSigner(signer);
+
+            // log para depuración
+            _log.LogInformation("InitialEntity: {@InitialEntity}", sDto.Boxes);
 
             pendingEvents.Add(
                 new SignatureInvitationEvent(
                     Guid.NewGuid(),
                     DateTime.UtcNow,
                     signerId, // sub
-                    inDto.Email,
+                    sDto.Email,
                     $"{baseUrl}/customer-signature?token={token}",
                     exp
                 )

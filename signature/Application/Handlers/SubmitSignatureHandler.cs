@@ -4,7 +4,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.SignatureEvents;
-using signature.Application.DTOs;
 using signature.Infrastruture.Commands;
 using SixLabors.ImageSharp;
 
@@ -96,21 +95,24 @@ namespace signature.Application.Handlers
                 if (!hasPending)
                 {
                     var signedImages = req
-                        .Signers.Select(s => new SignedImageDto(
-                            s.Id,
-                            s.Email!,
-                            s.PageNumber,
-                            s.PositionX,
-                            s.PositionY,
-                            s.Width,
-                            s.Height,
-                            s.SignatureImage!,
-                            s.Certificate!.Thumbprint,
-                            s.SignedAtUtc!.Value,
-                            s.ClientIp ?? string.Empty,
-                            s.UserAgent ?? string.Empty,
-                            s.ConsentAgreedAtUtc!.Value
-                        ))
+                        .Signers.SelectMany(s =>
+                            s.Boxes.Select(b => new SignedImageDto(
+                                s.CustomerId ?? Guid.Empty,
+                                s.Id,
+                                s.Email!,
+                                b.PageNumber,
+                                b.PositionX,
+                                b.PositionY,
+                                b.Width,
+                                b.Height,
+                                s.SignatureImage!,
+                                s.Certificate!.Thumbprint,
+                                s.SignedAtUtc!.Value,
+                                s.ClientIp ?? string.Empty,
+                                s.UserAgent ?? string.Empty,
+                                s.ConsentAgreedAtUtc!.Value
+                            ))
+                        )
                         .ToList();
 
                     _bus.Publish(
@@ -126,6 +128,8 @@ namespace signature.Application.Handlers
 
                 if (hasPending)
                 {
+                    var firstBox = signer.Boxes.First();
+
                     // Al menos un firmante pendiente ⇒ correo “firma parcial”
                     _bus.Publish(
                         new DocumentPartiallySignedEvent(
@@ -136,9 +140,9 @@ namespace signature.Application.Handlers
                             signer.Id,
                             signer.Email!,
                             command.Payload.SignatureImageBase64,
-                            signer.PositionX,
-                            signer.PositionY,
-                            signer.PageNumber
+                            firstBox.PositionX,
+                            firstBox.PositionY,
+                            firstBox.PageNumber
                         )
                     );
                 }
