@@ -35,12 +35,15 @@ public class StartCallHandler : IRequestHandler<StartCallCommand, ApiResponse<Gu
         CancellationToken cancellationToken
     )
     {
+        if (!Enum.TryParse<CallType>(request.Payload.CallType, true, out var parsed))
+            return new ApiResponse<Guid>(false, "CallType must be either 'Voice' or 'Video'");
+
         var call = new Call
         {
             Id = Guid.NewGuid(),
             ConversationId = request.ConversationId,
             StarterId = request.StarterId,
-            Type = Enum.Parse<CallType>(request.Payload.CallType, true),
+            Type = parsed,
             StartedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
         };
