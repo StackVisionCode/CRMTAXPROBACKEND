@@ -32,7 +32,8 @@ namespace BankStaments.Controllers
 
                 // 2. Prompt que obliga a ChatPDF a devolver JSON con categorías en los gastos
                 var prompt = @"
-Return ONLY a valid JSON object (without markdown or explanation) with the following exact structure:
+You are a financial data extraction assistant. Carefully read the entire bank statement, regardless of the language it is written in (e.g., English, Spanish, etc.). Your task is to extract and return the following data in English, in a valid JSON format (no explanations, no markdown):
+
 {
   ""beginningBalance"": number,
   ""endingBalance"": number,
@@ -45,73 +46,24 @@ Return ONLY a valid JSON object (without markdown or explanation) with the follo
   ""summaryTotals"": {
     ""totalExpenses"": number,
     ""totalIncome"": number
-  }
+  },
+  ""dailyBalances"": [
+    {
+      ""date"": ""MM/DD"",
+      ""checkNumber"": ""string"",
+      ""description"": ""string"",
+      ""depositOrAddition"": number,
+      ""withdrawalOrDeduction"": number,
+      ""finalDailyBalance"": number
+    }
+  ]
 }
 
-Categorise each expense based on its description. Use one of the concise category names below; choose the best match and do not invent new ones:
+Categorize each expense based on its description using only one of the following categories (do not invent new ones):
 
-* ""Fuel"" (gas stations)
-* ""Groceries""
-* ""Dining""
-* ""Utilities""
-* ""Rent/Mortgage""
-* ""Entertainment""
-* ""Transport""
-* ""Healthcare""
-* ""Travel""
-* ""Education""
-* ""Insurance""
-* ""Clothing""
-* ""PersonalCare""
-* ""Gifts""
-* ""Charity""
-* ""Subscriptions""
-* ""PetCare""
-* ""Childcare""
-* ""Investments""
-* ""Taxes""
-* ""Fees""
-* ""Maintenance""
-* ""Electronics""
-* ""OfficeSupplies""
-* ""Hardware""
-* ""Software""
-* ""Legal""
-* ""ProfessionalServices""
-* ""Advertising""
-* ""Marketing""
-* ""Consulting""
-* ""Training""
-* ""HomeImprovement""
-* ""Furniture""
-* ""Appliances""
-* ""Gardening""
-* ""Sports""
-* ""Fitness""
-* ""Alcohol""
-* ""Tobacco""
-* ""Telecommunications""
-* ""BankCharges""
-* ""LoanPayments""
-* ""Interest""
-* ""Savings""
-* ""Retirement""
-* ""Events""
-* ""Books""
-* ""Music""
-* ""Art""
-* ""Photography""
-* ""Jewelry""
-* ""Beauty""
-* ""AutoInsurance""
-* ""PropertyInsurance""
-* ""LoanInterest""
-* ""MortgageInterest""
-* ""Repairs""
-* ""Warranty""
-* ""Other""  (use only when none of the above apply)
+""Fuel"", ""Groceries"", ""Dining"", ""Utilities"", ""Rent/Mortgage"", ""Entertainment"", ""Transport"", ""Healthcare"", ""Travel"", ""Education"", ""Insurance"", ""Clothing"", ""PersonalCare"", ""Gifts"", ""Charity"", ""Subscriptions"", ""PetCare"", ""Childcare"", ""Investments"", ""Taxes"", ""Fees"", ""Maintenance"", ""Electronics"", ""OfficeSupplies"", ""Hardware"", ""Software"", ""Legal"", ""ProfessionalServices"", ""Advertising"", ""Marketing"", ""Consulting"", ""Training"", ""HomeImprovement"", ""Furniture"", ""Appliances"", ""Gardening"", ""Sports"", ""Fitness"", ""Alcohol"", ""Tobacco"", ""Telecommunications"", ""BankCharges"", ""LoanPayments"", ""Interest"", ""Savings"", ""Retirement"", ""Events"", ""Books"", ""Music"", ""Art"", ""Photography"", ""Jewelry"", ""Beauty"", ""AutoInsurance"", ""PropertyInsurance"", ""LoanInterest"", ""MortgageInterest"", ""Repairs"", ""Warranty"", ""Other""
 
-Now, extract beginning and ending balances, every debit and credit with dates and descriptions, assign a category to each expense, and calculate totalExpenses and totalIncome.";
+Even if the document is written in a different language, extract all relevant data and return the final result in English as a JSON object. If any value is missing or unclear, use `null` or leave the field empty, but preserve the structure.";
 
                 // 3. Llamar a ChatPDF
                 var jsonResponse = await AskChatPdfAsync(sourceId, prompt);
