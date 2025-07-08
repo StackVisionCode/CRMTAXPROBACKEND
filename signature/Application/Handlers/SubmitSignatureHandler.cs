@@ -110,7 +110,25 @@ namespace signature.Application.Handlers
                                 s.SignedAtUtc!.Value,
                                 s.ClientIp ?? string.Empty,
                                 s.UserAgent ?? string.Empty,
-                                s.ConsentAgreedAtUtc!.Value
+                                s.ConsentAgreedAtUtc!.Value,
+                                b.InitialEntity is null
+                                    ? null
+                                    : new InitialStampDto(
+                                        b.InitialEntity.InitalValue,
+                                        b.InitialEntity.PositionXIntial,
+                                        b.InitialEntity.PositionYIntial,
+                                        b.InitialEntity.WidthIntial,
+                                        b.InitialEntity.HeightIntial
+                                    ),
+                                b.FechaSigner is null
+                                    ? null
+                                    : new DateStampDto(
+                                        b.FechaSigner.FechaValue,
+                                        b.FechaSigner.PositionXFechaSigner,
+                                        b.FechaSigner.PositionYFechaSigner,
+                                        b.FechaSigner.WidthFechaSigner,
+                                        b.FechaSigner.HeightFechaSigner
+                                    )
                             ))
                         )
                         .ToList();
