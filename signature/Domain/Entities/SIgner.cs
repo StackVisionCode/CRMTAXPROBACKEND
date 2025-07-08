@@ -71,5 +71,9 @@ public class Signer : BaseEntity
         ConsentButtonText = consentButton;
         Status = SignerStatus.Signed;
         UpdatedAt = DateTime.UtcNow;
+
+        // ─── Marcar cada SignatureBox ──────────────────────
+        foreach (var box in _boxes)
+            box.UpdatedAt = DateTime.UtcNow; // 1 sola línea
     }
 }

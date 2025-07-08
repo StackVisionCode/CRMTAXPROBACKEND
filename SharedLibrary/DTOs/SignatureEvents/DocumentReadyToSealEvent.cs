@@ -29,7 +29,7 @@ public sealed record SignedImageDto(
     float PosY,
     float Width,
     float Height,
-    string ImageBase64,
+    string? ImageBase64,
     string Thumbprint, // del cert. personal
     DateTime SignedAtUtc,
     string ClientIp,

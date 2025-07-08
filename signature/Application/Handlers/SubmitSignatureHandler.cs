@@ -105,7 +105,9 @@ namespace signature.Application.Handlers
                                 b.PositionY,
                                 b.Width,
                                 b.Height,
-                                s.SignatureImage!,
+                                (b.InitialEntity is null && b.FechaSigner is null)
+                                    ? s.SignatureImage
+                                    : null,
                                 s.Certificate!.Thumbprint,
                                 s.SignedAtUtc!.Value,
                                 s.ClientIp ?? string.Empty,

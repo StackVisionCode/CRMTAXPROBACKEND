@@ -164,11 +164,15 @@ namespace signature.Migrations
 
                     b.OwnsMany("Domain.Entities.SignatureBox", "Boxes", b1 =>
                         {
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("int");
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("Id");
 
-                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
+                            b1.Property<DateTime>("CreatedAt")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<DateTime?>("DeleteAt")
+                                .HasColumnType("datetime2");
 
                             b1.Property<double>("Height")
                                 .HasColumnType("float");
@@ -185,6 +189,9 @@ namespace signature.Migrations
                             b1.Property<Guid>("SignerId")
                                 .HasColumnType("uniqueidentifier");
 
+                            b1.Property<DateTime?>("UpdatedAt")
+                                .HasColumnType("datetime2");
+
                             b1.Property<double>("Width")
                                 .HasColumnType("float");
 
@@ -199,8 +206,8 @@ namespace signature.Migrations
 
                             b1.OwnsOne("Domain.Entities.IntialEntity", "InitialEntity", b2 =>
                                 {
-                                    b2.Property<int>("SignatureBoxId")
-                                        .HasColumnType("int");
+                                    b2.Property<Guid>("SignatureBoxId")
+                                        .HasColumnType("uniqueidentifier");
 
                                     b2.Property<double>("HeightIntial")
                                         .HasColumnType("float")
@@ -234,8 +241,8 @@ namespace signature.Migrations
 
                             b1.OwnsOne("FechaSigner", "FechaSigner", b2 =>
                                 {
-                                    b2.Property<int>("SignatureBoxId")
-                                        .HasColumnType("int");
+                                    b2.Property<Guid>("SignatureBoxId")
+                                        .HasColumnType("uniqueidentifier");
 
                                     b2.Property<string>("FechaValue")
                                         .IsRequired()

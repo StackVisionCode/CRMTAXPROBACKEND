@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace signature.Migrations
 {
     /// <inheritdoc />
-    public partial class SignatureChanged : Migration
+    public partial class AddAuditingToSignatureBoxes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -69,8 +69,7 @@ namespace signature.Migrations
                 name: "SignatureBoxes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     PageNumber = table.Column<int>(type: "int", nullable: false),
                     PositionX = table.Column<double>(type: "float", nullable: false),
                     PositionY = table.Column<double>(type: "float", nullable: false),
@@ -86,7 +85,10 @@ namespace signature.Migrations
                     HeightFechaSigner = table.Column<double>(type: "float", nullable: true),
                     PositionXFechaSigner = table.Column<double>(type: "float", nullable: true),
                     PositionYFechaSigner = table.Column<double>(type: "float", nullable: true),
-                    SignerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    SignerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeleteAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {

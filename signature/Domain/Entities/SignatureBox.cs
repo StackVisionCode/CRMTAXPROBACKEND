@@ -1,6 +1,8 @@
+using Application.Helpers;
+
 namespace Domain.Entities;
 
-public class SignatureBox
+public class SignatureBox : BaseEntity
 {
     // ①  Propiedades escalares ---------------------------
     public int PageNumber { get; private set; }
@@ -25,6 +27,8 @@ public class SignatureBox
         FechaSigner? fechaSigner = null
     )
     {
+        Id = Guid.NewGuid();
+        CreatedAt = DateTime.UtcNow;
         PageNumber = pageNumber;
         PositionX = posX;
         PositionY = posY;

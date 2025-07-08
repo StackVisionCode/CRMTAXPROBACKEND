@@ -57,8 +57,8 @@ public class SignatureDbContext : DbContext
                 box.ToTable("SignatureBoxes");
                 box.WithOwner().HasForeignKey("SignerId");
 
-                box.Property<int>("Id"); // PK sombra
-                box.HasKey("Id");
+                box.HasKey(b => b.Id);
+                box.Property(b => b.Id).HasColumnName("Id").ValueGeneratedNever();
 
                 box.Property(p => p.PageNumber);
                 box.Property(p => p.PositionX).HasColumnType("float");
