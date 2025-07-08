@@ -1,12 +1,12 @@
 using System.Security.Cryptography.X509Certificates;
-using Entities;
+using Domain.Entities;
 using iText.IO.Image;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
 
 public class PdfService : IPdfService
 {
-    public  byte[] EmbedImagesAndSignAsync(
+    public byte[] EmbedImagesAndSignAsync(
         byte[] pdf,
         IEnumerable<Signer> signers,
         X509Certificate2 platformCert

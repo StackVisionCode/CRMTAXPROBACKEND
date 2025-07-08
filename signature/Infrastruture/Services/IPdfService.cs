@@ -1,5 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
-using Entities;
+using Domain.Entities;
 
 public interface IPdfService
 {

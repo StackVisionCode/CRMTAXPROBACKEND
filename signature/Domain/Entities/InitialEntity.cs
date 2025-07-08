@@ -1,3 +1,5 @@
+namespace Domain.Entities;
+
 public record IntialEntity(
     string InitalValue,
     float WidthIntial,

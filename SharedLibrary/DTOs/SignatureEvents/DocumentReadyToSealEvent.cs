@@ -8,7 +8,20 @@ public sealed record DocumentReadyToSealEvent(
     IReadOnlyList<SignedImageDto> Signatures // ← TODA la info necesaria
 ) : IntegrationEvent(Id, OccurredOn);
 
+/// <summary>Stamp opcional con iniciales («AC»)</summary>
+public sealed record InitialStampDto(
+    string Text,
+    float PosX,
+    float PosY,
+    float Width,
+    float Height
+);
+
+/// <summary>Stamp opcional con la fecha («2024-07-07»)</summary>
+public sealed record DateStampDto(string Text, float PosX, float PosY, float Width, float Height);
+
 public sealed record SignedImageDto(
+    Guid CustomerId,
     Guid SignerId,
     string SignerEmail,
     int Page,
@@ -16,10 +29,12 @@ public sealed record SignedImageDto(
     float PosY,
     float Width,
     float Height,
-    string ImageBase64,
+    string? ImageBase64,
     string Thumbprint, // del cert. personal
     DateTime SignedAtUtc,
     string ClientIp,
     string UserAgent,
-    DateTime ConsentAgreedAtUtc
+    DateTime ConsentAgreedAtUtc,
+    InitialStampDto? InitialStamp,
+    DateStampDto? DateStamp
 );

@@ -1,8 +1,11 @@
-using Entities;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Context;
 
+/// <summary>
+///  DbContext principal del micro-servicio «signature»
+/// </summary>
 public class SignatureDbContext : DbContext
 {
     public SignatureDbContext(DbContextOptions<SignatureDbContext> o)
@@ -13,86 +16,100 @@ public class SignatureDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
-        mb.Entity<SignatureRequest>(b =>
+        /* ─────────────── SignatureRequest ─────────────── */
+        mb.Entity<SignatureRequest>(builder =>
         {
-            b.ToTable("SignatureRequests");
-            b.HasKey(x => x.Id);
-            b.Property(x => x.Status).HasConversion<string>().HasMaxLength(15);
-            b.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
+            builder.ToTable("SignatureRequests");
+            builder.HasKey(x => x.Id);
+
+            builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(15);
+
+            builder.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
         });
 
-        mb.Entity<Signer>(b =>
-        {
-            b.ToTable("Signers");
-            b.HasKey(x => x.Id);
+        /* ──────────────────── Signer ──────────────────── */
+        var signer = mb.Entity<Signer>();
+        signer.ToTable("Signers");
+        signer.HasKey(x => x.Id);
 
-            b.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
-            b.Property(x => x.CustomerId).IsRequired(false);
+        signer.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
 
-            // *** INICIO DE LA CORRECCIÓN ***
-            // Especificar explícitamente que SignatureImage debe ser de longitud máxima.
-            // Esto se traduce a NVARCHAR(MAX) en SQL Server.
-            b.Property(x => x.SignatureImage).HasColumnType("varchar(max)");
-            // *** FIN DE LA CORRECCIÓN ***
+        signer.Property(x => x.CustomerId).IsRequired(false);
+        signer.Property(x => x.SignatureImage).HasColumnType("varchar(max)");
 
-            // Value-object mapeado en columnas propias
-            b.OwnsOne(
-                x => x.Certificate,
-                c =>
-                {
-                    c.Property(p => p.Thumbprint).HasColumnName("CertThumbprint").HasMaxLength(64);
-                    c.Property(p => p.Subject).HasColumnName("CertSubject").HasMaxLength(256);
-                    c.Property(p => p.NotBefore).HasColumnName("CertNotBefore");
-                    c.Property(p => p.NotAfter).HasColumnName("CertNotAfter");
-                }
-            );
+        /* value-object DigitalCertificate (propiedades sueltas) */
+        signer.OwnsOne(
+            s => s.Certificate,
+            cert =>
+            {
+                cert.Property(p => p.Thumbprint).HasColumnName("CertThumbprint").HasMaxLength(64);
+                cert.Property(p => p.Subject).HasColumnName("CertSubject").HasMaxLength(256);
+                cert.Property(p => p.NotBefore).HasColumnName("CertNotBefore");
+                cert.Property(p => p.NotAfter).HasColumnName("CertNotAfter");
+            }
+        );
 
-            // He movido las propiedades de posición fuera del OwnsOne del certificado,
-            // ya que parecen pertenecer directamente al Signer.
-            b.Property(x => x.PositionX).HasColumnType("float");
-            b.Property(x => x.PositionY).HasColumnType("float");
+        /* ----- SignatureBox (OwnsMany) ------------------ */
+        signer.OwnsMany(
+            s => s.Boxes,
+            box =>
+            {
+                box.ToTable("SignatureBoxes");
+                box.WithOwner().HasForeignKey("SignerId");
 
-            // Value-object mapeado en columnas propias
-            b.OwnsOne(
-                I => I.InitialEntity,
-                d =>
-                {
-                    d.Property(p => p.InitalValue).HasColumnName("InitialValue").HasMaxLength(4);
-                    d.Property(p => p.WidthIntial)
-                        .HasColumnName("WidthIntial")
-                        .HasColumnType("float");
-                    d.Property(p => p.HeightIntial)
-                        .HasColumnName("HeightIntial")
-                        .HasColumnType("float");
-                    d.Property(p => p.PositionXIntial)
-                        .HasColumnName("PositionXIntial")
-                        .HasColumnType("float");
-                    d.Property(p => p.PositionYIntial)
-                        .HasColumnName("PositionYIntial")
-                        .HasColumnType("float");
-                }
-            );
+                box.HasKey(b => b.Id);
+                box.Property(b => b.Id).HasColumnName("Id").ValueGeneratedNever();
 
-            // Value-object mapeado en columnas propias
-            b.OwnsOne(
-                f => f.FechaSigner,
-                e =>
-                {
-                    e.Property(p => p.FechaValue).HasColumnName("FechaValue");
-                    e.Property(p => p.WidthFechaSigner)
-                        .HasColumnName("WidthFechaSigner")
-                        .HasColumnType("float");
-                    e.Property(p => p.HeightFechaSigner)
-                        .HasColumnName("HeightFechaSigner")
-                        .HasColumnType("float");
-                    e.Property(p => p.PositionXFechaSigner)
-                        .HasColumnName("PositionXFechaSigner")
-                        .HasColumnType("float");
-                    e.Property(p => p.PositionYFechaSigner)
-                        .HasColumnName("PositionYFechaSigner")
-                        .HasColumnType("float");
-                }
-            );
-        });
+                box.Property(p => p.PageNumber);
+                box.Property(p => p.PositionX).HasColumnType("float");
+                box.Property(p => p.PositionY).HasColumnType("float");
+                box.Property(p => p.Width).HasColumnType("float");
+                box.Property(p => p.Height).HasColumnType("float");
+
+                /* ------ InitialEntity dentro de la caja ------ */
+                box.OwnsOne(
+                    p => p.InitialEntity,
+                    ie =>
+                    {
+                        ie.Property(q => q.InitalValue)
+                            .HasColumnName("InitialValue")
+                            .HasMaxLength(4);
+                        ie.Property(q => q.WidthIntial)
+                            .HasColumnName("WidthIntial")
+                            .HasColumnType("float");
+                        ie.Property(q => q.HeightIntial)
+                            .HasColumnName("HeightIntial")
+                            .HasColumnType("float");
+                        ie.Property(q => q.PositionXIntial)
+                            .HasColumnName("PositionXIntial")
+                            .HasColumnType("float");
+                        ie.Property(q => q.PositionYIntial)
+                            .HasColumnName("PositionYIntial")
+                            .HasColumnType("float");
+                    }
+                );
+
+                /* ------ FechaSigner dentro de la caja -------- */
+                box.OwnsOne(
+                    p => p.FechaSigner,
+                    fs =>
+                    {
+                        fs.Property(q => q.FechaValue).HasColumnName("FechaValue");
+                        fs.Property(q => q.WidthFechaSigner)
+                            .HasColumnName("WidthFechaSigner")
+                            .HasColumnType("float");
+                        fs.Property(q => q.HeightFechaSigner)
+                            .HasColumnName("HeightFechaSigner")
+                            .HasColumnType("float");
+                        fs.Property(q => q.PositionXFechaSigner)
+                            .HasColumnName("PositionXFechaSigner")
+                            .HasColumnType("float");
+                        fs.Property(q => q.PositionYFechaSigner)
+                            .HasColumnName("PositionYFechaSigner")
+                            .HasColumnType("float");
+                    }
+                );
+            }
+        );
     }
 }

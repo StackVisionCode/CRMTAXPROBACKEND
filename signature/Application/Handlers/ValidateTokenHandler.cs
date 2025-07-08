@@ -9,6 +9,7 @@ using SharedLibrary.Contracts;
 using SharedLibrary.Contracts.Security;
 using SharedLibrary.DTOs.SignatureEvents;
 using signature.Application.DTOs;
+using Signature.Application.DTOs;
 using signature.Infrastruture.Queries;
 
 namespace signature.Application.Handlers;
@@ -121,21 +122,45 @@ public class ValidateTokenHandler
             DocumentId = req.DocumentId,
             DocumentAccessToken = documentAccessToken,
             SessionId = sessionId,
+            RequestStatus = req.Status,
+            /* nuevo mapeo */
             Signer = new SignerInfoDto
             {
                 CustomerId = signer.CustomerId,
-                Email = signer.Email ?? string.Empty,
+                Email = signer.Email!,
                 Order = signer.Order,
-                Page = signer.PageNumber,
-                PosX = signer.PositionX,
-                PosY = signer.PositionY,
-                Width = signer.Width,
-                Height = signer.Height,
                 Status = signer.Status,
-                InitialEntity = _mapper.Map<InitialEntityDto>(signer.InitialEntity),
-                FechaSigner = _mapper.Map<FechaSignerDto>(signer.FechaSigner),
+                Boxes = signer
+                    .Boxes.Select(b => new SignatureBoxDto
+                    {
+                        Page = b.PageNumber,
+                        PosX = b.PositionX,
+                        PosY = b.PositionY,
+                        Width = b.Width,
+                        Height = b.Height,
+                        InitialEntity = b.InitialEntity is null
+                            ? null
+                            : new InitialEntityDto
+                            {
+                                InitalValue = b.InitialEntity.InitalValue,
+                                PositionXIntial = b.InitialEntity.PositionXIntial,
+                                PositionYIntial = b.InitialEntity.PositionYIntial,
+                                WidthIntial = b.InitialEntity.WidthIntial,
+                                HeightIntial = b.InitialEntity.HeightIntial,
+                            },
+                        FechaSigner = b.FechaSigner is null
+                            ? null
+                            : new FechaSignerDto
+                            {
+                                FechaValue = b.FechaSigner.FechaValue,
+                                PositionXFechaSigner = b.FechaSigner.PositionXFechaSigner,
+                                PositionYFechaSigner = b.FechaSigner.PositionYFechaSigner,
+                                WidthFechaSigner = b.FechaSigner.WidthFechaSigner,
+                                HeightFechaSigner = b.FechaSigner.HeightFechaSigner,
+                            },
+                    })
+                    .ToList(),
             },
-            RequestStatus = req.Status,
         };
 
         return new(true, "Token válido", dto);

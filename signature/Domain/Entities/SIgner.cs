@@ -1,88 +1,79 @@
 using Application.Helpers;
 
-namespace Entities;
+namespace Domain.Entities;
 
 public class Signer : BaseEntity
 {
     public Guid? CustomerId { get; private set; }
-    public string? Email { get; private set; }
+    public string Email { get; private set; } = default!;
     public int Order { get; private set; }
     public SignerStatus Status { get; private set; }
+
+    // Resultado de la firma
     public string? SignatureImage { get; private set; } // base64
     public DigitalCertificate? Certificate { get; private set; }
-    public IntialEntity? InitialEntity { get; private set; }
-    public FechaSigner? FechaSigner { get; private set; }
-    public Guid SignatureRequestId { get; private set; }
-    public int PageNumber { get; private set; } // desde 1
-
-    public float Width { get; private set; } // en puntos PDF
-    public float Height { get; private set; } // en puntos PDF
-    public float PositionX { get; private set; } // en puntos PDF
-    public float PositionY { get; private set; }
-    public string? Token { get; private set; }
     public DateTime? SignedAtUtc { get; private set; }
     public string? ClientIp { get; private set; }
     public string? UserAgent { get; private set; }
     public DateTime? ConsentAgreedAtUtc { get; private set; }
+    public string? ConsentText { get; private set; }
+    public bool? ConsentButtonText { get; private set; }
 
-    private Signer() { } // EF
+    public Guid SignatureRequestId { get; private set; }
+    public string Token { get; private set; } = default!;
+
+    // --------------  cajas de firma (1-N) --------------
+    private readonly List<SignatureBox> _boxes = new();
+    public IReadOnlyCollection<SignatureBox> Boxes => _boxes.AsReadOnly();
+
+    private Signer() { } // ←  requerido por EF
 
     public Signer(
         Guid signerId,
-        Guid? custId,
+        Guid? customerId,
         string email,
         int order,
-        Guid reqId,
-        int page,
-        float width,
-        float height,
-        float x,
-        float y,
-        IntialEntity? initialEntity,
-        FechaSigner? fechaSigner,
-        string token,
-        DateTime? signedAtUtc = null,
-        string? clientIp = null,
-        string? userAgent = null,
-        DateTime? consentAgreedAtUtc = null
+        Guid requestId,
+        string token
     )
     {
         Id = signerId;
-        CustomerId = custId;
+        CustomerId = customerId;
         Email = email;
         Order = order;
-        PageNumber = page;
-        Width = width;
-        Height = height;
-        PositionX = x;
-        PositionY = y;
-        InitialEntity = initialEntity;
-        FechaSigner = fechaSigner;
+        SignatureRequestId = requestId;
         Token = token;
         Status = SignerStatus.Pending;
-        SignatureRequestId = reqId;
         CreatedAt = DateTime.UtcNow;
-        SignedAtUtc = signedAtUtc;
-        ClientIp = clientIp;
-        UserAgent = userAgent;
-        ConsentAgreedAtUtc = consentAgreedAtUtc;
     }
 
+    public void AddBoxes(IEnumerable<SignatureBox> boxes) => _boxes.AddRange(boxes);
+
+    // ---------------- resultado de la firma ----------------
     internal void MarkSigned(
-        string img,
+        string imageB64,
         DigitalCertificate cert,
         DateTime signedUtc,
         string ip,
         string ua,
-        DateTime consentAgreedAtUtc
+        DateTime consentUtc,
+        string? consentText,
+        bool? consentButton
     )
     {
-        SignatureImage = img;
+        SignatureImage = imageB64;
         Certificate = cert;
         SignedAtUtc = signedUtc;
         ClientIp = ip;
         UserAgent = ua;
+        ConsentAgreedAtUtc = consentUtc;
+        ConsentText = consentText;
+        ConsentButtonText = consentButton;
         Status = SignerStatus.Signed;
-        ConsentAgreedAtUtc = consentAgreedAtUtc;
+        UpdatedAt = DateTime.UtcNow;
+
+        // ─── Marcar cada SignatureBox ──────────────────────
+        foreach (var box in _boxes)
+            box.UpdatedAt = DateTime.UtcNow; // 1 sola línea
     }
 }

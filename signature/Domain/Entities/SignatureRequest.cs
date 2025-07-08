@@ -1,56 +1,27 @@
 using Application.Helpers;
-using Entities;
+
+namespace Domain.Entities;
 
 public class SignatureRequest : BaseEntity
 {
     private readonly List<Signer> _signers = [];
     public IReadOnlyCollection<Signer> Signers => _signers.AsReadOnly();
 
-    public Guid DocumentId { get; set; }
+    public Guid DocumentId { get; private set; }
+    public SignatureStatus Status { get; private set; }
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
-    public SignatureStatus Status { get; set; }
 
-    private SignatureRequest() { }
+    private SignatureRequest() { } // EF
 
-    public SignatureRequest(Guid documentId, Guid Id)
+    public SignatureRequest(Guid documentId, Guid id)
     {
-        this.Id = Id;
+        Id = id;
         DocumentId = documentId;
         Status = SignatureStatus.Pending;
         CreatedAt = DateTime.UtcNow;
     }
 
-    public void AddSigner(
-        Guid signerId,
-        Guid? custId,
-        string email,
-        int order,
-        int page,
-        float x,
-        float y,
-        float width,
-        float height,
-        IntialEntity? initialEntity,
-        FechaSigner? fechaSigner,
-        string token
-    ) =>
-        _signers.Add(
-            new Signer(
-                signerId,
-                custId,
-                email,
-                order,
-                Id,
-                page,
-                width,
-                height,
-                x,
-                y,
-                initialEntity,
-                fechaSigner,
-                token
-            )
-        );
+    public void AttachSigner(Signer signer) => _signers.Add(signer);
 
     public void ReceiveSignature(
         Guid signerId,
@@ -59,17 +30,19 @@ public class SignatureRequest : BaseEntity
         DateTime signedAtUtc,
         string ip,
         string ua,
-        DateTime consentAgreedAtUtc
+        DateTime consentUtc,
+        string? consentText,
+        bool? consentButton
     )
     {
         var s = _signers.Single(x => x.Id == signerId);
-        s.MarkSigned(img, cert, signedAtUtc, ip, ua, consentAgreedAtUtc);
+        s.MarkSigned(img, cert, signedAtUtc, ip, ua, consentUtc, consentText, consentButton);
 
         if (_signers.All(x => x.Status == SignerStatus.Signed))
-            Status = SignatureStatus.Completed;
+            MarkCompleted();
     }
 
-    public void MarkCompleted()
+    private void MarkCompleted()
     {
         Status = SignatureStatus.Completed;
         UpdatedAt = DateTime.UtcNow;
