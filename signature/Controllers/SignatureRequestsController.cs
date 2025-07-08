@@ -1,4 +1,4 @@
-using Application.Helpers;
+using Infrastruture.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using signature.Application.DTOs;
@@ -31,6 +31,30 @@ public class SignatureRequestsController : ControllerBase
     public async Task<ActionResult> ValidateToken(string token)
     {
         var result = await _mediator.Send(new ValidateTokenQuery(token));
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult> GetAll()
+    {
+        var command = new GetSignatureRequestsQuery();
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult> GetById(Guid id)
+    {
+        var command = new GetSignatureRequestDetailQuery(id);
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/signers")]
+    public async Task<ActionResult> GetSignersByRequestId(Guid id)
+    {
+        var command = new GetSignersByRequestQuery(id);
+        var result = await _mediator.Send(command);
         return Ok(result);
     }
 

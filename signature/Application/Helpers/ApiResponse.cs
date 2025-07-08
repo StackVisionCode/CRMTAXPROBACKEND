@@ -29,4 +29,32 @@ public class ApiResponse<T>
     {
         Success = success;
     }
+
+    // Constructor adicional para solo mensaje de error
+    public ApiResponse(string message)
+    {
+        Success = false;
+        Message = message;
+    }
+
+    // Métodos estáticos para crear instancias de manera conveniente
+    public static ApiResponse<T> Ok(T data)
+    {
+        return new ApiResponse<T>(true, null!, data);
+    }
+
+    public static ApiResponse<T> Ok(T data, string message)
+    {
+        return new ApiResponse<T>(true, message, data);
+    }
+
+    public static ApiResponse<T> Fail(string message)
+    {
+        return new ApiResponse<T>(false, message);
+    }
+
+    public static ApiResponse<T> Fail(string message, T data)
+    {
+        return new ApiResponse<T>(false, message, data);
+    }
 }
