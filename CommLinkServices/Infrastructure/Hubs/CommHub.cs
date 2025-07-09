@@ -1,10 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace CommLinkServices.Infrastructure.Hubs;
 
-// [Authorize]
+[Authorize]
 public class CommHub : Hub
 {
+    private readonly ILogger<CommHub> _logger;
+
+    public CommHub(ILogger<CommHub> logger)
+    {
+        _logger = logger;
+    }
+
+    public override async Task OnConnectedAsync()
+    {
+        _logger.LogInformation("WS OK: {Conn}", Context.ConnectionId);
+        _logger.LogInformation("Authenticated? {Auth}", Context.User?.Identity?.IsAuthenticated);
+        await base.OnConnectedAsync();
+    }
+
     public async Task JoinConversation(Guid conversationId) =>
         await Groups.AddToGroupAsync(Context.ConnectionId, $"convo-{conversationId}");
 

@@ -151,6 +151,26 @@
       "EnableWebSocket": true,
       "SwaggerKey": "commlinks",
       "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/realtime/negotiate",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5007
+        }
+      ],
+      "UpstreamPathTemplate": "/realtime/negotiate",
+      "UpstreamHttpMethod": [
+        "POST",
+        "OPTIONS"
+      ],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "SwaggerKey": "commlinks",
+      "Priority": 1
     }
   ]
 }

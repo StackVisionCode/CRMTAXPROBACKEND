@@ -42,6 +42,27 @@ try
             {
                 var cfg = builder.Configuration.GetSection("JwtSettings");
                 opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+                opts.MapInboundClaims = false; // Mantener esto si es necesario
+
+                // **Añadir esto para SignalR**
+                opts.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+
+                        // If the request is for our hub...
+                        var path = context.HttpContext.Request.Path;
+                        if (
+                            !string.IsNullOrEmpty(accessToken)
+                            && path.StartsWithSegments("/realtime")
+                        ) // Asegúrate de que coincida con tu ruta de SignalR
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
+                };
             }
         );
 
