@@ -142,7 +142,7 @@ try
     var objetoConexion = new ConnectionApp();
 
     var connectionString =
-        $"Server={objetoConexion.Server};Database=RealTimeDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+        $"Server={objetoConexion.Server};Database=RealTimeDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;Connect Timeout=60";
 
     builder.WebHost.ConfigureKestrel(k =>
     {
@@ -153,7 +153,10 @@ try
     // Configurar DbContext
     builder.Services.AddDbContext<CommLinkDbContext>(options =>
     {
-        options.UseSqlServer(connectionString);
+        options.UseSqlServer(
+            connectionString,
+            sql => sql.EnableRetryOnFailure().CommandTimeout(60)
+        );
     });
 
     // Register consumers by RabbitMQ

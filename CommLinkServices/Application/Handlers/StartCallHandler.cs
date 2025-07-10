@@ -38,15 +38,42 @@ public class StartCallHandler : IRequestHandler<StartCallCommand, ApiResponse<Gu
         if (!Enum.TryParse<CallType>(request.Payload.CallType, true, out var parsed))
             return new(false, "CallType must be either 'Voice' or 'Video'");
 
-        var inProgress = await _db
+        // --- LÓGICA DE AUTOCURACIÓN ---
+        // Busca si hay una llamada activa en la conversación.
+        var inProgressCall = await _db
             .Calls.Where(c => c.ConversationId == request.ConversationId && c.EndedAt == null)
             .FirstOrDefaultAsync(ct);
 
-        if (inProgress is not null)
-            return new(false, "Ya existe una llamada activa.", inProgress.Id);
+        // Si existe una llamada "fantasma", la finalizamos.
+        if (inProgressCall is not null)
+        {
+            _logger.LogWarning(
+                "Found a stale call {CallId} for conversation {ConvId}. Automatically ending it before starting a new one.",
+                inProgressCall.Id,
+                request.ConversationId
+            );
 
-        /* 2. Persistimos la llamada ---------------------------------------------------------- */
-        var call = new Call
+            inProgressCall.EndedAt = DateTime.UtcNow;
+            inProgressCall.UpdatedAt = DateTime.UtcNow;
+
+            // Notificar a los clientes que la llamada fantasma ha terminado, por si acaso.
+            await _hub
+                .Clients.Group($"convo-{request.ConversationId}")
+                .SendAsync(
+                    "CallEnded",
+                    new
+                    {
+                        Id = inProgressCall.Id,
+                        EndedAt = inProgressCall.EndedAt,
+                        Duration = 0,
+                    },
+                    ct
+                );
+        }
+        // --- FIN DE LA LÓGICA DE AUTOCURACIÓN ---
+
+        /* 2. Persistimos la NUEVA llamada ---------------------------------------------------------- */
+        var newCall = new Call
         {
             Id = Guid.NewGuid(),
             ConversationId = request.ConversationId,
@@ -56,57 +83,64 @@ public class StartCallHandler : IRequestHandler<StartCallCommand, ApiResponse<Gu
             CreatedAt = DateTime.UtcNow,
         };
 
-        await _db.Calls.AddAsync(call, ct);
-        await _db.SaveChangesAsync(ct);
+        await _db.Calls.AddAsync(newCall, ct);
+        await _db.SaveChangesAsync(ct); // Guardamos tanto la finalización de la antigua como la creación de la nueva.
 
         /* ─── 3. payload SignalR ─────────────────────────────────────────────── */
         var payload = new CallStartedDto(
-            call.Id,
-            call.ConversationId,
-            call.StarterId,
-            call.Type.ToString(),
-            call.StartedAt
+            newCall.Id,
+            newCall.ConversationId,
+            newCall.StarterId,
+            newCall.Type.ToString(),
+            newCall.StartedAt
         );
 
-        /* 4. Evento de dominio → RabbitMQ (opcional, lo mantenemos) -------------------------- */
+        /* 4. Evento de dominio → RabbitMQ ---------------------------------------------------- */
         _bus.Publish(
             new CallStartedEvent(
                 Guid.NewGuid(),
                 DateTime.UtcNow,
-                call.ConversationId,
-                call.Id,
-                call.StarterId,
-                call.Type.ToString()
+                newCall.ConversationId,
+                newCall.Id,
+                newCall.StarterId,
+                newCall.Type.ToString()
             )
         );
 
         /* ─── 5. broadcast ───────────────────────────────────────────────────── */
-        // A) grupo de la conversación (si alguien ya está dentro)
-        await _hub
-            .Clients.Group($"convo-{call.ConversationId}")
-            .SendAsync("CallStarted", payload, ct);
-
-        // B) grupos personales de los demás usuarios
         var convo = await _db
             .Conversations.AsNoTracking()
-            .FirstAsync(c => c.Id == call.ConversationId, ct);
+            .FirstOrDefaultAsync(c => c.Id == newCall.ConversationId, ct);
 
-        foreach (
-            var uid in new[] { convo.FirstUserId, convo.SecondUserId }.Where(u =>
-                u != call.StarterId
-            )
-        )
+        if (convo == null)
         {
-            await _hub.Clients.Group($"user-{uid}").SendAsync("CallStarted", payload, ct);
+            _logger.LogError(
+                "FATAL: Conversation {ConvId} not found after creating a call for it.",
+                newCall.ConversationId
+            );
+            return new(false, "Conversation not found, cannot notify participants.");
         }
+
+        var otherUserId = convo.Other(request.StarterId);
+
+        _logger.LogInformation(
+            "Broadcasting 'CallStarted' to conversation group 'convo-{ConvId}' and user group 'user-{UserId}'.",
+            newCall.ConversationId,
+            otherUserId
+        );
+
+        await _hub
+            .Clients.Group($"convo-{newCall.ConversationId}")
+            .SendAsync("CallStarted", payload, ct);
+        await _hub.Clients.Group($"user-{otherUserId}").SendAsync("CallStarted", payload, ct);
 
         _logger.LogInformation(
             "Call {CallId} started by {Starter} in conversation {Conv}",
-            call.Id,
-            call.StarterId,
-            call.ConversationId
+            newCall.Id,
+            newCall.StarterId,
+            newCall.ConversationId
         );
 
-        return new(true, "Call started", call.Id);
+        return new(true, "Call started", newCall.Id);
     }
 }
