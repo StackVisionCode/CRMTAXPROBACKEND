@@ -63,6 +63,7 @@ public class EndCallHandler : IRequestHandler<EndCallCommand, ApiResponse<CallEn
             }
 
             call.EndedAt = DateTime.UtcNow;
+            call.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(cancellationToken);
 
             int duration = (int)(call.EndedAt.Value - call.StartedAt).TotalSeconds;

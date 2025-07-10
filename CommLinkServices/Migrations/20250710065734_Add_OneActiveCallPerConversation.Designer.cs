@@ -4,6 +4,7 @@ using CommLinkServices.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CommLinkServices.Migrations
 {
     [DbContext(typeof(CommLinkDbContext))]
-    partial class CommLinkDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250710065734_Add_OneActiveCallPerConversation")]
+    partial class Add_OneActiveCallPerConversation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

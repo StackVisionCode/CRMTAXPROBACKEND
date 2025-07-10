@@ -2,6 +2,7 @@ using CommLinkServices.Application.Handlers.Integrations;
 using CommLinkServices.Infrastructure.Context;
 using CommLinkServices.Infrastructure.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -82,6 +83,9 @@ try
 
     // Add SignalR + back-plane a RabbitMQ
     builder.Services.AddRealtimeComm<CommHub>(builder.Configuration);
+
+    // registro del provider de UserId:
+    builder.Services.AddSingleton<IUserIdProvider, SubOrNameIdProvider>();
 
     builder.Services.AddControllers();
 

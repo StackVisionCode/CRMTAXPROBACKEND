@@ -15,9 +15,28 @@ public class CommHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        _logger.LogInformation("WS OK: {Conn}", Context.ConnectionId);
-        _logger.LogInformation("Authenticated? {Auth}", Context.User?.Identity?.IsAuthenticated);
+        // El “sub” del JWT: asegúrate de configurar UserIdProvider
+        var userId = Context.UserIdentifier;
+        if (userId is not null)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"user-{userId}");
+            _logger.LogInformation(
+                "Socket {Conn} joined personal group user-{User}",
+                Context.ConnectionId,
+                userId
+            );
+        }
+
         await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? ex)
+    {
+        var userId = Context.UserIdentifier;
+        if (userId is not null)
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user-{userId}");
+
+        await base.OnDisconnectedAsync(ex);
     }
 
     public async Task JoinConversation(Guid conversationId) =>

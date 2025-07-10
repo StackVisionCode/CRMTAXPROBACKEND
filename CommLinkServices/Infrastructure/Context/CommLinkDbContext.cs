@@ -25,5 +25,12 @@ public class CommLinkDbContext : DbContext
         modelBuilder.Entity<Message>().HasIndex(m => new { m.ConversationId, m.SentAt });
 
         modelBuilder.Entity<UserDirectory>().HasKey(us => us.UserId);
+
+        modelBuilder
+            .Entity<Call>()
+            .HasIndex(c => c.ConversationId)
+            .HasFilter("[EndedAt] IS NULL")
+            .IsUnique()
+            .HasDatabaseName("UX_Calls_OneActivePerConversation");
     }
 }
