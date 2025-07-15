@@ -68,7 +68,7 @@
       ]
     },
     {
-      "Key": "commlinks",
+      "Key": "commlink",
       "Config": [
         {
           "Name": "CommLink Service API",

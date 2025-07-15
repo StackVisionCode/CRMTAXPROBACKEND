@@ -69,10 +69,11 @@ try
     );
     var app = builder.Build();
 
+    app.UseCors("AllowAll");
+
     // Configure middleware pipeline
     app.UseSerilogRequestLogging();
 
-    app.UseCors("AllowAll");
     app.UseHttpsRedirection();
 
     app.UseAuthentication();

@@ -4,7 +4,6 @@ using CustomerService.Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 using SharedLibrary.DTOs.CustomerEventsDTO;
 
 namespace CustomerService.Handlers.ContactInfoHandlers;
@@ -55,17 +54,6 @@ public class DisableCustomerLoginHandler
                     cust.Id,
                     cust.Contact.Email,
                     $"{cust.FirstName} {cust.LastName}".Trim()
-                )
-            );
-
-            // Deshabilitar CommLink para cliente poder chatear
-            _bus.Publish(
-                new UserPresenceChangedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    cust.Id,
-                    "Customer", /* isLogin */
-                    false
                 )
             );
 

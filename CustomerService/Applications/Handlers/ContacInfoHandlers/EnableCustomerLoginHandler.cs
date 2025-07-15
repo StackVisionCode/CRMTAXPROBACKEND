@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Constants;
 using SharedLibrary.Contracts;
 using SharedLibrary.Contracts.Security;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 using SharedLibrary.DTOs.CustomerEventsDTO;
 using SharedLibrary.Services.Security;
 
@@ -97,17 +96,6 @@ public class EnableCustomerLoginHandler
                         cust.Contact.Email,
                         $"{cust.FirstName} {cust.LastName}".Trim(),
                         plain
-                    )
-                );
-
-                // Habilitar CommLink para cliente poder chatear
-                _bus.Publish(
-                    new UserPresenceChangedEvent(
-                        Guid.NewGuid(),
-                        DateTime.UtcNow,
-                        cust.Id,
-                        "Customer", /* isLogin */
-                        true
                     )
                 );
 

@@ -4,7 +4,6 @@ using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.SessionHandlers;
 
@@ -54,16 +53,6 @@ public class LogoutAllHandler : IRequestHandler<LogoutAllCommands, ApiResponse<b
             }
 
             await _context.SaveChangesAsync(cancellationToken);
-
-            _eventBus.Publish(
-                new UserPresenceChangedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    request.UserId,
-                    "TaxUser",
-                    false
-                )
-            );
 
             _logger.LogInformation(
                 "All sessions for user {UserId} have been revoked. Total sessions: {Count}",

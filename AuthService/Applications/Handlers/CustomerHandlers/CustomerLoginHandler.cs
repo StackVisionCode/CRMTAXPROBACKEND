@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.Contracts.Security;
 using SharedLibrary.DTOs;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.CustomerHandlers;
 
@@ -164,16 +163,6 @@ public class CustomerLoginHandler
 
             _db.CustomerSessions.Add(s);
             await _db.SaveChangesAsync(ct);
-
-            _bus.Publish(
-                new UserPresenceChangedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    data.CustomerId,
-                    "Customer",
-                    true
-                )
-            );
 
             var result = new LoginResponseDTO
             {
