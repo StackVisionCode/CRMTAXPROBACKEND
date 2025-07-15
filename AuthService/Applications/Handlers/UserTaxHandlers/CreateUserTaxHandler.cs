@@ -1,5 +1,4 @@
 using Applications.Common;
-using AuthService.Domains.Roles;
 using AuthService.Domains.Users;
 using AuthService.DTOs.UserDTOs;
 using AuthService.Infraestructure.Services;
@@ -11,7 +10,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.AuthEvents;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.UserTaxHandlers;
 
@@ -154,18 +152,6 @@ public class CreateUserTaxHandler : IRequestHandler<CreateTaxUserCommands, ApiRe
                         link,
                         expiration,
                         false
-                    )
-                );
-
-                // Notificar a CommLinkService que se creo que el usuario para los chats.
-                _eventBus.Publish(
-                    new UserCreatedEvent(
-                        Guid.NewGuid(),
-                        DateTime.UtcNow,
-                        userTax.Id,
-                        "TaxUser",
-                        $"{request.Usertax.Name} {request.Usertax.LastName}".Trim(),
-                        userTax.Email
                     )
                 );
 

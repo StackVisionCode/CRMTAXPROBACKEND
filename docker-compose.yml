@@ -23,6 +23,29 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     networks: [backend]
 
+  # --- Reddis --------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data 
+    networks: [backend]
+
+  # --- RedisInsight (Oficial) ------------------------------------------
+  redisinsight:
+    image: redislabs/redisinsight:1.14.0
+    container_name: redisinsight
+    ports:
+      - "8081:8001"
+    volumes:
+      - redisinsight_data:/db
+    depends_on: [redis]
+    restart: unless-stopped
+    networks: [backend]
+
   # --- API Gateway -----------------------------------------------------------
   apigateway:
     image: ${REGISTRY_PREFIX}-apigateway:${TAG}
@@ -126,6 +149,11 @@ services:
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
+
+# ────────────────────  volúmenes  ─────────────────────────
+volumes:
+  redisdata:
+  redisinsight_data:
 
 networks:
   backend:

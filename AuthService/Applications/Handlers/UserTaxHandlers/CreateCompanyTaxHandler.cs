@@ -14,7 +14,6 @@ using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 using SharedLibrary.DTOs.AuthEvents;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.UserTaxHandlers;
 
@@ -152,18 +151,6 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     request.Companytax.FullName,
                     request.Companytax.CompanyName,
                     request.Companytax.Domain
-                )
-            );
-
-            // Notificar a CommLinkService que se creo que el usuario para los chats.
-            _eventBus.Publish(
-                new UserCreatedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    MapToUser.Id,
-                    "TaxUser",
-                    $"{request.Companytax.CompanyName}".Trim(),
-                    MapToUser.Email
                 )
             );
 
