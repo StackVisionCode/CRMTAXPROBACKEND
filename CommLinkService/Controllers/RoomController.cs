@@ -68,6 +68,26 @@ public sealed class RoomController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("direct-between")]
+    public async Task<IActionResult> GetRoomBetween(
+        [FromQuery] string user1,
+        [FromQuery] string user2,
+        [FromQuery] RoomType? type /* opcional */
+    )
+    {
+        var caller = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var u1 = Guid.Parse(user1);
+        var u2 = Guid.Parse(user2);
+
+        if (caller != u1 && caller != u2)
+            return Forbid();
+
+        var dto = await _mediator.Send(new GetRoomBetweenUsersQuery(u1, u2, type));
+
+        // Mantener compatibilidad con front viejo
+        return Ok(dto); // dto puede ser null
+    }
+
     [HttpPost("{roomId}/join")]
     public async Task<IActionResult> JoinRoom(Guid roomId)
     {
