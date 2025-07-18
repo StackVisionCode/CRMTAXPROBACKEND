@@ -1,6 +1,0 @@
-@CommLinkServices_HostAddress = http://localhost:5266
-
-GET {{CommLinkServices_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

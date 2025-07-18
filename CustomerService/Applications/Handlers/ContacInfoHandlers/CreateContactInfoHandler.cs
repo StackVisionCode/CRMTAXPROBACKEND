@@ -6,7 +6,6 @@ using CustomerService.Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace CustomerService.Handlers.ContactInfoHandlers;
 
@@ -67,23 +66,15 @@ public class CreateContactInfoHandler
 
             if (result)
             {
-                // Rescatamos datos básicos del cliente para el display-name
-                var customer = await _dbContext
-                    .Customers.AsNoTracking()
-                    .FirstAsync(c => c.Id == contactInfo.CustomerId, cancellationToken);
-
-                _eventBus.Publish(
-                    new UserCreatedEvent(
-                        Guid.NewGuid(),
-                        DateTime.UtcNow,
-                        customer.Id, // ➜ UserId
-                        "Customer", // ➜ UserType
-                        $"{customer.FirstName} {customer.LastName}".Trim(),
-                        contactInfo.Email.Trim()
-                    )
+                var customer = await _dbContext.Customers.FirstOrDefaultAsync(
+                    c => c.Id == request.contactInfo.CustomerId,
+                    cancellationToken
                 );
 
-                _logger.LogInformation("UserCreatedEvent published for Customer {Id}", customer.Id);
+                _logger.LogInformation(
+                    "UserCreatedEvent published for Customer {Id}",
+                    customer?.Id
+                );
             }
 
             _logger.LogInformation("ContactInfo created successfully: {ContactInfo}", contactInfo);

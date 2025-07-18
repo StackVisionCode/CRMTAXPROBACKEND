@@ -4,7 +4,6 @@ using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
-using SharedLibrary.DTOs.CommEvents.IdentityEvents;
 
 namespace Handlers.SessionHandlers;
 
@@ -52,17 +51,6 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, ApiResponse<bool>>
             session.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
-
-            // Publicar evento de logout
-            _eventBus.Publish(
-                new UserPresenceChangedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    request.UserId,
-                    "TaxUser",
-                    false
-                )
-            );
 
             _logger.LogInformation(
                 "User {User} logged out. Session {Session} revoked",

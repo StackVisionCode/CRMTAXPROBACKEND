@@ -39,22 +39,51 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
                 from ur in urs.DefaultIfEmpty()
                 join r in _dbContext.Roles on ur.RoleId equals r.Id into rs
                 from r in rs.DefaultIfEmpty()
-                join p in _dbContext.TaxUserProfiles on u.Id equals p.TaxUserId
+                join p in _dbContext.TaxUserProfiles on u.Id equals p.TaxUserId into ps
+                from p in ps.DefaultIfEmpty()
+                join c in _dbContext.Companies on u.CompanyId equals c.Id into cs
+                from c in cs.DefaultIfEmpty()
 
-                group r by new
+                group new
+                {
+                    r,
+                    p,
+                    c,
+                } by new
                 {
                     u.Id,
                     u.CompanyId,
                     u.Email,
-                    FullName = p.Name + " " + p.LastName,
+                    u.Domain,
+                    Name = p != null ? p.Name : null,
+                    LastName = p != null ? p.LastName : null,
+                    Address = p != null ? p.Address : null,
+                    PhotoUrl = p != null ? p.PhotoUrl : null,
+                    Phone = p != null ? p.PhoneNumber : null,
+                    CompanyName = c != null ? c.CompanyName : null,
+                    CompanyBrand = c != null ? c.Brand : null,
                 } into g
                 select new UserGetDTO
                 {
                     Id = g.Key.Id,
                     CompanyId = g.Key.CompanyId,
                     Email = g.Key.Email,
-                    FullName = g.Key.FullName.Trim(),
-                    RoleNames = g.Where(r => r != null!).Select(r => r!.Name).Distinct().ToList(),
+                    Domain = g.Key.Domain,
+                    Name = g.Key.Name,
+                    LastName = g.Key.LastName,
+                    Address = g.Key.Address,
+                    PhotoUrl = g.Key.PhotoUrl,
+                    Phone = g.Key.Phone,
+                    CompanyName = g.Key.CompanyName,
+                    CompanyBrand = g.Key.CompanyBrand,
+                    FullName =
+                        g.Key.Name != null && g.Key.LastName != null
+                            ? (g.Key.Name + " " + g.Key.LastName).Trim()
+                            : (g.Key.Name ?? g.Key.LastName ?? "").Trim(),
+                    RoleNames = g.Where(x => x.r != null)
+                        .Select(x => x.r!.Name)
+                        .Distinct()
+                        .ToList(),
                 }
             ).FirstOrDefaultAsync(cancellationToken);
 
