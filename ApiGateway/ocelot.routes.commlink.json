@@ -47,6 +47,27 @@
             "SwaggerKey": "commlink"
         },
         {
+            "DownstreamPathTemplate": "/api/Room/direct-between",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/rooms/direct-between",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "SwaggerKey": "commlink"
+        },
+        {
             "DownstreamPathTemplate": "/api/Room/{roomId}/messages",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
