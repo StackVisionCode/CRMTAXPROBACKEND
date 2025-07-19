@@ -1,6 +1,7 @@
-using Application.Domain.Entity.Products;
+
 using Application.Dtos;
 using AutoMapper;
+using Domain.Entity.Products;
 namespace Application.Profiles;
 
 public class ProductProfile : Profile

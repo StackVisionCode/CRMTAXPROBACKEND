@@ -1,13 +1,13 @@
 
 using Application.Common;
-using Application.Domain.Entity.Products;
 using AutoMapper;
 using Infrastructure.Context;
 using Infrastructure.Querys.Templates;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Domain.Entity.Products;
 
-namespace Application.Handlers.Marketplace;
+
 
 public class GetAllProductsHandler : IRequestHandler<GetAllProductsQuery, ApiResponse<List<Product>>>
 {

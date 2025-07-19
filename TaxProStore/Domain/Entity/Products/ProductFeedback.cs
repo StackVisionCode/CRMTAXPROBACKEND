@@ -1,4 +1,3 @@
-using Application.Domain.Entity.Products;
 
 namespace Domain.Entity.Products;
 public class ProductFeedback

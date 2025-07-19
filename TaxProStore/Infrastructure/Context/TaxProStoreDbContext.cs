@@ -1,6 +1,4 @@
 namespace Infrastructure.Context;
-
-using Application.Domain.Entity.Products;
 using Application.Domain.Entity.Purchases;
 using Application.Domain.Entity.Templates;
 using Domain.Entity.Form;

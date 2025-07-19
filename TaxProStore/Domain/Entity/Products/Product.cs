@@ -1,8 +1,7 @@
 using Application.Common;
 using Application.Domain.Entity.Templates;
-using Domain.Entity.Products;
 
-namespace Application.Domain.Entity.Products;
+namespace Domain.Entity.Products;
 
 public class Product : BaseEntity
 {

@@ -1,6 +1,6 @@
 using Application.Common;
-using Application.Domain.Entity.Products;
 using AutoMapper;
+using Domain.Entity.Products;
 using Infrastructure.Command.Product;
 using Infrastructure.Context;
 using MediatR;

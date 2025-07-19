@@ -1,5 +1,5 @@
 using Application.Common;
-using Application.Domain.Entity.Products;
+using Domain.Entity.Products;
 
 namespace Application.Domain.Entity.Purchases;
 

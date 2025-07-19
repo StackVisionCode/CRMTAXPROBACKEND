@@ -1,6 +1,6 @@
 
 using Application.Common;
-using Application.Domain.Entity.Products;
+using Domain.Entity.Products;
 using MediatR;
 
 namespace Infrastructure.Querys.Templates;
