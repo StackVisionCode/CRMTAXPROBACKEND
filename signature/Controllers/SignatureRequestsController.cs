@@ -1,3 +1,4 @@
+using Application.DTOs;
 using Infrastruture.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -58,13 +59,42 @@ public class SignatureRequestsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost] // enviar firma
+    [HttpGet("layout/{token}")]
+    public async Task<ActionResult> GetLayout(string token)
+    {
+        var result = await _mediator.Send(new GetSigningLayoutQuery(token));
+        return Ok(result);
+    }
+
+    [HttpPost("consent")]
+    public async Task<ActionResult> RegisterConsent([FromBody] RegisterConsentDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var result = await _mediator.Send(new RegisterConsentCommand(dto));
+        if (result.Success == true)
+            return Ok(result);
+
+        return BadRequest(result);
+    }
+
+    [HttpPost]
     public async Task<ActionResult> Submit(SignDocumentDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var result = await _mediator.Send(new SubmitSignatureCommand(dto));
+        return Ok(result);
+    }
+
+    [HttpPost("reject")]
+    public async Task<ActionResult> Reject([FromBody] RejectSignatureDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+        var result = await _mediator.Send(new RejectSignatureCommand(dto));
         return Ok(result);
     }
 }

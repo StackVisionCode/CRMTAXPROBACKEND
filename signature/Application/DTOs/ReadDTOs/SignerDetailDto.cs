@@ -11,5 +11,8 @@ public class SignerDetailDto
     public SignerStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? SignedAtUtc { get; set; }
+    public string RejectedReason { get; set; } = string.Empty;
+    public DateTime? RejectedAtUtc { get; set; }
+    public string? FullName { get; set; }
     public IReadOnlyList<SignatureBoxReadDto> Boxes { get; set; } = new List<SignatureBoxReadDto>();
 }

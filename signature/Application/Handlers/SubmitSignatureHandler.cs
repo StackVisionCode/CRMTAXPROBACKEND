@@ -13,7 +13,6 @@ namespace signature.Application.Handlers
     {
         private readonly SignatureDbContext _db;
         private readonly ISignatureValidToken _tokenSvc;
-
         private readonly IEventBus _bus;
         private readonly ILogger<SubmitSignatureHandler> _log;
 
@@ -53,6 +52,12 @@ namespace signature.Application.Handlers
                 var signer = req.Signers.FirstOrDefault(x => x.Id == signerId);
                 if (signer == null)
                     return new ApiResponse<bool>(false, "Firmante no encontrado");
+
+                if (signer.ConsentAgreedAtUtc is null)
+                    return new(false, "Debe registrar el consentimiento antes de firmar.");
+
+                if (req.Status == SignatureStatus.Rejected)
+                    return new(false, "El proceso fue rechazado y no acepta firmas.");
 
                 if (signer.Status == SignerStatus.Signed)
                     return new ApiResponse<bool>(false, "Esta firma ya ha sido registrada");
@@ -145,8 +150,7 @@ namespace signature.Application.Handlers
                         )
                     );
                 }
-
-                if (hasPending)
+                else
                 {
                     var firstBox = signer.Boxes.First();
 
@@ -162,21 +166,8 @@ namespace signature.Application.Handlers
                             command.Payload.SignatureImageBase64,
                             firstBox.PositionX,
                             firstBox.PositionY,
-                            firstBox.PageNumber
-                        )
-                    );
-                }
-                else
-                {
-                    // Documento finalizado ⇒ correo “completamente firmado”
-                    var emails = req.Signers.Select(s => s.Email).ToList();
-                    _bus.Publish(
-                        new DocumentFullySignedEvent(
-                            Guid.NewGuid(),
-                            DateTime.UtcNow,
-                            req.Id,
-                            req.DocumentId,
-                            emails!
+                            firstBox.PageNumber,
+                            signer.FullName
                         )
                     );
                 }

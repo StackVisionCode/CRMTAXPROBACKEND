@@ -38,6 +38,9 @@ public class GetSignerDetailHandler
                 Status = signer.Status,
                 CreatedAt = signer.CreatedAt,
                 SignedAtUtc = signer.SignedAtUtc,
+                RejectedReason = signer.RejectReason ?? string.Empty,
+                RejectedAtUtc = signer.RejectedAtUtc,
+                FullName = signer.FullName,
                 Boxes = signer
                     .Boxes.Select(b => new SignatureBoxReadDto
                     {

@@ -64,7 +64,8 @@ public sealed class CreateSignatureRequestHandler
                 sDto.Email,
                 sDto.Order,
                 req.Id,
-                token
+                token,
+                sDto.FullName
             );
 
             signer.AddBoxes(_mapper.Map<IEnumerable<SignatureBox>>(sDto.Boxes));
@@ -82,7 +83,8 @@ public sealed class CreateSignatureRequestHandler
                     signerId, // sub
                     sDto.Email,
                     $"{baseUrl}/customer-signature?token={token}",
-                    exp
+                    exp,
+                    sDto.FullName
                 )
             );
         }

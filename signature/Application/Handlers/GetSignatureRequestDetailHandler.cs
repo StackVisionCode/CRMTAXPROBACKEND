@@ -37,6 +37,9 @@ public class GetSignatureRequestDetailHandler
                 r.Status,
                 r.CreatedAt,
                 r.UpdatedAt,
+                r.RejectedAtUtc,
+                r.RejectReason,
+                r.RejectedBySignerId,
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -60,6 +63,8 @@ public class GetSignatureRequestDetailHandler
                 Status = s.Status,
                 CreatedAt = s.CreatedAt,
                 SignedAtUtc = s.SignedAtUtc,
+                RejectedReason = s.RejectReason ?? string.Empty,
+                RejectedAtUtc = s.RejectedAtUtc,
             })
             .ToListAsync(cancellationToken);
 
@@ -77,6 +82,9 @@ public class GetSignatureRequestDetailHandler
             CreatedAt = header.CreatedAt,
             UpdatedAt = header.UpdatedAt,
             Signers = signers,
+            RejectedAtUtc = header.RejectedAtUtc,
+            RejectReason = header.RejectReason,
+            RejectedBySignerId = header.RejectedBySignerId,
         };
 
         _logger.LogInformation(

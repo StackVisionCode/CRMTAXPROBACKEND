@@ -22,6 +22,7 @@ public sealed class PartiallySignedHandler : IIntegrationEventHandler<DocumentPa
                 SignerEmail = e.SignerEmail,
                 DocumentId = e.DocumentId,
                 Year = DateTime.UtcNow.Year,
+                FullName = e.FullName,
             },
             Subject: "Tu firma ha sido registrada",
             To: e.SignerEmail,

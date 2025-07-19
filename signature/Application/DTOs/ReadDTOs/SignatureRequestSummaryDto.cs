@@ -12,4 +12,8 @@ public class SignatureRequestSummaryDto
     public DateTime? UpdatedAt { get; set; }
     public int SignerCount { get; set; }
     public int SignedCount { get; set; }
+    public DateTime? RejectedAtUtc { get; set; }
+    public string? RejectReason { get; set; }
+    public Guid? RejectedBySignerId { get; set; }
+    public bool IsRejected => Status == SignatureStatus.Rejected;
 }

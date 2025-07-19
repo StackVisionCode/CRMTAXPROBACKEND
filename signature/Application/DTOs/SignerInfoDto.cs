@@ -14,6 +14,9 @@ public class SignerInfoDto
     public int Order { get; set; }
     public SignerStatus Status { get; set; }
 
+    [MaxLength(150)]
+    public string? FullName { get; set; }
+
     [MinLength(1, ErrorMessage = "Se requiere al menos una posición de firma")]
     public required IReadOnlyList<SignatureBoxDto> Boxes { get; set; } = [];
 }

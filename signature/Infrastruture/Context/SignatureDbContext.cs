@@ -21,21 +21,20 @@ public class SignatureDbContext : DbContext
         {
             builder.ToTable("SignatureRequests");
             builder.HasKey(x => x.Id);
-
             builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(15);
-
             builder.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
+            builder.Property(x => x.RejectReason).HasMaxLength(500);
         });
 
         /* ──────────────────── Signer ──────────────────── */
         var signer = mb.Entity<Signer>();
         signer.ToTable("Signers");
         signer.HasKey(x => x.Id);
-
         signer.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
-
         signer.Property(x => x.CustomerId).IsRequired(false);
         signer.Property(x => x.SignatureImage).HasColumnType("varchar(max)");
+        signer.Property(x => x.RejectReason).HasMaxLength(500);
+        signer.Property(x => x.FullName).HasMaxLength(150);
 
         /* value-object DigitalCertificate (propiedades sueltas) */
         signer.OwnsOne(

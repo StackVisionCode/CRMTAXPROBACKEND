@@ -39,6 +39,9 @@ public class GetSignatureRequestsHandler
                 UpdatedAt = r.UpdatedAt,
                 SignerCount = g.Count(),
                 SignedCount = g.Count(x => x.Status == SignerStatus.Signed),
+                RejectedAtUtc = r.RejectedAtUtc,
+                RejectReason = r.RejectReason,
+                RejectedBySignerId = r.RejectedBySignerId,
             }
         ).AsNoTracking().ToListAsync(cancellationToken);
 

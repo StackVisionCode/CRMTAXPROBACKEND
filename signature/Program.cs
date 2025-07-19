@@ -1,14 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
-using Application.Interfaces;
 using Infrastructure.Context;
-using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
 using SharedLibrary.Contracts;
 using SharedLibrary.Extensions;
-using SharedLibrary.Services;
 using SharedLibrary.Services.ConfirmAccountService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,9 +55,6 @@ try
         cfg.RegisterServicesFromAssemblyContaining<Program>();
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
-
-    builder.Services.AddScoped<ICertificateService, CertificateService>();
-    builder.Services.AddScoped<IPdfService, PdfService>();
 
     builder.Services.AddScoped<IConfirmTokenService, ConfirmTokenService>();
 

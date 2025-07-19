@@ -1,9 +1,11 @@
 namespace SharedLibrary.DTOs.SignatureEvents;
 
-public sealed record DocumentFullySignedEvent(
+public sealed record SignatureRequestRejectedEvent(
     Guid Id,
     DateTime OccurredOn,
     Guid SignatureRequestId,
     Guid DocumentId,
-    IReadOnlyList<string> Emails
+    Guid SignerId,
+    string SignerEmail,
+    string? Reason
 ) : IntegrationEvent(Id, OccurredOn);

@@ -63,6 +63,9 @@ public class ValidateTokenHandler
         if (signer is null)
             return new(false, "Firmante no encontrado para este token");
 
+        if (req.Status == SignatureStatus.Rejected)
+            return new(false, "La solicitud fue rechazada y ya no es válida.");
+
         // 2.1 Genera token de acceso temporal al documento
         var sessionId = GenerateSecureSessionId();
         var (documentAccessToken, expiresAt) = _tokenSvc.Generate(
@@ -130,6 +133,7 @@ public class ValidateTokenHandler
                 Email = signer.Email!,
                 Order = signer.Order,
                 Status = signer.Status,
+                FullName = signer.FullName,
                 Boxes = signer
                     .Boxes.Select(b => new SignatureBoxDto
                     {

@@ -161,16 +161,16 @@ builder.Services.AddScoped<
     PartiallySignedHandler
 >();
 builder.Services.AddScoped<
-    IIntegrationEventHandler<DocumentFullySignedEvent>,
-    FullySignedHandler
->();
-builder.Services.AddScoped<
     IIntegrationEventHandler<CustomerLoginEnabledEvent>,
     CustomerLoginEnabledEventHandler
 >();
 builder.Services.AddScoped<
     IIntegrationEventHandler<CustomerLoginDisabledEvent>,
     CustomerLoginDisabledEventHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<SecureDownloadSignedDocument>,
+    SecureDocumentDownloadHandler
 >();
 
 builder.Services.AddScoped<UserLoginEventsHandler>();
@@ -181,7 +181,7 @@ builder.Services.AddScoped<AccountConfirmationLinkHandler>();
 builder.Services.AddScoped<AccountActivatedHandler>();
 builder.Services.AddScoped<SignatureInvitationHandler>();
 builder.Services.AddScoped<PartiallySignedHandler>();
-builder.Services.AddScoped<FullySignedHandler>();
+builder.Services.AddScoped<SecureDocumentDownloadHandler>();
 builder.Services.AddScoped<CustomerLoginEnabledEventHandler>();
 builder.Services.AddScoped<CustomerLoginDisabledEventHandler>();
 
@@ -198,7 +198,7 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<AccountConfirmedEvent, AccountActivatedHandler>();
     bus.Subscribe<SignatureInvitationEvent, SignatureInvitationHandler>();
     bus.Subscribe<DocumentPartiallySignedEvent, PartiallySignedHandler>();
-    bus.Subscribe<DocumentFullySignedEvent, FullySignedHandler>();
+    bus.Subscribe<SecureDownloadSignedDocument, SecureDocumentDownloadHandler>();
     bus.Subscribe<CustomerLoginEnabledEvent, CustomerLoginEnabledEventHandler>();
     bus.Subscribe<CustomerLoginDisabledEvent, CustomerLoginDisabledEventHandler>();
 

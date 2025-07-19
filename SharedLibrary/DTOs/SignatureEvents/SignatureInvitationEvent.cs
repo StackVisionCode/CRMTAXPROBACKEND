@@ -6,5 +6,6 @@ public sealed record SignatureInvitationEvent(
     Guid SignerId,
     string SignerEmail,
     string ConfirmLink,
-    DateTime ExpiresAt
+    DateTime ExpiresAt,
+    string? FullName = null
 ) : IntegrationEvent(Id, OccurredOn);

@@ -4,4 +4,5 @@ public enum SignatureStatus
     Completed,
     Expired,
     Canceled,
+    Rejected,
 }

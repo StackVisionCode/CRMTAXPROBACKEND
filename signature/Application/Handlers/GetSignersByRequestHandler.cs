@@ -38,6 +38,9 @@ public class GetSignersByRequestHandler
                 Status = s.Status,
                 CreatedAt = s.CreatedAt,
                 SignedAtUtc = s.SignedAtUtc,
+                RejectedReason = s.RejectReason ?? string.Empty,
+                RejectedAtUtc = s.RejectedAtUtc,
+                FullName = s.FullName,
                 Boxes = s
                     .Boxes.Select(b => new SignatureBoxReadDto
                     {
