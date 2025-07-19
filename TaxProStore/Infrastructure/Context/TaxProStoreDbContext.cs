@@ -3,6 +3,8 @@ namespace Infrastructure.Context;
 using Application.Domain.Entity.Products;
 using Application.Domain.Entity.Purchases;
 using Application.Domain.Entity.Templates;
+using Domain.Entity.Form;
+using Domain.Entity.Products;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -17,6 +19,9 @@ public class TaxProStoreDbContext : DbContext
     public DbSet<Template> Templates => Set<Template>();
     public DbSet<Purchase> Purchases => Set<Purchase>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<FormResponse> FormResponses => Set<FormResponse>();
+    public DbSet<FormInstance> FormInstances => Set<FormInstance>();
+    public DbSet<ProductFeedback> ProductFeedbacks => Set<ProductFeedback>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -25,15 +30,19 @@ public class TaxProStoreDbContext : DbContext
             builder.ToTable("Templates");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
-            builder.Property(x => x.HtmlContent).IsRequired().HasColumnType("varchar(max)");
             builder.Property(x => x.CreatedAt).IsRequired();
             builder.Property(x => x.UpdatedAt).IsRequired();
+            builder.Property(x => x.HtmlContent).IsRequired().HasColumnType("varchar(max)");
+            builder.Property(x => x.PreviewUrl).HasMaxLength(200);
+            builder.Property(x => x.IsPublished).IsRequired();
+            builder.Property(x => x.IsPublic).IsRequired();
+
         });
         mb.Entity<Purchase>(builder =>
         {
             builder.ToTable("Purchases");
             builder.HasKey(x => x.Id);
-        
+
             builder.Property(x => x.CreatedAt).IsRequired();
             builder.Property(x => x.UpdatedAt).IsRequired();
             builder.HasOne<Product>(x => x.Products)
@@ -54,7 +63,38 @@ public class TaxProStoreDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.TemplateId)
                 .OnDelete(DeleteBehavior.Cascade);
-        }); 
+        });
+
+        mb.Entity<FormResponse>(builder =>
+{
+    builder.ToTable("FormResponses");
+    builder.HasKey(x => x.Id);
+    builder.Property(x => x.SubmittedAt).IsRequired();
+    builder.Property(x => x.Data)
+            .IsRequired()
+            .HasColumnType("nvarchar(max)");
+    builder.HasOne(x => x.FormInstance)
+            .WithMany()
+            .HasForeignKey(x => x.FormInstanceId)
+            .OnDelete(DeleteBehavior.Cascade);
+});
+
+        mb.Entity<FormInstance>()
+           .HasMany(fi => fi.Responses)
+           .WithOne(r => r.FormInstance)
+           .HasForeignKey(r => r.FormInstanceId);
+               
+        mb.Entity<ProductFeedback>()
+            .HasIndex(p => new { p.ProductId, p.UserId })
+            .IsUnique(); // Un usuario solo puede dar un feedback por producto
+
+        mb.Entity<ProductFeedback>()
+            .HasOne(p => p.Product)
+            .WithMany(p => p.Feedbacks)
+            .HasForeignKey(p => p.ProductId);
 
     }
+
+
+
 }

@@ -8,15 +8,16 @@ using MediatR;
 namespace Application.Handlers.Templates;
 
 
-public sealed class CreateTemplateHandlers: IRequestHandler<CreateTemplateCommads, ApiResponse<bool>>
+public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateCommads, ApiResponse<bool>>
 {
     private readonly TaxProStoreDbContext _db;
     private readonly ILogger<CreateTemplateHandlers> _log;
     private readonly IMapper _mapper;
 
+
     public CreateTemplateHandlers(
         TaxProStoreDbContext db,
-         ILogger<CreateTemplateHandlers>log,
+         ILogger<CreateTemplateHandlers> log,
           IMapper mapper
 
     )
@@ -39,10 +40,19 @@ public sealed class CreateTemplateHandlers: IRequestHandler<CreateTemplateCommad
             return new ApiResponse<bool>(false, "Template data is required.");
         }
         var templateEntity = _mapper.Map<Template>(request.TemplateDto);
+        templateEntity.HtmlContent.Replace("\n", "").Replace("\r", "");
         templateEntity.Id = Guid.NewGuid();
         templateEntity.CreatedAt = DateTime.UtcNow;
-        _db.Templates.Add(templateEntity);
+        // Generar la URL del preview
+        templateEntity.PreviewUrl = $"http://localhost:5172/templates/preview/{templateEntity.Id}";
+        await _db.Templates.AddAsync(templateEntity);
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (templateEntity.Id == Guid.Empty)
+        {
+            _log.LogError("Failed to create template.");
+            return new ApiResponse<bool>(false, "Failed to create template.");
+        }
         _log.LogInformation("Template created successfully with ID: {TemplateId}", templateEntity.Id);
         return new ApiResponse<bool>(true, "Template created successfully.");
     }

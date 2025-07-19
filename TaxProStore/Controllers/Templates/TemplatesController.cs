@@ -45,23 +45,32 @@ public class TemplatesController : ControllerBase
 
         return Ok(result);
     }
-    
+
     [HttpGet("owner/{ownerUserId}")]
-public async Task<IActionResult> GetAllByOwner(Guid ownerUserId)
+    public async Task<IActionResult> GetAllByOwner(Guid ownerUserId)
+    {
+        var result = await _mediator.Send(new GetAllTemplatesQuery(ownerUserId));
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var result = await _mediator.Send(new GetTemplateByIdQuery(id));
+
+        if (result.Success == false)
+            return NotFound(result.Message);
+
+        return Ok(result);
+    }
+
+// Api/Controllers/TemplatesController.cs
+[HttpGet("preview/{previewUrl}")]
+public async Task<IActionResult> GetByPreviewUrl(Guid previewUrl)
 {
-    var result = await _mediator.Send(new GetAllTemplatesQuery(ownerUserId));
+    var result = await _mediator.Send(new GetTemplateByPreviewUrlQuery(previewUrl));
     return Ok(result);
 }
 
-[HttpGet("{id}")]
-public async Task<IActionResult> GetById(Guid id)
-{
-    var result = await _mediator.Send(new GetTemplateByIdQuery(id));
-
-    if (result.Success == false)
-        return NotFound(result.Message);
-
-    return Ok(result);
-}
 
 }
