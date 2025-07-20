@@ -6,7 +6,9 @@ public class SignatureRequest : BaseEntity
 {
     private readonly List<Signer> _signers = [];
     public IReadOnlyCollection<Signer> Signers => _signers.AsReadOnly();
-
+    public Guid? RejectedBySignerId { get; private set; }
+    public string? RejectReason { get; private set; }
+    public DateTime? RejectedAtUtc { get; private set; }
     public Guid DocumentId { get; private set; }
     public SignatureStatus Status { get; private set; }
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
@@ -42,9 +44,27 @@ public class SignatureRequest : BaseEntity
             MarkCompleted();
     }
 
-    private void MarkCompleted()
+    public void MarkCompleted()
     {
         Status = SignatureStatus.Completed;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MarkRejected(Guid signerId, string? reason)
+    {
+        if (
+            Status
+            is SignatureStatus.Completed
+                or SignatureStatus.Canceled
+                or SignatureStatus.Expired
+                or SignatureStatus.Rejected
+        )
+            return;
+
+        Status = SignatureStatus.Rejected;
+        RejectedBySignerId = signerId;
+        RejectReason = reason;
+        RejectedAtUtc = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 }

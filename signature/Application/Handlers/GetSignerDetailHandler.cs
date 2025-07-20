@@ -27,39 +27,25 @@ public class GetSignerDetailHandler
         CancellationToken cancellationToken
     )
     {
-        var s = await (
-            from signer in _context.Signers
-            where signer.Id == request.SignerId
-            select new SignerDetailDto
+        // 1. Obtener la información del firmante
+        var signerInfo = await _context
+            .Signers.Where(signer => signer.Id == request.SignerId)
+            .Select(signer => new
             {
-                Id = signer.Id,
-                Email = signer.Email,
-                Order = signer.Order,
-                Status = signer.Status,
-                CreatedAt = signer.CreatedAt,
-                SignedAtUtc = signer.SignedAtUtc,
-                Boxes = signer
-                    .Boxes.Select(b => new SignatureBoxReadDto
-                    {
-                        Id = b.Id,
-                        Page = b.PageNumber,
-                        PosX = b.PositionX,
-                        PosY = b.PositionY,
-                        Width = b.Width,
-                        Height = b.Height,
-                        Initials = b.InitialEntity != null ? b.InitialEntity.InitalValue : null,
-                        DateText = b.FechaSigner != null ? b.FechaSigner.FechaValue : null,
-                    })
-                    .ToList(),
-            }
-        ).AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+                signer.Id,
+                signer.Email,
+                signer.Order,
+                signer.Status,
+                signer.CreatedAt,
+                signer.SignedAtUtc,
+                signer.RejectReason,
+                signer.RejectedAtUtc,
+                signer.FullName,
+            })
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
 
-        _logger.LogInformation(
-            "Retrieved signer detail for SignerId: {SignerId}",
-            request.SignerId
-        );
-
-        if (s == null)
+        if (signerInfo == null)
         {
             _logger.LogWarning("Signer with ID {SignerId} not found.", request.SignerId);
             return ApiResponse<SignerDetailDto>.Fail(
@@ -67,11 +53,46 @@ public class GetSignerDetailHandler
             );
         }
 
+        // 2. Obtener las cajas del firmante por separado
+        var signerBoxes = await _context
+            .SignatureBoxes.Where(b => b.SignerId == request.SignerId)
+            .OrderBy(b => b.PageNumber)
+            .ThenBy(b => b.PositionY)
+            .Select(b => new SignatureBoxReadDto
+            {
+                Id = b.Id,
+                Page = b.PageNumber,
+                PosX = b.PositionX,
+                PosY = b.PositionY,
+                Width = b.Width,
+                Height = b.Height,
+                Initials = b.InitialEntity != null ? b.InitialEntity.InitalValue : null,
+                DateText = b.FechaSigner != null ? b.FechaSigner.FechaValue : null,
+            })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        // 3. Construir el DTO final
+        var result = new SignerDetailDto
+        {
+            Id = signerInfo.Id,
+            Email = signerInfo.Email,
+            Order = signerInfo.Order,
+            Status = signerInfo.Status,
+            CreatedAt = signerInfo.CreatedAt,
+            SignedAtUtc = signerInfo.SignedAtUtc,
+            RejectedReason = signerInfo.RejectReason ?? string.Empty,
+            RejectedAtUtc = signerInfo.RejectedAtUtc,
+            FullName = signerInfo.FullName,
+            Boxes = signerBoxes,
+        };
+
         _logger.LogInformation(
-            "Successfully retrieved signer detail for SignerId: {SignerId}",
-            request.SignerId
+            "Successfully retrieved signer detail for SignerId: {SignerId} with {BoxCount} boxes",
+            request.SignerId,
+            signerBoxes.Count
         );
 
-        return ApiResponse<SignerDetailDto>.Ok(s, "Signer detail retrieved successfully.");
+        return ApiResponse<SignerDetailDto>.Ok(result, "Signer detail retrieved successfully.");
     }
 }

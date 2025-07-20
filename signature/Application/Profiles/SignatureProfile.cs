@@ -10,28 +10,18 @@ public class SignatureProfile : Profile
     public SignatureProfile()
     {
         /* --- SignatureBox --- */
-        CreateMap<SignatureBoxDto, SignatureBox>()
-            .ConstructUsing(
-                (src, ctx) =>
-                    new SignatureBox(
-                        src.Page, // pageNumber
-                        src.PosX, // posX
-                        src.PosY, // posY
-                        src.Width, // width
-                        src.Height, // height
-                        ctx.Mapper.Map<IntialEntity?>(src.InitialEntity),
-                        ctx.Mapper.Map<FechaSigner?>(src.FechaSigner)
-                    )
-            )
-            .ReverseMap()
+        // Solo mapeo de lectura (entidad -> DTO)
+        CreateMap<SignatureBox, SignatureBoxDto>()
             .ForMember(d => d.Page, m => m.MapFrom(s => s.PageNumber))
             .ForMember(d => d.PosX, m => m.MapFrom(s => s.PositionX))
-            .ForMember(d => d.PosY, m => m.MapFrom(s => s.PositionY));
+            .ForMember(d => d.PosY, m => m.MapFrom(s => s.PositionY))
+            .ForMember(d => d.SignerId, m => m.MapFrom(s => s.SignerId));
 
         /* --- Signer --- */
         CreateMap<SignerInfoDto, Signer>()
-            .ForMember(d => d.Boxes, m => m.MapFrom(s => s.Boxes))
-            .ReverseMap();
+            .ForMember(d => d.Boxes, m => m.Ignore()) // Se manejará manualmente
+            .ReverseMap()
+            .ForMember(d => d.Boxes, m => m.MapFrom(s => s.Boxes));
 
         /* --- Request --- */
         CreateMap<CreateSignatureRequestDto, SignatureRequest>().ReverseMap();

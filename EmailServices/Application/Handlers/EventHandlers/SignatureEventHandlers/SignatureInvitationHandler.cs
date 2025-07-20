@@ -26,6 +26,7 @@ public sealed class SignatureInvitationHandler : IIntegrationEventHandler<Signat
                 SignerEmail = e.SignerEmail,
                 ConfirmLink = e.ConfirmLink,
                 ExpiresAt = e.ExpiresAt.ToString("dd/MM/yyyy HH:mm"),
+                FullName = e.FullName,
                 Year = DateTime.UtcNow.Year,
             },
             Subject: "Invitación para firmar documento",

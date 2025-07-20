@@ -17,3 +17,12 @@ public sealed record DocumentAccessPayload(
     string SessionId,
     string RequestFingerprint // Huella única de la solicitud
 );
+
+public sealed record SecureDownloadSignedDocument(
+    Guid Id,
+    DateTime OccurredOn,
+    Guid SealedDocumentId,
+    string EncryptedPayload,
+    string PayloadHash,
+    DateTime ExpiresAt
+) : IntegrationEvent(Id, OccurredOn);

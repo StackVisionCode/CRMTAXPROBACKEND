@@ -10,5 +10,6 @@ public sealed record DocumentPartiallySignedEvent(
     string SignatureImageBase64,
     float PosX,
     float PosY,
-    int PageNumber
+    int PageNumber,
+    string? FullName = null
 ) : IntegrationEvent(Id, OccurredOn);

@@ -353,6 +353,9 @@
                 }
             ],
             "UpstreamPathTemplate": "/ws",
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
             "Priority": 1
         }
     ]

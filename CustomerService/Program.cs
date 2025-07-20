@@ -49,7 +49,6 @@ try
     // Configurar CORS
     builder.Services.AddCustomCors();
 
-
     // Configurar caché en memoria en lugar de Redis
     builder.Services.AddSessionCache();
 

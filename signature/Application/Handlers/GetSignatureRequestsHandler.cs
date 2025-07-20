@@ -5,8 +5,6 @@ using Infrastruture.Queries;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Handlers;
-
 public class GetSignatureRequestsHandler
     : IRequestHandler<GetSignatureRequestsQuery, ApiResponse<List<SignatureRequestSummaryDto>>>
 {
@@ -27,30 +25,43 @@ public class GetSignatureRequestsHandler
         CancellationToken cancellationToken
     )
     {
-        var data = await (
+        var query =
             from r in _context.SignatureRequests
             join s in _context.Signers on r.Id equals s.SignatureRequestId into g
-            select new SignatureRequestSummaryDto
+            select new
             {
-                Id = r.Id,
-                DocumentId = r.DocumentId,
-                Status = r.Status,
-                CreatedAt = r.CreatedAt,
-                UpdatedAt = r.UpdatedAt,
+                r.Id,
+                r.DocumentId,
+                r.Status,
+                r.CreatedAt,
+                r.UpdatedAt,
+                r.RejectedAtUtc,
+                r.RejectReason,
+                r.RejectedBySignerId,
                 SignerCount = g.Count(),
                 SignedCount = g.Count(x => x.Status == SignerStatus.Signed),
-            }
-        ).AsNoTracking().ToListAsync(cancellationToken);
+            };
 
-        if (data == null || !data.Any())
-        {
-            _logger.LogWarning("No signature requests found.");
-            return ApiResponse<List<SignatureRequestSummaryDto>>.Fail(
-                "No signature requests found."
-            );
-        }
+        var data = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new SignatureRequestSummaryDto
+            {
+                Id = x.Id,
+                DocumentId = x.DocumentId,
+                Status = x.Status,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt,
+                SignerCount = x.SignerCount,
+                SignedCount = x.SignedCount,
+                RejectedAtUtc = x.RejectedAtUtc,
+                RejectReason = x.RejectReason,
+                RejectedBySignerId = x.RejectedBySignerId,
+            })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
 
         _logger.LogInformation("Retrieved {Count} signature requests.", data.Count);
+
         return ApiResponse<List<SignatureRequestSummaryDto>>.Ok(data);
     }
 }

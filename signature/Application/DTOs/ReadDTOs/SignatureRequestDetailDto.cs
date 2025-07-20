@@ -11,4 +11,8 @@ public class SignatureRequestDetailDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public IReadOnlyList<SignerSummaryDto> Signers { get; set; } = new List<SignerSummaryDto>();
+    public DateTime? RejectedAtUtc { get; set; }
+    public string? RejectReason { get; set; }
+    public Guid? RejectedBySignerId { get; set; }
+    public bool IsRejected => Status == SignatureStatus.Rejected;
 }
