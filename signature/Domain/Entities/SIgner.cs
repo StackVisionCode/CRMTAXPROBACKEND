@@ -22,6 +22,7 @@ public class Signer : BaseEntity
 
     public Guid SignatureRequestId { get; private set; }
     public string Token { get; private set; } = default!;
+    public virtual SignatureRequest SignatureRequest { get; set; } = default!;
     public DateTime? RejectedAtUtc { get; private set; }
     public string? RejectReason { get; private set; }
 

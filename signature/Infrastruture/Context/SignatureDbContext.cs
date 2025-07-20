@@ -14,6 +14,7 @@ public class SignatureDbContext : DbContext
     public DbSet<SignatureRequest> SignatureRequests => Set<SignatureRequest>();
     public DbSet<SignatureBox> SignatureBoxes => Set<SignatureBox>();
     public DbSet<Signer> Signers => Set<Signer>();
+    public DbSet<SignPreviewDocument> SignPreviewDocuments => Set<SignPreviewDocument>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -54,6 +55,12 @@ public class SignatureDbContext : DbContext
             .HasMany(s => s.Boxes)
             .WithOne(b => b.Signer)
             .HasForeignKey(b => b.SignerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        signer
+            .HasOne(s => s.SignatureRequest)
+            .WithMany(sr => sr.Signers)
+            .HasForeignKey(s => s.SignatureRequestId)
             .OnDelete(DeleteBehavior.Cascade);
 
         /* ─────────────── SignatureBox (Entidad Independiente) ─────────────── */
@@ -113,5 +120,64 @@ public class SignatureDbContext : DbContext
         // Índices para mejorar rendimiento
         signatureBox.HasIndex(x => x.SignerId);
         signatureBox.HasIndex(x => new { x.SignerId, x.PageNumber });
+
+        /* ─────────────── SignPreviewDocument ─────────────── */
+        var signpreviewdocument = mb.Entity<SignPreviewDocument>();
+        signpreviewdocument.ToTable("SignPreviewDocuments"); // ← Nombre correcto de tabla
+        signpreviewdocument.HasKey(dp => dp.Id);
+
+        // Propiedades con restricciones
+        signpreviewdocument.Property(dp => dp.AccessToken).IsRequired().HasMaxLength(100);
+        signpreviewdocument.Property(dp => dp.SessionId).IsRequired().HasMaxLength(100);
+        signpreviewdocument.Property(dp => dp.RequestFingerprint).IsRequired().HasMaxLength(50);
+        signpreviewdocument.Property(dp => dp.LastAccessIp).HasMaxLength(45);
+        signpreviewdocument.Property(dp => dp.LastAccessUserAgent).HasMaxLength(500);
+        signpreviewdocument.Property(dp => dp.SignatureRequestId).IsRequired();
+        signpreviewdocument.Property(dp => dp.SignerId).IsRequired();
+        signpreviewdocument.Property(dp => dp.OriginalDocumentId).IsRequired();
+        signpreviewdocument.Property(dp => dp.SealedDocumentId).IsRequired();
+        signpreviewdocument.Property(dp => dp.ExpiresAt).IsRequired();
+        signpreviewdocument.Property(dp => dp.IsActive).IsRequired();
+        signpreviewdocument.Property(dp => dp.AccessCount).IsRequired();
+        signpreviewdocument.Property(dp => dp.MaxAccessCount).IsRequired();
+
+        // Índices para optimizar consultas
+        signpreviewdocument
+            .HasIndex(dp => new { dp.AccessToken, dp.SessionId })
+            .IsUnique()
+            .HasDatabaseName("IX_SignPreviewDocuments_AccessToken_SessionId");
+
+        signpreviewdocument
+            .HasIndex(dp => dp.SignatureRequestId)
+            .HasDatabaseName("IX_SignPreviewDocuments_SignatureRequestId");
+
+        signpreviewdocument
+            .HasIndex(dp => dp.SignerId)
+            .HasDatabaseName("IX_SignPreviewDocuments_SignerId");
+
+        signpreviewdocument
+            .HasIndex(dp => dp.ExpiresAt)
+            .HasDatabaseName("IX_SignPreviewDocuments_ExpiresAt");
+
+        signpreviewdocument
+            .HasIndex(dp => new { dp.IsActive, dp.ExpiresAt })
+            .HasDatabaseName("IX_SignPreviewDocuments_Active_Expires");
+
+        signpreviewdocument
+            .HasIndex(dp => dp.SealedDocumentId)
+            .HasDatabaseName("IX_SignPreviewDocuments_SealedDocumentId");
+
+        // Relaciones explícitas
+        signpreviewdocument
+            .HasOne(dp => dp.SignatureRequest)
+            .WithMany() // Sin navegación inversa por simplicidad
+            .HasForeignKey(dp => dp.SignatureRequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        signpreviewdocument
+            .HasOne(dp => dp.Signer)
+            .WithMany() // Sin navegación inversa por simplicidad
+            .HasForeignKey(dp => dp.SignerId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

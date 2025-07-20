@@ -44,11 +44,16 @@ namespace SharedLibrary
             "/api/signaturerequests/consent",
             "/api/signaturerequests/submit",
             "/api/signaturerequests/reject",
+            // ✅ NUEVAS RUTAS DE PREVIEW PÚBLICAS (downstream)
+            "/api/signature/preview/info",
+            "/api/signature/preview/status",
+            "/api/signature/preview/access",
+            "/api/signature/preview/invalidate",
             // Descarga documento final
             "/api/documentsigning/document",
         };
 
-        /* ------------------ RUTAS PÚBLICAS “UPSTREAM” (si las expones por gateway) ------------------ */
+        /* ------------------ RUTAS PÚBLICAS "UPSTREAM" (si las expones por gateway) ------------------ */
         private static readonly string[] PublicExactUpstream =
         {
             // Versión upstream (si el front las llama así)
@@ -57,6 +62,11 @@ namespace SharedLibrary
             "/api/signature/reject",
             "/api/signature/validate", // si decides tener un endpoint directo validate (opcional)
             "/api/signature/layout", // idem
+            // ✅ NUEVAS RUTAS DE PREVIEW PÚBLICAS (upstream)
+            "/api/signature/preview/info",
+            "/api/signature/preview/status",
+            "/api/signature/preview/access",
+            "/api/signature/preview/invalidate",
         };
 
         /* ------------------ PREFIJOS PÚBLICOS FIJOS (layout con token al final) ------------------ */
@@ -64,6 +74,8 @@ namespace SharedLibrary
         {
             "/api/signaturerequests/layout/", // /api/SignatureRequests/layout/{token}
             "/api/signature/layout/", // upstream opcional
+            // ✅ NUEVO: Preview disponible con signerId al final
+            "/api/signature/preview/available/", // /api/signature/preview/available/{signerId}
         };
 
         /*
@@ -75,6 +87,8 @@ namespace SharedLibrary
         {
             "/api/signaturerequests/", // controller downstream
             "/api/signature/validate/", // si decides upstream validate/{token}
+            // ✅ NUEVO: Preview disponible puede recibir tanto signerId como GUID
+            "/api/signature/preview/available/", // manejado arriba en PublicPrefixes
         };
 
         /* ------------------ WebSocket públicos (si tuvieras alguno) ------------------ */
@@ -141,7 +155,7 @@ namespace SharedLibrary
             )
                 return true;
 
-            // 3. Prefijos fijos
+            // 3. Prefijos fijos - ✅ ACTUALIZADO para incluir preview/available
             if (
                 PublicPrefixes.Any(p => lowerPath.StartsWith(p, StringComparison.OrdinalIgnoreCase))
             )
@@ -170,7 +184,14 @@ namespace SharedLibrary
                     if (firstSegment is null)
                         return false;
 
-                    // GUID => protegido
+                    // ✅ ACTUALIZADO: Para preview/available, todos los GUIDs son públicos (signerId)
+                    if (b.Contains("/preview/available/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Para preview, tanto GUID (signerId) como tokens son públicos
+                        return true;
+                    }
+
+                    // Para otras rutas: GUID => protegido
                     if (Guid.TryParse(firstSegment, out _))
                         return false;
 

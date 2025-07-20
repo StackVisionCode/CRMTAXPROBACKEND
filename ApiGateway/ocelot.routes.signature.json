@@ -1,6 +1,102 @@
 {
     "Routes": [
         {
+            "DownstreamPathTemplate": "/api/Signature/preview/available/{signerId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/signature/preview/available/{signerId}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/preview/info",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/signature/preview/info",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/preview/status",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/signature/preview/status",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/preview/access",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/signature/preview/access",
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/preview/invalidate",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/signature/preview/invalidate",
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+
+        {
             "DownstreamPathTemplate": "/api/SignatureRequests/{token}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [

@@ -1,9 +1,12 @@
+using Application.Handlers.EventHandlers;
 using Infrastructure.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
+using SharedLibrary.Contracts;
+using SharedLibrary.DTOs.SignatureEvents;
 using SharedLibrary.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -119,7 +122,25 @@ try
         options.UseSqlServer(connectionString);
     });
 
+    // Configurar el contexto de eventos
+    builder.Services.AddScoped<
+        IIntegrationEventHandler<SecureDownloadSignedDocument>,
+        SecureDocumentPreviewHandler
+    >();
+
+    builder.Services.AddScoped<SecureDocumentPreviewHandler>();
+
     var app = builder.Build();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+        bus.Subscribe<SecureDownloadSignedDocument, SecureDocumentPreviewHandler>();
+
+        // Log successful subscriptions
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Signature Service subscribed to all integration events");
+    }
 
     // Configure the HTTP request pipeline.
     app.UseCors("AllowAll");
