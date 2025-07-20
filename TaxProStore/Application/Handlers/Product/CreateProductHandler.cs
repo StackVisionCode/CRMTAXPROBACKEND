@@ -30,6 +30,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, ApiRes
         ProductEntity.Id = Guid.NewGuid();
         ProductEntity.CreatedAt = DateTime.UtcNow;
         ProductEntity.UpdatedAt = DateTime.UtcNow;
+        ProductEntity.IsActive = true;
         _db.Products.Add(ProductEntity);
         await _db.SaveChangesAsync(cancellationToken);
         _log.LogInformation("Product created successfully with ID: {ProductId}", ProductEntity.Id);
