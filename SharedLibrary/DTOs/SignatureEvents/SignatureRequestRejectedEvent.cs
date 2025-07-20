@@ -5,7 +5,12 @@ public sealed record SignatureRequestRejectedEvent(
     DateTime OccurredOn,
     Guid SignatureRequestId,
     Guid DocumentId,
-    Guid SignerId,
-    string SignerEmail,
-    string? Reason
+    Guid RejectedBySignerId,
+    string RejectedByEmail,
+    string? RejectedByFullName,
+    Guid RecipientSignerId,
+    string RecipientEmail,
+    string? RecipientFullName,
+    string? Reason,
+    DateTime RejectedAtUtc
 ) : IntegrationEvent(Id, OccurredOn);

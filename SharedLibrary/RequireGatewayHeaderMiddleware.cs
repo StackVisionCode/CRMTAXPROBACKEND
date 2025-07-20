@@ -1,59 +1,185 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 
-namespace SharedLibrary;
-
-public sealed class RequireGatewayHeaderMiddleware(RequestDelegate next)
+namespace SharedLibrary
 {
-    private const string HeaderName = "X-From-Gateway";
-    private const string ExpectedValue = "Api-Gateway";
-
-    private static readonly PathString[] PublicEndpoints =
+    /// <summary>
+    /// Middleware que exige el header "X-From-Gateway: Api-Gateway" para TODAS las rutas
+    /// que no sean explícitamente públicas. Distingue rutas de firma externas con token
+    /// (no GUID) de las internas (GUID).
+    /// </summary>
+    public sealed class RequireGatewayHeaderMiddleware
     {
-        "/api/Session/Login",
-        "/api/TaxUser/Create",
-        "/api/TaxUser/CreateCompany",
-        "/api/Session/IsValid",
-        "/api/Password/request",
-        "/api/Password/otp/send",
-        "/api/Password/otp/validate",
-        "/api/Password/reset",
-        "/api/account/confirm",
-        "/api/auth/client/login",
-        "/api/auth/login",
-        "/api/taxuser/register",
-        "/api/taxcompany/register",
-        "/api/auth/password/request",
-        "/api/auth/password/otp/send",
-        "/api/auth/password/otp/validate",
-        "/api/auth/password/reset",
-        "/api/auth/confirm",
-        "/api/ContactInfo/Internal/AuthInfo",
-        "/api/ContactInfo/Internal/Profile",
-    };
+        private readonly RequestDelegate _next;
 
-    public async Task InvokeAsync(HttpContext ctx)
-    {
-        if (!ctx.WebSockets.IsWebSocketRequest || !ctx.Request.Path.StartsWithSegments("/ws"))
+        private const string GatewayHeaderName = "X-From-Gateway";
+        private const string GatewayExpectedValue = "Api-Gateway";
+
+        /* ------------------ RUTAS / ENDPOINTS PÚBLICOS EXACTOS (downstream) ------------------ */
+        private static readonly string[] PublicExact =
         {
-            await next(ctx);
-            return;
-        }
-        if (
-            PublicEndpoints.Any(p =>
-                ctx.Request.Path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase)
+            // Auth / Password / Confirmaciones
+            "/api/session/login",
+            "/api/session/isvalid",
+            "/api/password/request",
+            "/api/password/otp/send",
+            "/api/password/otp/validate",
+            "/api/password/reset",
+            "/api/account/confirm",
+            "/api/auth/client/login",
+            "/api/auth/login",
+            "/api/taxuser/register",
+            "/api/taxuser/create",
+            "/api/taxuser/createcompany",
+            "/api/taxcompany/register",
+            "/api/auth/password/request",
+            "/api/auth/password/otp/send",
+            "/api/auth/password/otp/validate",
+            "/api/auth/password/reset",
+            "/api/auth/confirm",
+            // Contact info internos que decidiste públicos
+            "/api/contactinfo/internal/authinfo",
+            "/api/contactinfo/internal/profile",
+            // Firma (acciones públicas con token incorporado en el body)
+            "/api/signaturerequests/consent",
+            "/api/signaturerequests/submit",
+            "/api/signaturerequests/reject",
+            // Descarga documento final
+            "/api/documentsigning/document",
+        };
+
+        /* ------------------ RUTAS PÚBLICAS “UPSTREAM” (si las expones por gateway) ------------------ */
+        private static readonly string[] PublicExactUpstream =
+        {
+            // Versión upstream (si el front las llama así)
+            "/api/signature/consent",
+            "/api/signature/submit",
+            "/api/signature/reject",
+            "/api/signature/validate", // si decides tener un endpoint directo validate (opcional)
+            "/api/signature/layout", // idem
+        };
+
+        /* ------------------ PREFIJOS PÚBLICOS FIJOS (layout con token al final) ------------------ */
+        private static readonly string[] PublicPrefixes =
+        {
+            "/api/signaturerequests/layout/", // /api/SignatureRequests/layout/{token}
+            "/api/signature/layout/", // upstream opcional
+        };
+
+        /*
+         * Prefijos base que llevan un segmento variable que puede ser:
+         *   - un token alfanumérico (externo ⇒ público)
+         *   - un GUID (interno ⇒ protegido)
+         */
+        private static readonly string[] BaseWithTokenOrGuid =
+        {
+            "/api/signaturerequests/", // controller downstream
+            "/api/signature/validate/", // si decides upstream validate/{token}
+        };
+
+        /* ------------------ WebSocket públicos (si tuvieras alguno) ------------------ */
+        private static readonly string[] PublicWebSockets =
+        {
+            // Ejemplo: "/ws/public"
+        };
+
+        public RequireGatewayHeaderMiddleware(RequestDelegate next) => _next = next;
+
+        public async Task InvokeAsync(HttpContext context)
+        {
+            var path = (context.Request.Path.Value ?? string.Empty).TrimEnd('/'); // normaliza trailing slash
+            var lower = path.ToLowerInvariant();
+
+            bool isWebSocket = context.WebSockets.IsWebSocketRequest;
+
+            if (IsPublic(lower, isWebSocket))
+            {
+                await _next(context);
+                return;
+            }
+
+            // Validar header
+            if (
+                !context.Request.Headers.TryGetValue(GatewayHeaderName, out StringValues val)
+                || val.Count == 0
+                || !string.Equals(val[0], GatewayExpectedValue, StringComparison.Ordinal)
             )
-        )
-        {
-            await next(ctx);
-            return;
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Access denied - outside gateway");
+                return;
+            }
+
+            await _next(context);
         }
 
-        if (!ctx.Request.Headers.TryGetValue(HeaderName, out var value) || value != ExpectedValue)
+        /* ------------------ LÓGICA DE CLASIFICACIÓN ------------------ */
+
+        private static bool IsPublic(string lowerPath, bool isWs)
         {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await ctx.Response.WriteAsync("Access denied - outside gateway");
-            return;
+            if (isWs)
+            {
+                // WebSockets: solo los que declares explícitamente públicos
+                if (
+                    PublicWebSockets.Any(p =>
+                        lowerPath.StartsWith(p, StringComparison.OrdinalIgnoreCase)
+                    )
+                )
+                    return true;
+                return false; // /ws normal => requiere gateway
+            }
+
+            // 1. Exactos downstream
+            if (PublicExact.Any(e => lowerPath.Equals(e, StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            // 2. Exactos upstream (si los usas)
+            if (
+                PublicExactUpstream.Any(e =>
+                    lowerPath.Equals(e, StringComparison.OrdinalIgnoreCase)
+                )
+            )
+                return true;
+
+            // 3. Prefijos fijos
+            if (
+                PublicPrefixes.Any(p => lowerPath.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+            )
+                return true;
+
+            // 4. Caso especial: base + posible token o GUID
+            if (
+                BaseWithTokenOrGuid.Any(b =>
+                    lowerPath.StartsWith(b, StringComparison.OrdinalIgnoreCase)
+                )
+            )
+            {
+                foreach (var b in BaseWithTokenOrGuid)
+                {
+                    if (!lowerPath.StartsWith(b, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var tail = lowerPath[b.Length..]; // lo que sigue del prefijo base
+
+                    if (string.IsNullOrWhiteSpace(tail))
+                        return false; // es exactamente el prefijo (sin token) => protegido (listado interno)
+
+                    // Solo primer segmento
+                    var firstSegment = tail.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                        .FirstOrDefault();
+                    if (firstSegment is null)
+                        return false;
+
+                    // GUID => protegido
+                    if (Guid.TryParse(firstSegment, out _))
+                        return false;
+
+                    // No GUID => lo tratamos como token externo ⇒ público
+                    return true;
+                }
+            }
+
+            return false;
         }
-        await next(ctx);
     }
 }

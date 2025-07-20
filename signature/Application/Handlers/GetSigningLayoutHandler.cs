@@ -36,6 +36,12 @@ public class GetSigningLayoutHandler
         if (!ok)
             return new(false, "Token inválido o expirado");
 
+        _log.LogInformation(
+            "🔍 Buscando layout para SignerId: {SignerId}, RequestId: {RequestId}",
+            signerId,
+            requestId
+        );
+
         // 2. Obtener estado básico de la solicitud
         var reqRow = await _db
             .SignatureRequests.Where(r => r.Id == requestId)
@@ -53,8 +59,8 @@ public class GetSigningLayoutHandler
         if (reqRow.Status == SignatureStatus.Rejected)
             return new(false, "La solicitud fue rechazada.");
 
-        // 3. Obtener SÓLO el firmante actual con sus boxes (owned)
-        var signerProjection = await _db
+        // 3. Verificar que el firmante existe y pertenece a la solicitud
+        var signerInfo = await _db
             .Signers.Where(s => s.Id == signerId && s.SignatureRequestId == requestId)
             .Select(s => new
             {
@@ -63,51 +69,104 @@ public class GetSigningLayoutHandler
                 s.Status,
                 s.SignedAtUtc,
                 s.FullName,
-                Boxes = s.Boxes.Select(b => new
-                {
-                    b.Id,
-                    b.PageNumber,
-                    b.PositionX,
-                    b.PositionY,
-                    b.Width,
-                    b.Height,
-                    InitialValue = b.InitialEntity != null ? b.InitialEntity.InitalValue : null,
-                    DateValue = b.FechaSigner != null ? b.FechaSigner.FechaValue : null,
-                }),
+                s.SignatureRequestId,
             })
-            .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
-        if (signerProjection is null)
+        if (signerInfo is null)
+        {
+            _log.LogWarning(
+                "❌ Firmante {SignerId} no encontrado en la solicitud {RequestId}",
+                signerId,
+                requestId
+            );
             return new(false, "Firmante no encontrado");
+        }
 
-        // 4. Mapear sólo sus cajas
-        var boxDtos = signerProjection
-            .Boxes.Select(b =>
+        _log.LogInformation(
+            "✅ Firmante encontrado: {SignerId}, Order: {Order}, Status: {Status}",
+            signerInfo.Id,
+            signerInfo.Order,
+            signerInfo.Status
+        );
+
+        // 4. Debug: Verificar cuántas cajas existen para este firmante
+        var boxCount = await _db.SignatureBoxes.Where(b => b.SignerId == signerId).CountAsync(ct);
+
+        _log.LogInformation(
+            "📦 Total de cajas para el firmante {SignerId}: {BoxCount}",
+            signerId,
+            boxCount
+        );
+
+        if (boxCount == 0)
+        {
+            // Debug adicional: verificar si existen cajas en general
+            var totalBoxes = await _db.SignatureBoxes.CountAsync(ct);
+            var boxesInRequest = await _db
+                .SignatureBoxes.Where(b =>
+                    _db.Signers.Any(s => s.Id == b.SignerId && s.SignatureRequestId == requestId)
+                )
+                .CountAsync(ct);
+
+            _log.LogWarning(
+                "⚠️ No hay cajas para el firmante {SignerId}. Total cajas en DB: {Total}, Cajas en esta solicitud: {InRequest}",
+                signerId,
+                totalBoxes,
+                boxesInRequest
+            );
+
+            return new(
+                false,
+                "No se encontraron posiciones de firma configuradas para este firmante"
+            );
+        }
+
+        // 5. Obtener las cajas del firmante con toda la información
+        var signerBoxes = await _db
+            .SignatureBoxes.Where(b => b.SignerId == signerId)
+            .OrderBy(b => b.PageNumber)
+            .ThenBy(b => b.PositionY)
+            .Select(b => new
             {
-                var kind = b.InitialValue is not null
-                    ? BoxKind.Initials
-                    : (b.DateValue is not null ? BoxKind.Date : BoxKind.Signature);
-
-                return new SigningBoxDto
-                {
-                    BoxId = b.Id,
-                    Page = b.PageNumber,
-                    PosX = b.PositionX,
-                    PosY = b.PositionY,
-                    Width = b.Width,
-                    Height = b.Height,
-                    Kind = kind,
-                    SignerId = signerProjection.Id,
-                    SignerOrder = signerProjection.Order,
-                    SignerStatus = signerProjection.Status,
-                    IsCurrentSigner = true,
-                    SignedAtUtc = signerProjection.SignedAtUtc,
-                    InitialsValue = b.InitialValue,
-                    DateValue = b.DateValue,
-                };
+                BoxId = b.Id,
+                PageNumber = b.PageNumber,
+                PositionX = b.PositionX,
+                PositionY = b.PositionY,
+                Width = b.Width,
+                Height = b.Height,
+                Kind = b.Kind,
+                InitialValue = b.InitialEntity != null ? b.InitialEntity.InitalValue : null,
+                DateValue = b.FechaSigner != null ? b.FechaSigner.FechaValue : null,
             })
-            .OrderBy(x => x.Page)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        _log.LogInformation(
+            "📋 Cajas obtenidas para el firmante {SignerId}: {BoxCount}",
+            signerId,
+            signerBoxes.Count
+        );
+
+        // 6. Mapear a DTOs
+        var boxDtos = signerBoxes
+            .Select(b => new SigningBoxDto
+            {
+                BoxId = b.BoxId,
+                Page = b.PageNumber,
+                PosX = b.PositionX,
+                PosY = b.PositionY,
+                Width = b.Width,
+                Height = b.Height,
+                Kind = b.Kind,
+                SignerId = signerInfo.Id,
+                SignerOrder = signerInfo.Order,
+                SignerStatus = signerInfo.Status,
+                IsCurrentSigner = true, // Siempre true porque solo devolvemos cajas del firmante actual
+                SignedAtUtc = signerInfo.SignedAtUtc,
+                InitialsValue = b.InitialValue,
+                DateValue = b.DateValue,
+            })
             .ToList();
 
         var dto = new SigningLayoutDto
@@ -115,15 +174,15 @@ public class GetSigningLayoutHandler
             SignatureRequestId = reqRow.Id,
             DocumentId = reqRow.DocumentId,
             RequestStatus = reqRow.Status,
-            CurrentSignerId = signerProjection.Id,
-            CurrentSignerOrder = signerProjection.Order,
+            CurrentSignerId = signerInfo.Id,
+            CurrentSignerOrder = signerInfo.Order,
             Boxes = boxDtos,
         };
 
         _log.LogInformation(
-            "Layout seguro devuelto para Request {Req} - Signer {Signer} con {Cnt} boxes",
+            "✅ Layout devuelto para Request {RequestId} - Signer {SignerId} con {BoxCount} cajas",
             reqRow.Id,
-            signerProjection.Id,
+            signerInfo.Id,
             dto.Boxes.Count
         );
 

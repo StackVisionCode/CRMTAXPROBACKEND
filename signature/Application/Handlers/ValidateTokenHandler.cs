@@ -52,21 +52,33 @@ public class ValidateTokenHandler
             return new(false, "Token inválido o expirado");
 
         /* 2 ▸ Busca solicitud + firmante */
-        var req = await _db
-            .SignatureRequests.Include(r => r.Signers)
-            .FirstOrDefaultAsync(r => r.Id == reqId, cancellationToken);
+        var req = await _db.SignatureRequests.FirstOrDefaultAsync(
+            r => r.Id == reqId,
+            cancellationToken
+        );
 
         if (req is null)
             return new(false, "Solicitud no encontrada");
 
-        var signer = req.Signers.FirstOrDefault(s => s.Id == signerId);
+        var signer = await _db.Signers.FirstOrDefaultAsync(
+            s => s.Id == signerId && s.SignatureRequestId == reqId,
+            cancellationToken
+        );
+
         if (signer is null)
             return new(false, "Firmante no encontrado para este token");
 
         if (req.Status == SignatureStatus.Rejected)
             return new(false, "La solicitud fue rechazada y ya no es válida.");
 
-        // 2.1 Genera token de acceso temporal al documento
+        // 2.1 Obtener las cajas del firmante usando JOIN explícito
+        var signerBoxes = await _db
+            .SignatureBoxes.Where(b => b.SignerId == signerId)
+            .OrderBy(b => b.PageNumber)
+            .ThenBy(b => b.PositionY)
+            .ToListAsync(cancellationToken);
+
+        // 2.2 Genera token de acceso temporal al documento
         var sessionId = GenerateSecureSessionId();
         var (documentAccessToken, expiresAt) = _tokenSvc.Generate(
             signerId,
@@ -74,7 +86,7 @@ public class ValidateTokenHandler
             "document-access"
         );
 
-        // 2.2 Crear payload sensible a cifrar
+        // 2.3 Crear payload sensible a cifrar
         var requestFingerprint = GenerateRequestFingerprint(req.Id, signerId, sessionId);
         var sensitivePayload = new DocumentAccessPayload(
             signerId,
@@ -86,11 +98,11 @@ public class ValidateTokenHandler
 
         try
         {
-            // 2.3 Cifrar datos sensibles
+            // 2.4 Cifrar datos sensibles
             var encryptedPayload = _encryption.Encrypt(sensitivePayload);
             var payloadHash = ComputePayloadHash(sensitivePayload);
 
-            // 2.4 Publicar evento seguro
+            // 2.5 Publicar evento seguro
             var secureEvent = new SecureDocumentAccessRequestedEvent(
                 Guid.NewGuid(),
                 DateTime.UtcNow,
@@ -118,7 +130,7 @@ public class ValidateTokenHandler
             return new(false, "Error interno procesando solicitud");
         }
 
-        /* 3 ▸ Construye DTO */
+        /* 3 ▸ Construye DTO con las cajas obtenidas por separado */
         var dto = new ValidateTokenResultDto
         {
             SignatureRequestId = req.Id,
@@ -126,7 +138,7 @@ public class ValidateTokenHandler
             DocumentAccessToken = documentAccessToken,
             SessionId = sessionId,
             RequestStatus = req.Status,
-            /* nuevo mapeo */
+            /* mapeo actualizado usando las cajas obtenidas por separado */
             Signer = new SignerInfoDto
             {
                 CustomerId = signer.CustomerId,
@@ -134,9 +146,10 @@ public class ValidateTokenHandler
                 Order = signer.Order,
                 Status = signer.Status,
                 FullName = signer.FullName,
-                Boxes = signer
-                    .Boxes.Select(b => new SignatureBoxDto
+                Boxes = signerBoxes
+                    .Select(b => new SignatureBoxDto
                     {
+                        SignerId = b.SignerId, // Agregar el SignerId
                         Page = b.PageNumber,
                         PosX = b.PositionX,
                         PosY = b.PositionY,

@@ -44,7 +44,7 @@ public class SignatureRequest : BaseEntity
             MarkCompleted();
     }
 
-    private void MarkCompleted()
+    public void MarkCompleted()
     {
         Status = SignatureStatus.Completed;
         UpdatedAt = DateTime.UtcNow;

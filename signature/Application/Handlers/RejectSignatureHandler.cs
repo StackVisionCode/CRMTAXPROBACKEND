@@ -88,18 +88,28 @@ public class RejectSignatureHandler
 
             await _db.SaveChangesAsync(ct);
 
-            // 6. (Opcional) Emitir evento de rechazo (RabbitMQ)
-            _bus.Publish(
-                new SignatureRequestRejectedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    req.Id,
-                    req.DocumentId,
-                    signer.Id,
-                    signer.Email,
-                    command.Payload.Reason
-                )
-            );
+            var rejectedAt = signer.RejectedAtUtc!.Value;
+
+            // 6. Emitir evento de rechazo (RabbitMQ)
+            foreach (var dest in req.Signers)
+            {
+                _bus.Publish(
+                    new SignatureRequestRejectedEvent(
+                        Id: Guid.NewGuid(),
+                        OccurredOn: DateTime.UtcNow,
+                        SignatureRequestId: req.Id,
+                        DocumentId: req.DocumentId,
+                        RejectedBySignerId: signer.Id,
+                        RejectedByEmail: signer.Email,
+                        RejectedByFullName: signer.FullName,
+                        RecipientSignerId: dest.Id,
+                        RecipientEmail: dest.Email,
+                        RecipientFullName: dest.FullName,
+                        Reason: signer.RejectReason,
+                        RejectedAtUtc: rejectedAt
+                    )
+                );
+            }
 
             _log.LogInformation("Solicitud {Req} rechazada por signer {Signer}", req.Id, signer.Id);
 

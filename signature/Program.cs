@@ -1,12 +1,10 @@
-using System.IdentityModel.Tokens.Jwt;
 using Infrastructure.Context;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
-using SharedLibrary.Contracts;
 using SharedLibrary.Extensions;
-using SharedLibrary.Services.ConfirmAccountService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,10 +29,20 @@ try
 {
     Log.Information("Starting up the application");
 
-    JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+    // Configurar JWT
+    builder.Services.AddJwtAuth(builder.Configuration);
 
     // Add token services
-    builder.Services.AddJwtAuth(builder.Configuration);
+    builder
+        .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(
+            "Bearer",
+            opts =>
+            {
+                var cfg = builder.Configuration.GetSection("JwtSettings");
+                opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+            }
+        );
 
     // Add services to the container.
     builder.Services.AddCustomCors();
@@ -42,7 +50,13 @@ try
     // Add services Origin URL to the container.
     builder.Services.AddCustomOrigin();
 
+    // Configurar caché en memoria en lugar de Redis
+    builder.Services.AddSessionCache();
+
     builder.Services.AddEventBus(builder.Configuration);
+
+    // Add services to the container.
+    builder.Services.AddAuthorization();
 
     builder.Services.AddControllers();
 
@@ -56,10 +70,44 @@ try
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
 
-    builder.Services.AddScoped<IConfirmTokenService, ConfirmTokenService>();
-
     // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
     builder.Services.AddOpenApi();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Signature Service API", Version = "v1" });
+
+        // Configuración de JWT para Swagger
+        c.AddSecurityDefinition(
+            "Bearer",
+            new OpenApiSecurityScheme
+            {
+                Description =
+                    "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer",
+            }
+        );
+
+        c.AddSecurityRequirement(
+            new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer",
+                        },
+                    },
+                    Array.Empty<string>()
+                },
+            }
+        );
+    });
+
     var objetoConexion = new ConnectionApp();
 
     var connectionString =
@@ -69,11 +117,6 @@ try
     builder.Services.AddDbContext<SignatureDbContext>(options =>
     {
         options.UseSqlServer(connectionString);
-    });
-    builder.Services.AddOpenApi();
-    builder.Services.AddSwaggerGen(c =>
-    {
-        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Signature API", Version = "v1" });
     });
 
     var app = builder.Build();
@@ -89,9 +132,8 @@ try
     }
 
     app.UseHttpsRedirection();
-
     app.UseAuthorization();
-
+    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
     app.MapControllers();
 
     app.Run();

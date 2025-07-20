@@ -41,17 +41,23 @@ namespace signature.Application.Handlers
                 if (!isValid)
                     return new(false, "Token inválido o expirado");
 
-                // reqId ya es Guid
-                var req = await _db
-                    .SignatureRequests.Include(r => r.Signers)
-                    .FirstOrDefaultAsync(r => r.Id == reqId, cancellationToken);
+                // 2. Obtener la solicitud y el firmante con una consulta simple
+                var requestData = await (
+                    from request in _db.SignatureRequests
+                    join signerEntity in _db.Signers
+                        on request.Id equals signerEntity.SignatureRequestId
+                    where request.Id == reqId && signerEntity.Id == signerId
+                    select new { Request = request, Signer = signerEntity }
+                ).FirstOrDefaultAsync(cancellationToken);
 
-                if (req == null)
-                    return new ApiResponse<bool>(false, "Solicitud de firma no encontrada");
+                if (requestData == null)
+                    return new ApiResponse<bool>(
+                        false,
+                        "Solicitud de firma o firmante no encontrado"
+                    );
 
-                var signer = req.Signers.FirstOrDefault(x => x.Id == signerId);
-                if (signer == null)
-                    return new ApiResponse<bool>(false, "Firmante no encontrado");
+                var req = requestData.Request;
+                var signer = requestData.Signer;
 
                 if (signer.ConsentAgreedAtUtc is null)
                     return new(false, "Debe registrar el consentimiento antes de firmar.");
@@ -79,9 +85,8 @@ namespace signature.Application.Handlers
                     command.Payload.Certificate.NotAfter
                 );
 
-                // 5. Registrar firma (solo metadatos en la BD)
-                req.ReceiveSignature(
-                    signerId,
+                // 5. Marcar el signer como firmado directamente (sin usar req.ReceiveSignature)
+                signer.MarkSigned(
                     cleanB64,
                     cert,
                     command.Payload.SignedAtUtc,
@@ -91,54 +96,78 @@ namespace signature.Application.Handlers
                     command.Payload.Consent_text,
                     command.Payload.Consent_button_text
                 );
+
+                // 6. Actualizar las cajas del firmante
+                var signerBoxes = await _db
+                    .SignatureBoxes.Where(b => b.SignerId == signerId)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var box in signerBoxes)
+                    box.UpdatedAt = DateTime.UtcNow;
+
                 await _db.SaveChangesAsync(cancellationToken);
 
-                //6 ▸ ¿faltan firmas o ya está completo?
-
-                bool hasPending = req.Signers.Any(s => s.Status == SignerStatus.Pending);
+                // 7. Verificar si quedan firmantes pendientes
+                bool hasPending = await _db
+                    .Signers.Where(s =>
+                        s.SignatureRequestId == reqId && s.Status == SignerStatus.Pending
+                    )
+                    .AnyAsync(cancellationToken);
 
                 if (!hasPending)
                 {
-                    var signedImages = req
-                        .Signers.SelectMany(s =>
-                            s.Boxes.Select(b => new SignedImageDto(
-                                s.CustomerId ?? Guid.Empty,
-                                s.Id,
-                                s.Email!,
-                                b.PageNumber,
-                                b.PositionX,
-                                b.PositionY,
-                                b.Width,
-                                b.Height,
-                                (b.InitialEntity is null && b.FechaSigner is null)
-                                    ? s.SignatureImage
-                                    : null,
-                                s.Certificate!.Thumbprint,
-                                s.SignedAtUtc!.Value,
-                                s.ClientIp ?? string.Empty,
-                                s.UserAgent ?? string.Empty,
-                                s.ConsentAgreedAtUtc!.Value,
-                                b.InitialEntity is null
-                                    ? null
-                                    : new InitialStampDto(
-                                        b.InitialEntity.InitalValue,
-                                        b.InitialEntity.PositionXIntial,
-                                        b.InitialEntity.PositionYIntial,
-                                        b.InitialEntity.WidthIntial,
-                                        b.InitialEntity.HeightIntial
-                                    ),
-                                b.FechaSigner is null
-                                    ? null
-                                    : new DateStampDto(
-                                        b.FechaSigner.FechaValue,
-                                        b.FechaSigner.PositionXFechaSigner,
-                                        b.FechaSigner.PositionYFechaSigner,
-                                        b.FechaSigner.WidthFechaSigner,
-                                        b.FechaSigner.HeightFechaSigner
-                                    )
-                            ))
-                        )
+                    // Obtener todos los datos para el evento "documento completo"
+                    var allSignedData = await (
+                        from signerData in _db.Signers
+                        join boxData in _db.SignatureBoxes on signerData.Id equals boxData.SignerId
+                        where
+                            signerData.SignatureRequestId == reqId
+                            && signerData.Status == SignerStatus.Signed
+                        select new { Signer = signerData, Box = boxData }
+                    ).ToListAsync(cancellationToken);
+
+                    var signedImages = allSignedData
+                        .Select(data => new SignedImageDto(
+                            data.Signer.CustomerId ?? Guid.Empty,
+                            data.Signer.Id,
+                            data.Signer.Email!,
+                            data.Box.PageNumber,
+                            data.Box.PositionX,
+                            data.Box.PositionY,
+                            data.Box.Width,
+                            data.Box.Height,
+                            (data.Box.InitialEntity is null && data.Box.FechaSigner is null)
+                                ? data.Signer.SignatureImage
+                                : null,
+                            data.Signer.Certificate!.Thumbprint,
+                            data.Signer.SignedAtUtc!.Value,
+                            data.Signer.ClientIp ?? string.Empty,
+                            data.Signer.UserAgent ?? string.Empty,
+                            data.Signer.ConsentAgreedAtUtc!.Value,
+                            data.Box.InitialEntity is null
+                                ? null
+                                : new InitialStampDto(
+                                    data.Box.InitialEntity.InitalValue,
+                                    data.Box.InitialEntity.PositionXIntial,
+                                    data.Box.InitialEntity.PositionYIntial,
+                                    data.Box.InitialEntity.WidthIntial,
+                                    data.Box.InitialEntity.HeightIntial
+                                ),
+                            data.Box.FechaSigner is null
+                                ? null
+                                : new DateStampDto(
+                                    data.Box.FechaSigner.FechaValue,
+                                    data.Box.FechaSigner.PositionXFechaSigner,
+                                    data.Box.FechaSigner.PositionYFechaSigner,
+                                    data.Box.FechaSigner.WidthFechaSigner,
+                                    data.Box.FechaSigner.HeightFechaSigner
+                                )
+                        ))
                         .ToList();
+
+                    // Marcar la solicitud como completada usando el método de dominio
+                    req.MarkCompleted();
+                    await _db.SaveChangesAsync(cancellationToken);
 
                     _bus.Publish(
                         new DocumentReadyToSealEvent(
@@ -152,9 +181,23 @@ namespace signature.Application.Handlers
                 }
                 else
                 {
-                    var firstBox = signer.Boxes.First();
+                    // Obtener la primera caja del firmante actual para el evento parcial
+                    var firstBox = await _db
+                        .SignatureBoxes.Where(b => b.SignerId == signerId)
+                        .OrderBy(b => b.PageNumber)
+                        .ThenBy(b => b.PositionY)
+                        .FirstOrDefaultAsync(cancellationToken);
 
-                    // Al menos un firmante pendiente ⇒ correo “firma parcial”
+                    if (firstBox == null)
+                    {
+                        _log.LogWarning(
+                            "El firmante {SignerId} no tiene cajas de firma configuradas",
+                            signerId
+                        );
+                        return new ApiResponse<bool>(false, "Configuración de firma incompleta");
+                    }
+
+                    // Al menos un firmante pendiente ⇒ correo "firma parcial"
                     _bus.Publish(
                         new DocumentPartiallySignedEvent(
                             Guid.NewGuid(),

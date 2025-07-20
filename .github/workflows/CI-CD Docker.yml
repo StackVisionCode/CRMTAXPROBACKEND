@@ -51,10 +51,12 @@ jobs:
             [customer-service]=CustomerService/Dockerfile
             [calendar-service]=CalendarService/Dockerfile
             [email-service]=EmailServices/Dockerfile
+            [signature-service]=EmailServices/Dockerfile
             [auth-migrator]=AuthService/Dockerfile.migrator
             [customer-migrator]=CustomerService/Dockerfile.migrator
             [email-migrator]=EmailServices/Dockerfile.migrator
             [calendar-migrator]=CalendarService/Dockerfile.migrator
+            [signature-migrator]=CalendarService/Dockerfile.migrator
           )
           for svc in "${!DF[@]}"; do
             dockerfile_path="${DF[$svc]}"

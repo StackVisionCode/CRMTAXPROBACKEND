@@ -22,6 +22,53 @@ namespace signature.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Domain.Entities.SignatureBox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("Height")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("PageNumber")
+                        .HasColumnType("int");
+
+                    b.Property<double>("PositionX")
+                        .HasColumnType("float");
+
+                    b.Property<double>("PositionY")
+                        .HasColumnType("float");
+
+                    b.Property<Guid>("SignerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SignerId");
+
+                    b.HasIndex("SignerId", "PageNumber");
+
+                    b.ToTable("SignatureBoxes", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.SignatureRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -142,6 +189,90 @@ namespace signature.Migrations
                     b.ToTable("Signers", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.SignatureBox", b =>
+                {
+                    b.HasOne("Domain.Entities.Signer", "Signer")
+                        .WithMany("Boxes")
+                        .HasForeignKey("SignerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("Domain.Entities.IntialEntity", "InitialEntity", b1 =>
+                        {
+                            b1.Property<Guid>("SignatureBoxId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<double>("HeightIntial")
+                                .HasColumnType("float")
+                                .HasColumnName("HeightIntial");
+
+                            b1.Property<string>("InitalValue")
+                                .IsRequired()
+                                .HasMaxLength(4)
+                                .HasColumnType("nvarchar(4)")
+                                .HasColumnName("InitialValue");
+
+                            b1.Property<double>("PositionXIntial")
+                                .HasColumnType("float")
+                                .HasColumnName("PositionXIntial");
+
+                            b1.Property<double>("PositionYIntial")
+                                .HasColumnType("float")
+                                .HasColumnName("PositionYIntial");
+
+                            b1.Property<double>("WidthIntial")
+                                .HasColumnType("float")
+                                .HasColumnName("WidthIntial");
+
+                            b1.HasKey("SignatureBoxId");
+
+                            b1.ToTable("SignatureBoxes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SignatureBoxId");
+                        });
+
+                    b.OwnsOne("FechaSigner", "FechaSigner", b1 =>
+                        {
+                            b1.Property<Guid>("SignatureBoxId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("FechaValue")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("FechaValue");
+
+                            b1.Property<double>("HeightFechaSigner")
+                                .HasColumnType("float")
+                                .HasColumnName("HeightFechaSigner");
+
+                            b1.Property<double>("PositionXFechaSigner")
+                                .HasColumnType("float")
+                                .HasColumnName("PositionXFechaSigner");
+
+                            b1.Property<double>("PositionYFechaSigner")
+                                .HasColumnType("float")
+                                .HasColumnName("PositionYFechaSigner");
+
+                            b1.Property<double>("WidthFechaSigner")
+                                .HasColumnType("float")
+                                .HasColumnName("WidthFechaSigner");
+
+                            b1.HasKey("SignatureBoxId");
+
+                            b1.ToTable("SignatureBoxes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SignatureBoxId");
+                        });
+
+                    b.Navigation("FechaSigner");
+
+                    b.Navigation("InitialEntity");
+
+                    b.Navigation("Signer");
+                });
+
             modelBuilder.Entity("Domain.Entities.Signer", b =>
                 {
                     b.HasOne("Domain.Entities.SignatureRequest", null)
@@ -183,130 +314,17 @@ namespace signature.Migrations
                                 .HasForeignKey("SignerId");
                         });
 
-                    b.OwnsMany("Domain.Entities.SignatureBox", "Boxes", b1 =>
-                        {
-                            b1.Property<Guid>("Id")
-                                .HasColumnType("uniqueidentifier")
-                                .HasColumnName("Id");
-
-                            b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
-
-                            b1.Property<DateTime?>("DeleteAt")
-                                .HasColumnType("datetime2");
-
-                            b1.Property<double>("Height")
-                                .HasColumnType("float");
-
-                            b1.Property<int>("PageNumber")
-                                .HasColumnType("int");
-
-                            b1.Property<double>("PositionX")
-                                .HasColumnType("float");
-
-                            b1.Property<double>("PositionY")
-                                .HasColumnType("float");
-
-                            b1.Property<Guid>("SignerId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
-
-                            b1.Property<double>("Width")
-                                .HasColumnType("float");
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("SignerId");
-
-                            b1.ToTable("SignatureBoxes", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("SignerId");
-
-                            b1.OwnsOne("Domain.Entities.IntialEntity", "InitialEntity", b2 =>
-                                {
-                                    b2.Property<Guid>("SignatureBoxId")
-                                        .HasColumnType("uniqueidentifier");
-
-                                    b2.Property<double>("HeightIntial")
-                                        .HasColumnType("float")
-                                        .HasColumnName("HeightIntial");
-
-                                    b2.Property<string>("InitalValue")
-                                        .IsRequired()
-                                        .HasMaxLength(4)
-                                        .HasColumnType("nvarchar(4)")
-                                        .HasColumnName("InitialValue");
-
-                                    b2.Property<double>("PositionXIntial")
-                                        .HasColumnType("float")
-                                        .HasColumnName("PositionXIntial");
-
-                                    b2.Property<double>("PositionYIntial")
-                                        .HasColumnType("float")
-                                        .HasColumnName("PositionYIntial");
-
-                                    b2.Property<double>("WidthIntial")
-                                        .HasColumnType("float")
-                                        .HasColumnName("WidthIntial");
-
-                                    b2.HasKey("SignatureBoxId");
-
-                                    b2.ToTable("SignatureBoxes");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("SignatureBoxId");
-                                });
-
-                            b1.OwnsOne("FechaSigner", "FechaSigner", b2 =>
-                                {
-                                    b2.Property<Guid>("SignatureBoxId")
-                                        .HasColumnType("uniqueidentifier");
-
-                                    b2.Property<string>("FechaValue")
-                                        .IsRequired()
-                                        .HasColumnType("nvarchar(max)")
-                                        .HasColumnName("FechaValue");
-
-                                    b2.Property<double>("HeightFechaSigner")
-                                        .HasColumnType("float")
-                                        .HasColumnName("HeightFechaSigner");
-
-                                    b2.Property<double>("PositionXFechaSigner")
-                                        .HasColumnType("float")
-                                        .HasColumnName("PositionXFechaSigner");
-
-                                    b2.Property<double>("PositionYFechaSigner")
-                                        .HasColumnType("float")
-                                        .HasColumnName("PositionYFechaSigner");
-
-                                    b2.Property<double>("WidthFechaSigner")
-                                        .HasColumnType("float")
-                                        .HasColumnName("WidthFechaSigner");
-
-                                    b2.HasKey("SignatureBoxId");
-
-                                    b2.ToTable("SignatureBoxes");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("SignatureBoxId");
-                                });
-
-                            b1.Navigation("FechaSigner");
-
-                            b1.Navigation("InitialEntity");
-                        });
-
-                    b.Navigation("Boxes");
-
                     b.Navigation("Certificate");
                 });
 
             modelBuilder.Entity("Domain.Entities.SignatureRequest", b =>
                 {
                     b.Navigation("Signers");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Signer", b =>
+                {
+                    b.Navigation("Boxes");
                 });
 #pragma warning restore 612, 618
         }

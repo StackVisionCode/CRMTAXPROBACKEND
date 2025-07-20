@@ -79,7 +79,7 @@ public class SignatureRequestsController : ControllerBase
         return BadRequest(result);
     }
 
-    [HttpPost]
+    [HttpPost("submit")]
     public async Task<ActionResult> Submit(SignDocumentDto dto)
     {
         if (!ModelState.IsValid)

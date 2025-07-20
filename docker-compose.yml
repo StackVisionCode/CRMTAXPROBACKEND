@@ -72,6 +72,8 @@ services:
       RabbitMQ__Password: guest
     depends_on: [rabbitmq, sqlserver]
     networks: [backend]
+
+  # --- Calendar Service ------------------------------------------------------
   calendar-service:
     image: ${REGISTRY_PREFIX}-calendar-service:${TAG}
     environment:
@@ -101,6 +103,21 @@ services:
   # --- Email Service ---------------------------------------------------------
   email-service:
     image: ${REGISTRY_PREFIX}-email-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
+    depends_on: [rabbitmq, sqlserver]
+    networks: [backend]
+
+  # --- Auth Service ----------------------------------------------------------
+  signature-service:
+    image: ${REGISTRY_PREFIX}-signature-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
@@ -143,6 +160,15 @@ services:
 
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
+    depends_on: [sqlserver]
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
+  signature-migrator:
+    image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
     depends_on: [sqlserver]
     environment:
       DB_SERVER: sqlserver

@@ -79,7 +79,47 @@ public class Signer : BaseEntity
         );
     }
 
-    public void AddBoxes(IEnumerable<SignatureBox> boxes) => _boxes.AddRange(boxes);
+    // Método actualizado para crear cajas como entidades independientes
+    public void AddBoxes(IEnumerable<SignatureBox> boxes)
+    {
+        foreach (var box in boxes)
+        {
+            // Verificar que la caja pertenece a este signer
+            if (box.SignerId != Id)
+                throw new InvalidOperationException(
+                    $"SignatureBox {box.Id} no pertenece al Signer {Id}"
+                );
+
+            _boxes.Add(box);
+        }
+    }
+
+    // Método auxiliar para crear una nueva caja
+    public SignatureBox CreateBox(
+        int pageNumber,
+        float posX,
+        float posY,
+        float width,
+        float height,
+        BoxKind kind,
+        IntialEntity? initialEntity = null,
+        FechaSigner? fechaSigner = null
+    )
+    {
+        var box = new SignatureBox(
+            Id,
+            pageNumber,
+            posX,
+            posY,
+            width,
+            height,
+            kind,
+            initialEntity,
+            fechaSigner
+        );
+        _boxes.Add(box);
+        return box;
+    }
 
     public void RegisterConsent(
         DateTime agreedAtUtc,

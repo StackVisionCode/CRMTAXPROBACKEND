@@ -44,6 +44,7 @@ public sealed class CreateSignatureRequestHandler
         │ 1 ▸ nueva solicitud de firma                                │
            ╰──────────────────────────────────────────────────────────────╯ */
         var req = new SignatureRequest(cmd.Payload.DocumentId, Guid.NewGuid());
+
         // 1.1 resuelve UNA sola vez la URL base para toda la solicitud
         var baseUrl = _getOriginURL.GetOrigin(); // ej. https://app.company.com
 
@@ -55,7 +56,7 @@ public sealed class CreateSignatureRequestHandler
            ╰──────────────────────────────────────────────────────────────╯ */
         foreach (var sDto in cmd.Payload.Signers)
         {
-            Guid signerId = Guid.NewGuid(); // ► PK real de la fila ‘Signer’
+            Guid signerId = Guid.NewGuid(); // ► PK real de la fila 'Signer'
             var (token, exp) = _tokens.Generate(signerId, req.Id, "sign");
 
             var signer = new Signer(
@@ -68,13 +69,41 @@ public sealed class CreateSignatureRequestHandler
                 sDto.FullName
             );
 
-            signer.AddBoxes(_mapper.Map<IEnumerable<SignatureBox>>(sDto.Boxes));
+            // Crear las cajas manualmente con el SignerId correcto
+            var boxes = new List<SignatureBox>();
+            foreach (var boxDto in sDto.Boxes)
+            {
+                var initialEntity = _mapper.Map<IntialEntity?>(boxDto.InitialEntity);
+                var fechaSigner = _mapper.Map<FechaSigner?>(boxDto.FechaSigner);
+                var kind = SignatureBox.DetermineKind(initialEntity, fechaSigner);
+
+                var box = new SignatureBox(
+                    signerId, // Ahora tenemos el SignerId
+                    boxDto.Page,
+                    boxDto.PosX,
+                    boxDto.PosY,
+                    boxDto.Width,
+                    boxDto.Height,
+                    kind,
+                    initialEntity,
+                    fechaSigner
+                );
+
+                boxes.Add(box);
+            }
+
+            // Agregar todas las cajas al signer
+            signer.AddBoxes(boxes);
 
             // agregamos el firmante a la solicitud
             req.AttachSigner(signer);
 
             // log para depuración
-            _log.LogInformation("InitialEntity: {@InitialEntity}", sDto.Boxes);
+            _log.LogInformation(
+                "Creando signer {SignerId} con {BoxCount} cajas",
+                signerId,
+                boxes.Count
+            );
 
             pendingEvents.Add(
                 new SignatureInvitationEvent(

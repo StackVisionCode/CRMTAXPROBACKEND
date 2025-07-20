@@ -2,13 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Application.DTOs.ReadDTOs;
 
-public enum BoxKind
-{
-    Signature = 0,
-    Initials = 1,
-    Date = 2,
-}
-
 public class SigningBoxDto
 {
     [Key]

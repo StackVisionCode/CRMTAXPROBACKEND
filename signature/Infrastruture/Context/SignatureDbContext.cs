@@ -12,6 +12,7 @@ public class SignatureDbContext : DbContext
         : base(o) { }
 
     public DbSet<SignatureRequest> SignatureRequests => Set<SignatureRequest>();
+    public DbSet<SignatureBox> SignatureBoxes => Set<SignatureBox>();
     public DbSet<Signer> Signers => Set<Signer>();
 
     protected override void OnModelCreating(ModelBuilder mb)
@@ -48,67 +49,69 @@ public class SignatureDbContext : DbContext
             }
         );
 
-        /* ----- SignatureBox (OwnsMany) ------------------ */
-        signer.OwnsMany(
-            s => s.Boxes,
-            box =>
+        // Relación 1-N con SignatureBox (ya no es OwnsMany)
+        signer
+            .HasMany(s => s.Boxes)
+            .WithOne(b => b.Signer)
+            .HasForeignKey(b => b.SignerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        /* ─────────────── SignatureBox (Entidad Independiente) ─────────────── */
+        var signatureBox = mb.Entity<SignatureBox>();
+        signatureBox.ToTable("SignatureBoxes");
+        signatureBox.HasKey(x => x.Id);
+
+        // Propiedades escalares
+        signatureBox.Property(p => p.SignerId).IsRequired();
+        signatureBox.Property(p => p.PageNumber).IsRequired();
+        signatureBox.Property(p => p.PositionX).HasColumnType("float").IsRequired();
+        signatureBox.Property(p => p.PositionY).HasColumnType("float").IsRequired();
+        signatureBox.Property(p => p.Width).HasColumnType("float").IsRequired();
+        signatureBox.Property(p => p.Height).HasColumnType("float").IsRequired();
+        signatureBox.Property(p => p.Kind).HasConversion<string>().HasMaxLength(20).IsRequired();
+
+        /* ------ InitialEntity dentro de la caja (OwnsOne) ------ */
+        signatureBox.OwnsOne(
+            p => p.InitialEntity,
+            ie =>
             {
-                box.ToTable("SignatureBoxes");
-                box.WithOwner().HasForeignKey("SignerId");
-
-                box.HasKey(b => b.Id);
-                box.Property(b => b.Id).HasColumnName("Id").ValueGeneratedNever();
-
-                box.Property(p => p.PageNumber);
-                box.Property(p => p.PositionX).HasColumnType("float");
-                box.Property(p => p.PositionY).HasColumnType("float");
-                box.Property(p => p.Width).HasColumnType("float");
-                box.Property(p => p.Height).HasColumnType("float");
-
-                /* ------ InitialEntity dentro de la caja ------ */
-                box.OwnsOne(
-                    p => p.InitialEntity,
-                    ie =>
-                    {
-                        ie.Property(q => q.InitalValue)
-                            .HasColumnName("InitialValue")
-                            .HasMaxLength(4);
-                        ie.Property(q => q.WidthIntial)
-                            .HasColumnName("WidthIntial")
-                            .HasColumnType("float");
-                        ie.Property(q => q.HeightIntial)
-                            .HasColumnName("HeightIntial")
-                            .HasColumnType("float");
-                        ie.Property(q => q.PositionXIntial)
-                            .HasColumnName("PositionXIntial")
-                            .HasColumnType("float");
-                        ie.Property(q => q.PositionYIntial)
-                            .HasColumnName("PositionYIntial")
-                            .HasColumnType("float");
-                    }
-                );
-
-                /* ------ FechaSigner dentro de la caja -------- */
-                box.OwnsOne(
-                    p => p.FechaSigner,
-                    fs =>
-                    {
-                        fs.Property(q => q.FechaValue).HasColumnName("FechaValue");
-                        fs.Property(q => q.WidthFechaSigner)
-                            .HasColumnName("WidthFechaSigner")
-                            .HasColumnType("float");
-                        fs.Property(q => q.HeightFechaSigner)
-                            .HasColumnName("HeightFechaSigner")
-                            .HasColumnType("float");
-                        fs.Property(q => q.PositionXFechaSigner)
-                            .HasColumnName("PositionXFechaSigner")
-                            .HasColumnType("float");
-                        fs.Property(q => q.PositionYFechaSigner)
-                            .HasColumnName("PositionYFechaSigner")
-                            .HasColumnType("float");
-                    }
-                );
+                ie.Property(q => q.InitalValue).HasColumnName("InitialValue").HasMaxLength(4);
+                ie.Property(q => q.WidthIntial).HasColumnName("WidthIntial").HasColumnType("float");
+                ie.Property(q => q.HeightIntial)
+                    .HasColumnName("HeightIntial")
+                    .HasColumnType("float");
+                ie.Property(q => q.PositionXIntial)
+                    .HasColumnName("PositionXIntial")
+                    .HasColumnType("float");
+                ie.Property(q => q.PositionYIntial)
+                    .HasColumnName("PositionYIntial")
+                    .HasColumnType("float");
             }
         );
+
+        /* ------ FechaSigner dentro de la caja (OwnsOne) -------- */
+        signatureBox.OwnsOne(
+            p => p.FechaSigner,
+            fs =>
+            {
+                fs.Property(q => q.FechaValue).HasColumnName("FechaValue");
+                fs.Property(q => q.WidthFechaSigner)
+                    .HasColumnName("WidthFechaSigner")
+                    .HasColumnType("float");
+                fs.Property(q => q.HeightFechaSigner)
+                    .HasColumnName("HeightFechaSigner")
+                    .HasColumnType("float");
+                fs.Property(q => q.PositionXFechaSigner)
+                    .HasColumnName("PositionXFechaSigner")
+                    .HasColumnType("float");
+                fs.Property(q => q.PositionYFechaSigner)
+                    .HasColumnName("PositionYFechaSigner")
+                    .HasColumnType("float");
+            }
+        );
+
+        // Índices para mejorar rendimiento
+        signatureBox.HasIndex(x => x.SignerId);
+        signatureBox.HasIndex(x => new { x.SignerId, x.PageNumber });
     }
 }
