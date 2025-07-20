@@ -6,4 +6,4 @@ namespace Infrastructure.Command.Templates;
 
 
 
-public record class CreateTemplateCommads(CreateDto TemplateDto) : IRequest<ApiResponse<bool>>;
+public record class CreateTemplateCommads(CreateDto TemplateDto) : IRequest<ApiResponse<TemplateDto>>;

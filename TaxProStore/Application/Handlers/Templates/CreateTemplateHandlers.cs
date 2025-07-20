@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Domain.Entity.Templates;
+using Application.Dtos;
 using AutoMapper;
 using Infrastructure.Command.Templates;
 using Infrastructure.Context;
@@ -8,7 +9,7 @@ using MediatR;
 namespace Application.Handlers.Templates;
 
 
-public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateCommads, ApiResponse<bool>>
+public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateCommads, ApiResponse<TemplateDto>>
 {
     private readonly TaxProStoreDbContext _db;
     private readonly ILogger<CreateTemplateHandlers> _log;
@@ -27,7 +28,7 @@ public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateComma
         _mapper = mapper;
     }
 
-    public async Task<ApiResponse<bool>> Handle(CreateTemplateCommads request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<TemplateDto>> Handle(CreateTemplateCommads request, CancellationToken cancellationToken)
     {
 
         // Aquí se implementaría la lógica para crear una plantilla
@@ -37,7 +38,7 @@ public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateComma
         if (request.TemplateDto == null)
         {
             _log.LogError("TemplateDto is null.");
-            return new ApiResponse<bool>(false, "Template data is required.");
+            return new ApiResponse<TemplateDto>(false, "Template data is required.");
         }
         var templateEntity = _mapper.Map<Template>(request.TemplateDto);
         templateEntity.HtmlContent.Replace("\n", "").Replace("\r", "");
@@ -51,9 +52,17 @@ public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateComma
         if (templateEntity.Id == Guid.Empty)
         {
             _log.LogError("Failed to create template.");
-            return new ApiResponse<bool>(false, "Failed to create template.");
+            return new ApiResponse<TemplateDto>(false, "Failed to create template.");
         }
+    var valor = new TemplateDto
+        {
+            Id = templateEntity.Id,
+            Name = templateEntity.Name,
+            HtmlContent = templateEntity.HtmlContent,
+            PreviewUrl = templateEntity.PreviewUrl,
+            OwnerUserId = templateEntity.OwnerUserId
+        };
         _log.LogInformation("Template created successfully with ID: {TemplateId}", templateEntity.Id);
-        return new ApiResponse<bool>(true, "Template created successfully.");
+        return new ApiResponse<TemplateDto>(true, "Template created successfully.",valor);
     }
 }
