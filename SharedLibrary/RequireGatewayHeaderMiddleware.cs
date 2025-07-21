@@ -28,6 +28,7 @@ namespace SharedLibrary
             "/api/account/confirm",
             "/api/auth/client/login",
             "/api/auth/login",
+            "/api/auth/company-user/login",
             "/api/taxuser/register",
             "/api/taxuser/create",
             "/api/taxuser/createcompany",

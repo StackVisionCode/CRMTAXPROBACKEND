@@ -28,6 +28,16 @@
       "SwaggerKey": "auth"
     },
     {
+      "DownstreamPathTemplate": "/api/auth/company-user/login",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/company-user/login",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "Priority": 1,
+      "SwaggerKey": "auth"
+    },
+    {
       "DownstreamPathTemplate": "/api/auth/customer/logout",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
@@ -38,10 +48,30 @@
       "SwaggerKey": "auth"
     },
     {
+      "DownstreamPathTemplate": "/api/auth/company-user/logout",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/company-user/logout",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth"
+    },
+    {
       "DownstreamPathTemplate": "/api/auth/customer/logout-all",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/client/logout-all",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/auth/company-user/logout-all",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/company-user/logout-all",
       "UpstreamHttpMethod": ["POST"],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -125,6 +155,20 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/client/sessions",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "Priority": 0,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/auth/company-user/sessions",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/company-user/sessions",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",

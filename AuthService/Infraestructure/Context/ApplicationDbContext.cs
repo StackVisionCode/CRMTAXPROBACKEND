@@ -1,4 +1,5 @@
 using AuthService.Domains.Companies;
+using AuthService.Domains.CompanyUsers;
 using AuthService.Domains.Permissions;
 using AuthService.Domains.Roles;
 using AuthService.Domains.Sessions;
@@ -23,6 +24,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Session> Sessions { get; set; }
     public DbSet<CustomerSession> CustomerSessions { get; set; }
     public DbSet<Company> Companies { get; set; }
+    public DbSet<CompanyUser> CompanyUsers { get; set; }
+    public DbSet<CompanyUserProfile> CompanyUserProfiles { get; set; }
+    public DbSet<CompanyUserSession> CompanyUserSessions { get; set; }
+    public DbSet<CompanyUserRole> CompanyUserRoles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -68,6 +73,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Session>().ToTable("Sessions");
         modelBuilder.Entity<CustomerSession>().ToTable("CustomerSessions");
         modelBuilder.Entity<Company>().ToTable("Companies");
+        modelBuilder.Entity<CompanyUser>().ToTable("CompanyUsers");
+        modelBuilder.Entity<CompanyUserProfile>().ToTable("CompanyUserProfiles");
+        modelBuilder.Entity<CompanyUserSession>().ToTable("CompanyUserSessions");
+        modelBuilder.Entity<CompanyUserRole>().ToTable("CompanyUserRoles");
 
         modelBuilder.Entity<TaxUserProfile>().HasKey(t => t.Id);
         modelBuilder.Entity<TaxUser>().HasKey(t => t.Id);
@@ -79,12 +88,31 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Session>().HasKey(t => t.Id);
         modelBuilder.Entity<CustomerSession>().HasKey(t => t.Id);
         modelBuilder.Entity<Company>().HasKey(t => t.Id);
+        modelBuilder.Entity<CompanyUser>().HasKey(t => t.Id);
+        modelBuilder.Entity<CompanyUserProfile>().HasKey(t => t.Id);
+        modelBuilder.Entity<CompanyUserSession>().HasKey(t => t.Id);
+        modelBuilder.Entity<CompanyUserRole>().HasKey(t => t.Id);
 
         // Role.Name (no duplicados)
         modelBuilder.Entity<Role>().HasIndex(r => r.Name).IsUnique();
 
         // Permission.Code (clave funcional)
         modelBuilder.Entity<Permission>().HasIndex(p => p.Code).IsUnique();
+
+        // CompanyUser - índices y restricciones
+        modelBuilder.Entity<CompanyUser>().HasIndex(cu => cu.Email).IsUnique();
+
+        // CompanyUserRole - índice único compuesto
+        modelBuilder
+            .Entity<CompanyUserRole>()
+            .HasIndex(cur => new { cur.CompanyUserId, cur.RoleId })
+            .IsUnique()
+            .HasDatabaseName("IX_CompanyUserRoles_CompanyUserId_RoleId");
+
+        modelBuilder
+            .Entity<CompanyUserRole>()
+            .HasIndex(cur => new { cur.CompanyUserId, cur.RoleId })
+            .IsUnique();
 
         // RolePermission (Relación Role <-> Permission)
         modelBuilder
@@ -159,6 +187,45 @@ public class ApplicationDbContext : DbContext
             .HasOne(s => s.TaxUser)
             .WithMany(u => u.Sessions)
             .HasForeignKey(s => s.TaxUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relaciones CompanyUser - CompanyUserProfile (1:1)
+        modelBuilder
+            .Entity<CompanyUser>()
+            .HasOne(cu => cu.CompanyUserProfile)
+            .WithOne(cup => cup.CompanyUser)
+            .HasForeignKey<CompanyUserProfile>(cup => cup.CompanyUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relaciones CompanyUser - Company (N:1)
+        modelBuilder
+            .Entity<CompanyUser>()
+            .HasOne(cu => cu.Company)
+            .WithMany() // No navegación inversa en Company
+            .HasForeignKey(cu => cu.CompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relaciones CompanyUser - CompanyUserSessions (1:N)
+        modelBuilder
+            .Entity<CompanyUserSession>()
+            .HasOne(cus => cus.CompanyUser)
+            .WithMany(cu => cu.CompanyUserSessions)
+            .HasForeignKey(cus => cus.CompanyUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relaciones CompanyUserRole (CompanyUser <-> Role)
+        modelBuilder
+            .Entity<CompanyUserRole>()
+            .HasOne(cur => cur.CompanyUser)
+            .WithMany(cu => cu.CompanyUserRoles)
+            .HasForeignKey(cur => cur.CompanyUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<CompanyUserRole>()
+            .HasOne(cur => cur.Role)
+            .WithMany() // No navegación inversa necesaria
+            .HasForeignKey(cur => cur.RoleId)
             .OnDelete(DeleteBehavior.Cascade);
 
         //todo Permission data default
@@ -388,7 +455,13 @@ public class ApplicationDbContext : DbContext
         // ------------------------------------------------------------------
         SeedTaxPreparerRolePermissions(modelBuilder);
         // ------------------------------------------------------------------
-        // 4.  COMPANY + ADMIN USER
+        // ------------------------------------------------------------------
+        // 4. ROLE-PERMISSIONS User (NUEVO - permisos mínimos)
+        // ------------------------------------------------------------------
+        SeedUserRolePermissions(modelBuilder); // ← NUEVO MÉTODO
+
+        // ------------------------------------------------------------------
+        // 5. COMPANY + ADMIN USER
         // ------------------------------------------------------------------
         SeedCompanyAndAdmin(modelBuilder);
 
@@ -480,6 +553,7 @@ public class ApplicationDbContext : DbContext
     static readonly Guid CompanySeedId = Guid.Parse("770e8400-e29b-41d4-a716-556655441000");
     static readonly Guid AdminUserSeedId = Guid.Parse("880e8400-e29b-41d4-a716-556655441000");
     static readonly Guid AdministratorRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441001");
+    static readonly Guid UserRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441002");
     static readonly Guid TaxPreparerRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441003");
 
     private static void SeedAdministratorRolePermissions(ModelBuilder mb)
@@ -541,6 +615,43 @@ public class ApplicationDbContext : DbContext
                 }
         );
         mb.Entity<RolePermission>().HasData(rp);
+    }
+
+    private static void SeedUserRolePermissions(ModelBuilder mb)
+    {
+        // User - permisos mínimos básicos (solo lectura y vista)
+        var allowedCodes = new[]
+        {
+            // Permisos básicos de solo lectura
+            "Customer.SelfRead", // Ver su propio perfil
+            "Sessions.Read", // Ver sesiones
+            "Permission.View", // Ver permisos (solo vista)
+            "Role.View", // Ver roles (solo vista)
+            "TaxUser.View", // Ver usuarios (solo vista)
+            "Customer.View", // Ver clientes (solo vista)
+            "Dependent.Viewer", // Ver dependientes (solo vista)
+            "TaxInformation.Viewer", // Ver información fiscal (solo vista)
+        };
+
+        var userRolePermissions = allowedCodes.Select(
+            (code, idx) =>
+            {
+                var permissionId = mb
+                    .Model.FindEntityType(typeof(Permission))!
+                    .GetSeedData()
+                    .Cast<Dictionary<string, object>>()
+                    .First(p => (string)p["Code"] == code)["Id"];
+
+                return new RolePermission
+                {
+                    Id = Guid.Parse($"880e8400-e29b-41d4-a716-55665547{idx:0000}"), // Serie 880e para User
+                    RoleId = UserRoleId,
+                    PermissionId = (Guid)permissionId,
+                };
+            }
+        );
+
+        mb.Entity<RolePermission>().HasData(userRolePermissions);
     }
 
     private static void SeedCompanyAndAdmin(ModelBuilder mb)

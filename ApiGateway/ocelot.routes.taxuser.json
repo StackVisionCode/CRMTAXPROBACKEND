@@ -35,6 +35,27 @@
       "SwaggerKey": "taxuser"
     },
     {
+      "DownstreamPathTemplate": "/api/CompanyUser/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/companyuser/create",
+      "UpstreamHttpMethod": ["POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "taxuser"
+    },
+    {
       "DownstreamPathTemplate": "/api/TaxUser/UpdateUser",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -44,6 +65,27 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/updateuser",
+      "UpstreamHttpMethod": ["PUT"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "taxuser"
+    },
+    {
+      "DownstreamPathTemplate": "/api/CompanyUser/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/companyuser/updateuser",
       "UpstreamHttpMethod": ["PUT"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -140,6 +182,27 @@
       "SwaggerKey": "taxuser"
     },
     {
+      "DownstreamPathTemplate": "/api/CompanyUser/Delete/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/companyuser/delete/{id}",
+      "UpstreamHttpMethod": ["DELETE"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "taxuser"
+    },
+    {
       "DownstreamPathTemplate": "/api/TaxUser/GetAll",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -182,6 +245,27 @@
       "SwaggerKey": "taxuser"
     },
     {
+      "DownstreamPathTemplate": "/api/CompanyUser/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/companyuser/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "taxuser"
+    },
+    {
       "DownstreamPathTemplate": "/api/TaxUser/Profile",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -191,6 +275,27 @@
         }
       ],
       "UpstreamPathTemplate": "/api/taxuser/getprofile",
+      "UpstreamHttpMethod": ["GET"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "taxuser"
+    },
+    {
+      "DownstreamPathTemplate": "/api/CompanyUser/Profile",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/companyuser/getprofile",
       "UpstreamHttpMethod": ["GET"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",

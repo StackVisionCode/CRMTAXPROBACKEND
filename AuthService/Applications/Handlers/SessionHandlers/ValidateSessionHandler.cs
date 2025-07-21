@@ -26,25 +26,34 @@ public class ValidateSessionHandler : IRequestHandler<ValidateSessionQuery, bool
     {
         try
         {
-            // 1) comprobar en tabla de usuarios preparadores
-            var ok =
-                await _context.Sessions.AnyAsync(
-                    s =>
-                        s.Id == request.SessionId
-                        && !s.IsRevoke
-                        && s.ExpireTokenRequest > DateTime.UtcNow,
-                    cancellationToken
-                )
-                // 2) o en tabla de clientes
-                || await _context.CustomerSessions.AnyAsync(
-                    s =>
-                        s.Id == request.SessionId
-                        && !s.IsRevoke
-                        && s.ExpireTokenRequest > DateTime.UtcNow,
-                    cancellationToken
-                );
+            // 1) TaxUsers (usuarios preparadores)
+            var taxUserSessionValid = await _context.Sessions.AnyAsync(
+                s =>
+                    s.Id == request.SessionId
+                    && !s.IsRevoke
+                    && s.ExpireTokenRequest > DateTime.UtcNow,
+                cancellationToken
+            );
 
-            return ok;
+            // 2) CustomerSessions (clientes finales)
+            var customerSessionValid = await _context.CustomerSessions.AnyAsync(
+                s =>
+                    s.Id == request.SessionId
+                    && !s.IsRevoke
+                    && s.ExpireTokenRequest > DateTime.UtcNow,
+                cancellationToken
+            );
+
+            // 3) CompanyUserSessions (usuarios de empresa) - NUEVO
+            var companyUserSessionValid = await _context.CompanyUserSessions.AnyAsync(
+                s =>
+                    s.Id == request.SessionId
+                    && !s.IsRevoke
+                    && s.ExpireTokenRequest > DateTime.UtcNow,
+                cancellationToken
+            );
+
+            return taxUserSessionValid || customerSessionValid || companyUserSessionValid;
         }
         catch (Exception ex)
         {

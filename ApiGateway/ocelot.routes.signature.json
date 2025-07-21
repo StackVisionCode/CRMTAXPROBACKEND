@@ -95,7 +95,6 @@
             "Priority": 1,
             "SwaggerKey": "signature"
         },
-
         {
             "DownstreamPathTemplate": "/api/SignatureRequests/{token}",
             "DownstreamScheme": "http",
@@ -340,6 +339,116 @@
                 "X-From-Gateway": "Api-Gateway"
             },
             "Priority": 0,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/{customerId}/requests",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/customer-signature/{customerId}/requests",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/{customerId}/history",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/customer-signature/{customerId}/history",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/requests/{requestId}/activity",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/customer-signature/requests/{requestId}/activity",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/{customerId}/stats",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/customer-signature/{customerId}/stats",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "signature"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Signature/{customerId}/urgent",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5006
+                }
+            ],
+            "UpstreamPathTemplate": "/api/customer-signature/{customerId}/urgent",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
             "SwaggerKey": "signature"
         }
     ]
