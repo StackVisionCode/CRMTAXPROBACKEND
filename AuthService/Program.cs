@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Text.Json;
 using Applications.Common;
 using Applications.EventHandlers.CustomerEventHandlers;
 using AuthService.Applications.Services;
@@ -38,6 +39,9 @@ try
     Log.Information("Starting up the application");
 
     JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+    // Configurar caché hibrido Redis X Local
+    builder.Services.AddHybridCache(builder.Configuration);
 
     // Configurar CORS
     builder.Services.AddCustomCors();
@@ -102,8 +106,11 @@ try
         }
     );
 
-    // Configurar caché en memoria en lugar de Redis
-    builder.Services.AddSessionCache();
+    // CONFIGURAR HEALTH CHECKS
+    builder.Services.AddCacheHealthChecks();
+
+    // CONFIGURAR RABBITMQ
+    builder.Services.AddEventBus(builder.Configuration);
 
     // Configurar RabbitMQ
     builder.Services.AddEventBus(builder.Configuration);
@@ -166,7 +173,30 @@ try
 
         // Log successful subscriptions
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("EmailService subscribed to all integration events");
+        logger.LogInformation("Customer subscribed to all integration events");
+
+        // ✅ MOSTRAR INFORMACIÓN DEL SISTEMA DE CACHÉ
+        try
+        {
+            var hybridCache =
+                scope.ServiceProvider.GetService<SharedLibrary.Caching.IHybridCache>();
+            if (hybridCache != null)
+            {
+                logger.LogInformation(
+                    "✅ Cache system initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                    hybridCache.CurrentCacheMode,
+                    hybridCache.IsRedisAvailable
+                );
+            }
+            else
+            {
+                logger.LogWarning("⚠️ HybridCache not found, using fallback caching");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not retrieve cache status information");
+        }
     }
 
     // Middlewares
@@ -180,6 +210,37 @@ try
         opt.SwaggerEndpoint("/swagger/v1/swagger.json", "Services TaxCloud V1");
         opt.RoutePrefix = "swagger"; // =>  http://localhost:5092/swagger
     });
+
+    // HEALTH CHECKS ENDPOINT
+    app.MapHealthChecks(
+        "/health",
+        new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                var result = JsonSerializer.Serialize(
+                    new
+                    {
+                        status = report.Status.ToString(),
+                        service = "AuthService",
+                        timestamp = DateTime.UtcNow,
+                        checks = report.Entries.ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => new
+                            {
+                                status = kvp.Value.Status.ToString(),
+                                description = kvp.Value.Description,
+                                data = kvp.Value.Data,
+                            }
+                        ),
+                    },
+                    new JsonSerializerOptions { WriteIndented = true }
+                );
+                await context.Response.WriteAsync(result);
+            },
+        }
+    );
 
     // HTTPS redirection (opcional, solo si configuras HTTPS en Docker)
     app.UseHttpsRedirection();

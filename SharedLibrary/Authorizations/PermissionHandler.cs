@@ -3,29 +3,29 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SharedLibrary.Caching;
 
 namespace SharedLibrary.Authorizations;
 
 public sealed class PermissionHandler : AuthorizationHandler<PermissionRequirement>
 {
-    private readonly IMemoryCache _cache;
     private readonly IHttpClientFactory _http;
     private readonly ILogger _log;
     private readonly IHttpContextAccessor _ctx;
+    private readonly IHybridCache? _hybridCache;
 
     public PermissionHandler(
-        IMemoryCache cache,
         IHttpClientFactory http,
         ILogger<PermissionHandler> log,
-        IHttpContextAccessor ctx
-    ) // 👈
+        IHttpContextAccessor ctx,
+        IHybridCache? hybridCache = null
+    )
     {
-        _cache = cache;
         _http = http;
         _log = log;
         _ctx = ctx;
+        _hybridCache = hybridCache;
     }
 
     protected override async Task HandleRequirementAsync(
@@ -51,30 +51,74 @@ public sealed class PermissionHandler : AuthorizationHandler<PermissionRequireme
             return;
 
         var cacheKey = $"perms:{userId}";
-        if (!_cache.TryGetValue(cacheKey, out HashSet<string>? perms))
+        HashSet<string>? perms = null;
+
+        // ✅ INTENTAR OBTENER DEL CACHÉ HÍBRIDO
+        if (_hybridCache != null)
+        {
+            try
+            {
+                perms = await _hybridCache.GetAsync<HashSet<string>>(cacheKey);
+
+                if (perms != null)
+                {
+                    _log.LogDebug(
+                        "Permissions cache hit for user {UserId} using {CacheMode}",
+                        userId,
+                        _hybridCache.CurrentCacheMode
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Error accessing hybrid cache for user permissions");
+            }
+        }
+
+        // Si no hay permisos en caché, consultarlos del servicio
+        if (perms == null)
         {
             var client = _http.CreateClient("AuthService");
 
-            /*  propagar el token de la petición entrante */
+            // Propagar el token de la petición entrante
             var bearer = _ctx.HttpContext?.Request.Headers.Authorization.ToString();
             if (!string.IsNullOrWhiteSpace(bearer))
                 client.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(
                     bearer
                 );
 
-            /*  ruta interna real del micro-servicio               */
-            var list = await client.GetFromJsonAsync<IEnumerable<string>>(
-                $"/api/Permission/user/{userId}/codes"
-            );
+            try
+            {
+                // Ruta interna real del micro-servicio
+                var list = await client.GetFromJsonAsync<IEnumerable<string>>(
+                    $"/api/Permission/user/{userId}/codes"
+                );
 
-            perms = list?.ToHashSet(StringComparer.Ordinal) ?? new();
-            _cache.Set(
-                cacheKey,
-                perms,
-                new MemoryCacheEntryOptions()
-                    .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
-                    .SetSize(1)
-            );
+                perms = list?.ToHashSet(StringComparer.Ordinal) ?? new();
+
+                // ✅ GUARDAR EN CACHÉ HÍBRIDO
+                if (_hybridCache != null)
+                {
+                    try
+                    {
+                        await _hybridCache.SetAsync(cacheKey, perms, TimeSpan.FromSeconds(30));
+                        _log.LogDebug(
+                            "Permissions cached for user {UserId} using {CacheMode}",
+                            userId,
+                            _hybridCache.CurrentCacheMode
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogWarning(ex, "Failed to cache user permissions");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Error retrieving permissions for user {UserId}", userId);
+                return;
+            }
         }
 
         if (perms != null && perms.Contains(req.Code))

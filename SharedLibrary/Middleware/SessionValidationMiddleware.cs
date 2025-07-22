@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SharedLibrary.Caching;
 
 namespace SharedLibrary.Middleware;
 
@@ -11,19 +12,19 @@ public sealed class SessionValidationMiddleware
     private readonly RequestDelegate _next;
     private readonly IHttpClientFactory _factory;
     private readonly ILogger<SessionValidationMiddleware> _logger;
-    private readonly IMemoryCache _cache;
+    private readonly IHybridCache? _hybridCache;
 
     public SessionValidationMiddleware(
         RequestDelegate next,
         IHttpClientFactory factory,
         ILogger<SessionValidationMiddleware> logger,
-        IMemoryCache cache
+        IHybridCache? hybridCache = null
     )
     {
         _next = next;
         _factory = factory;
         _logger = logger;
-        _cache = cache;
+        _hybridCache = hybridCache;
     }
 
     public async Task InvokeAsync(HttpContext ctx)
@@ -49,28 +50,68 @@ public sealed class SessionValidationMiddleware
         }
 
         string cacheKey = $"sid:{sid}";
+        bool? cachedResult = null;
 
-        // Intentar obtener del caché
-        if (!_cache.TryGetValue(cacheKey, out string? cachedResult))
+        // ✅ USAR CACHÉ HÍBRIDO SI ESTÁ DISPONIBLE
+        if (_hybridCache != null)
         {
             try
             {
-                _logger.LogDebug(
-                    "Cache miss for {CacheKey}, validating with auth service",
-                    cacheKey
-                );
+                cachedResult = await _hybridCache.GetAsync<bool?>(cacheKey);
+
+                if (cachedResult.HasValue)
+                {
+                    _logger.LogDebug(
+                        "Session validation cache hit for SID {SessionId} using {CacheMode}",
+                        sid,
+                        _hybridCache.CurrentCacheMode
+                    );
+                }
+                else
+                {
+                    _logger.LogDebug("Session validation cache miss for SID {SessionId}", sid);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error accessing hybrid cache for session validation");
+                cachedResult = null;
+            }
+        }
+
+        // Si no hay resultado en caché, validar con el servicio de auth
+        if (!cachedResult.HasValue)
+        {
+            try
+            {
+                _logger.LogDebug("Validating session {SessionId} with auth service", sid);
+
                 var client = _factory.CreateClient("Auth");
                 var resp = await client.GetAsync($"/api/Session/IsValid?sid={sid}");
-                cachedResult = resp.IsSuccessStatusCode ? bool.TrueString : bool.FalseString;
+                cachedResult = resp.IsSuccessStatusCode;
 
-                // Guardar en caché con expiración
-                var cacheOptions = new MemoryCacheEntryOptions
+                // Guardar en caché híbrido si está disponible
+                if (_hybridCache != null)
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(2),
-                    Size = 1, // Para control de tamaño de caché si se implementa límite
-                };
+                    try
+                    {
+                        var cacheExpiry = cachedResult.Value
+                            ? TimeSpan.FromSeconds(30)
+                            : TimeSpan.FromSeconds(5);
+                        await _hybridCache.SetAsync(cacheKey, cachedResult.Value, cacheExpiry);
 
-                _cache.Set(cacheKey, cachedResult, cacheOptions);
+                        _logger.LogDebug(
+                            "Session validation result cached for SID {SessionId} using {CacheMode}, result: {Result}",
+                            sid,
+                            _hybridCache.CurrentCacheMode,
+                            cachedResult.Value
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to cache session validation result");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -84,18 +125,13 @@ public sealed class SessionValidationMiddleware
                 return;
             }
         }
-        else
-        {
-            _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
-        }
 
-        if (cachedResult != bool.TrueString)
+        if (!cachedResult.GetValueOrDefault())
         {
             ctx.Response.StatusCode = 401;
             await ctx.Response.WriteAsync("Sesión revocada o expirada");
             return;
         }
-
         ctx.Items["SessionId"] = sid;
 
         // Añadir también SessionUid como claim en el User.Identity

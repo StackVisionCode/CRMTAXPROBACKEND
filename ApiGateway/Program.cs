@@ -1,5 +1,7 @@
+using System.Text.Json;
 using ApiGateway;
 using ApiGateway.Applications.Handlers;
+using Microsoft.Extensions.Caching.Memory;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Serilog;
@@ -23,6 +25,11 @@ try
 
     // Add Serilog to ASP.NET Core
     builder.Host.UseSerilog();
+
+    // CONFIGURAR CACHÉ HÍBRIDO
+    builder.Services.AddHybridCache(builder.Configuration);
+
+    builder.Services.Configure<MemoryCacheOptions>(opts => opts.SizeLimit = null);
 
     builder.Services.AddTransient<GatewayHeaderHandler>();
 
@@ -48,9 +55,6 @@ try
             }
         );
 
-    // Configurar caché en memoria con opciones
-    builder.Services.AddSessionCache();
-
     // Cliente HTTP para auth service
     // HttpClient SIEMPRE a DNS interno
     builder.Services.AddHttpClient(
@@ -67,12 +71,75 @@ try
             c.DefaultRequestHeaders.Add("X-From-Gateway", "Api-Gateway");
         }
     );
+
+    // CONFIGURAR HEALTH CHECKS
+    builder.Services.AddCacheHealthChecks();
+
     var app = builder.Build();
+
+    // MOSTRAR INFORMACIÓN DEL CACHÉ AL INICIAR
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {
+            var hybridCache =
+                scope.ServiceProvider.GetService<SharedLibrary.Caching.IHybridCache>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+            if (hybridCache != null)
+            {
+                logger.LogInformation(
+                    "✅ API Gateway Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                    hybridCache.CurrentCacheMode,
+                    hybridCache.IsRedisAvailable
+                );
+            }
+            else
+            {
+                logger.LogWarning("⚠️ HybridCache not available in Gateway");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Could not retrieve gateway cache status");
+        }
+    }
 
     app.UseCors("AllowAll");
 
     // Configure middleware pipeline
     app.UseSerilogRequestLogging();
+
+    // HEALTH CHECKS ENDPOINT
+    app.MapHealthChecks(
+        "/health",
+        new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                var result = JsonSerializer.Serialize(
+                    new
+                    {
+                        status = report.Status.ToString(),
+                        service = "ApiGateway",
+                        timestamp = DateTime.UtcNow,
+                        checks = report.Entries.ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => new
+                            {
+                                status = kvp.Value.Status.ToString(),
+                                description = kvp.Value.Description,
+                                data = kvp.Value.Data,
+                            }
+                        ),
+                    },
+                    new JsonSerializerOptions { WriteIndented = true }
+                );
+                await context.Response.WriteAsync(result);
+            },
+        }
+    );
 
     app.UseHttpsRedirection();
 

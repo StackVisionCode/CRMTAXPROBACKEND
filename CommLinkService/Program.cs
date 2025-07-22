@@ -32,8 +32,12 @@ try
 {
     Log.Information("Starting CommLink Service");
 
+    // CONFIGURAR CACHÉ HÍBRIDO (OBLIGATORIO)
+    builder.Services.AddHybridCache(builder.Configuration);
+
     // JWT Authentication
     builder.Services.AddJwtAuth(builder.Configuration);
+
     builder
         .Services.AddAuthentication("Bearer")
         .AddJwtBearer(
@@ -65,6 +69,9 @@ try
     // Add services to the container.
     builder.Services.AddCustomCors();
 
+    // HEALTH CHECKS
+    builder.Services.AddCacheHealthChecks();
+
     // HttpClient for Auth Service
     builder.Services.AddHttpClient(
         "Auth",
@@ -76,9 +83,6 @@ try
             c.DefaultRequestHeaders.Add("X-From-Gateway", "Api-Gateway");
         }
     );
-
-    // Configurar caché en memoria en lugar de Redis
-    builder.Services.AddSessionCache();
 
     // Add services Origin URL to the container.
     builder.Services.AddCustomOrigin();
@@ -161,6 +165,22 @@ try
 
     var app = builder.Build();
 
+    // ✅ 5. MOSTRAR INFORMACIÓN DEL CACHÉ
+    using (var scope = app.Services.CreateScope())
+    {
+        var hybridCache = scope.ServiceProvider.GetService<SharedLibrary.Caching.IHybridCache>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        if (hybridCache != null)
+        {
+            logger.LogInformation(
+                "✅ CommLink Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                hybridCache.CurrentCacheMode,
+                hybridCache.IsRedisAvailable
+            );
+        }
+    }
+
     app.UseCors("AllowAll");
 
     // WebSocket support
@@ -189,6 +209,8 @@ try
     // Gateway validation
     app.UseMiddleware<RequireGatewayHeaderMiddleware>();
 
+    // HEALTH ENDPOINT
+    app.MapHealthChecks("/health");
     app.MapControllers();
 
     app.Run();

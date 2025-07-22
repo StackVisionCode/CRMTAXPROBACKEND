@@ -29,11 +29,14 @@ try
 {
     Log.Information("Starting up the application");
 
-    // Configurar Rbac
-    builder.Services.AddRbac(builder.Configuration);
+    // CONFIGURAR CACHÉ HÍBRIDO (OBLIGATORIO)
+    builder.Services.AddHybridCache(builder.Configuration);
 
     // Configurar JWT
     builder.Services.AddJwtAuth(builder.Configuration);
+
+    // Configurar Rbac
+    builder.Services.AddRbac(builder.Configuration);
 
     builder
         .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -49,8 +52,8 @@ try
     // Configurar CORS
     builder.Services.AddCustomCors();
 
-    // Configurar caché en memoria en lugar de Redis
-    builder.Services.AddSessionCache();
+    // HEALTH CHECKS
+    builder.Services.AddCacheHealthChecks();
 
     // Configurar RabbitMQ
     builder.Services.AddEventBus(builder.Configuration);
@@ -120,6 +123,22 @@ try
 
     var app = builder.Build();
 
+    //  MOSTRAR INFORMACIÓN DEL CACHÉ
+    using (var scope = app.Services.CreateScope())
+    {
+        var hybridCache = scope.ServiceProvider.GetService<SharedLibrary.Caching.IHybridCache>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        if (hybridCache != null)
+        {
+            logger.LogInformation(
+                "✅ Customer Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                hybridCache.CurrentCacheMode,
+                hybridCache.IsRedisAvailable
+            );
+        }
+    }
+
     // Middlewares
     app.UseCors("AllowAll");
 
@@ -135,6 +154,9 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseMiddleware<RequireGatewayHeaderMiddleware>();
+
+    // HEALTH ENDPOINT
+    app.MapHealthChecks("/health");
     app.MapControllers();
 
     app.Run();

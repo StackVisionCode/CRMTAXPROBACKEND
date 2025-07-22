@@ -4,6 +4,13 @@
     "DownstreamHeaderTransform": {
       "Authorization": ">>",
       "X-From-Gateway": "set(Api-Gateway)"
+    },
+    "RateLimitOptions": {
+      "StoreType": "Redis",
+      "RedisConnectionString": "localhost:6379",
+      "DisableRateLimitHeaders": false,
+      "QuotaExceededMessage": "Rate limit exceeded",
+      "HttpStatusCode": 429
     }
   },
   "SwaggerEndPoints": [

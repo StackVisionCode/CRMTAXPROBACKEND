@@ -10,6 +10,13 @@ services:
       SA_PASSWORD: "Brittany040238."
       MSSQL_PID: "Developer"
     networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Brittany040238. -Q 'SELECT 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
   # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
@@ -22,17 +29,52 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
   # --- Reddis --------------------------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: redis
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [
+      "redis-server",
+      "--appendonly", "yes",
+      "--appendfsync", "everysec",
+      "--maxmemory", "512mb",
+      "--maxmemory-policy", "allkeys-lru",
+      "--tcp-keepalive", "60",
+      "--timeout", "300",
+      "--save", "900", "1",
+      "--save", "300", "10", 
+      "--save", "60", "10000",
+      "--rdbcompression", "yes",
+      "--rdbchecksum", "yes"
+    ]
     ports:
       - "6379:6379"
     volumes:
       - redisdata:/data 
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   # --- RedisInsight (Oficial) ------------------------------------------
   redisinsight:
@@ -42,9 +84,11 @@ services:
       - "8081:8001"
     volumes:
       - redisinsight_data:/db
-    depends_on: [redis]
-    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     networks: [backend]
+    restart: unless-stopped
 
   # --- API Gateway -----------------------------------------------------------
   apigateway:
@@ -53,10 +97,30 @@ services:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://0.0.0.0:80
+      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__KeyPrefix: "gateway"
+      HybridCache__Redis__Database: "0"
     ports:
       - "5000:80"
-    depends_on: [rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   # --- Auth Service ----------------------------------------------------------
   auth-service:
@@ -70,8 +134,30 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [rabbitmq, sqlserver]
+      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__KeyPrefix: "auth"
+      HybridCache__Redis__Database: "1"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
 
   # --- Calendar Service ------------------------------------------------------
   calendar-service:
@@ -97,8 +183,24 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [rabbitmq, sqlserver]
+      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__KeyPrefix: "customer"
+      HybridCache__Redis__Database: "5"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      sqlserver:
+        condition: service_started
+      redis:
+        condition: service_healthy
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   # --- Email Service ---------------------------------------------------------
   email-service:
@@ -112,8 +214,24 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-    depends_on: [rabbitmq, sqlserver]
+      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__KeyPrefix: "email"
+      HybridCache__Redis__Database: "6"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      sqlserver:
+        condition: service_started
+      redis:
+        condition: service_healthy
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   # --- Auth Service ----------------------------------------------------------
   signature-service:
@@ -127,8 +245,18 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
+      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__KeyPrefix: "signature"
+      HybridCache__Redis__Database: "9"
     depends_on: [rabbitmq, sqlserver]
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   # --- Migrators (Usan imágenes dedicadas) -----------------------------------
   auth-migrator:
@@ -180,6 +308,7 @@ services:
 volumes:
   redisdata:
   redisinsight_data:
+  rabbitmq_data:
 
 networks:
   backend:

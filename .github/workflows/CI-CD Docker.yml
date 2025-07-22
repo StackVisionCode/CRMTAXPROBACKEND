@@ -13,21 +13,19 @@ env:
   REGISTRY_PREFIX: jturbi/crmtaxpro
   TAG: ${{ github.sha }}
 
-###############################################################################
-# 1) BUILD & PUSH — runner GitHub (Ubuntu)
-###############################################################################
 jobs:
   build-and-push:
+    name: 🔨 Build & Push Images
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      # Setup Buildx
+      # Configurar Buildx
       - uses: docker/setup-buildx-action@v3
 
-      # Cache Docker layers
-      - name: Docker layer cache
+      # Cache de capas Docker
+      - name: Cache Docker layers
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
@@ -35,13 +33,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      # Login Docker Hub
+      # Login en Docker Hub
       - uses: docker/login-action@v3
         with:
           username: jturbi
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build y Push de todas las imágenes
+      # Build & Push
       - name: Build & push all images (.NET 9)
         shell: bash
         run: |
@@ -58,32 +56,57 @@ jobs:
             [calendar-migrator]=CalendarService/Dockerfile.migrator
             [signature-migrator]=signature/Dockerfile.migrator
           )
+          total=${#DF[@]}
+          current=1
+
           for svc in "${!DF[@]}"; do
             dockerfile_path="${DF[$svc]}"
             img="$REGISTRY/$REGISTRY_PREFIX-$svc"
-            echo "⚡ Building $img"
+            echo "⚡ Building $img ($current/$total)"
 
-            docker buildx build \
+            if ! docker buildx build \
               --file "$dockerfile_path" \
               --tag "$img:$TAG" \
               --tag "$img:latest" \
               --cache-from=type=local,src=/tmp/.buildx-cache \
-              --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
+              --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
               --push \
-              .
+              --progress=plain \
+              .; then
+              echo "❌ ERROR: Build failed for $svc"
+              exit 1
+            fi
+
+            echo "✅ [$current/$total] $svc completado"
+            ((current++))
           done
 
-  ###############################################################################
-  # 2) DEPLOY — runner self-hosted (Ubuntu 24.04)
-  ###############################################################################
+          # Actualizar cache para próxima ejecución
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true
+
+      # Resumen de imágenes
+      - name: Build summary
+        run: |
+          echo "## 📦 Imágenes construidas" >> $GITHUB_STEP_SUMMARY
+          echo "| Servicio           | Imagen                            | Tag      |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------------------|-----------------------------------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          services=(
+            apigateway auth-service customer-service
+            calendar-service email-service signature-service
+            auth-migrator customer-migrator
+            email-migrator calendar-migrator signature-migrator
+          )
+          for svc in "${services[@]}"; do
+            echo "| $svc | $REGISTRY/$REGISTRY_PREFIX-$svc | $TAG |" >> $GITHUB_STEP_SUMMARY
+          done
+
   deploy:
+    name: 🚀 Deploy to Ubuntu Server
     needs: build-and-push
     runs-on: self-hosted
     timeout-minutes: 30
-
-    env:
-      COMPOSE_PROJECT_NAME: crmtaxpro
-
     defaults:
       run:
         shell: bash
@@ -95,35 +118,36 @@ jobs:
       - name: Ensure Docker Compose v2
         run: |
           if ! docker compose version >/dev/null 2>&1; then
-            echo "Docker Compose v2 no está instalado. Por favor instala docker-compose-plugin."
+            echo "🛑 Docker Compose v2 no está instalado. Instala docker-compose-plugin."
             exit 1
           fi
 
-      # Login Docker
+      # Login en Docker Hub
       - name: Docker login
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login $REGISTRY -u jturbi --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login $REGISTRY -u jturbi --password-stdin
 
-      # Generar archivo .env con TAG y REGISTRY_PREFIX
+      # Generar .env con variables
       - name: Export vars & create .env
         run: |
           echo "REGISTRY_PREFIX=${{ env.REGISTRY_PREFIX }}" > .env
-          echo "TAG=${{ env.TAG }}" >> .env
+          echo "TAG=${{ env.TAG }}"              >> .env
           cat .env
 
-      # Pull de todas las imágenes
+      # Pull de imágenes
       - name: Pull all services
         run: |
           docker compose pull || echo "⚠️ Pull fallido para algunos servicios. Continuando..."
 
-      # Levantar todos los servicios definidos
+      # Levantar servicios
       - name: Up all services
         run: docker compose up -d
 
-      # Ejecutar migradores
+      # Ejecutar migraciones
       - name: Run DB Migrations
         run: |
           for svc in $(docker compose config --services | grep migrator); do
-            docker compose run --rm "$svc" || echo "⚠️ Migrator $svc failed or not defined"
+            docker compose run --rm "$svc" || echo "⚠️ Migrator $svc falló"
           done
 
       # Limpiar imágenes no usadas

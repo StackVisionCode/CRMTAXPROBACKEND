@@ -40,7 +40,11 @@ Log.Logger = new LoggerConfiguration()
 
 Log.Information("Starting up the application");
 
+// CONFIGURAR CACHÉ HÍBRIDO (OBLIGATORIO)
+builder.Services.AddHybridCache(builder.Configuration);
+
 builder.Services.AddJwtAuth(builder.Configuration);
+
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(
@@ -52,9 +56,10 @@ builder
         }
     );
 
-builder.Services.AddCustomCors();
+// HEALTH CHECKS
+builder.Services.AddCacheHealthChecks();
 
-builder.Services.AddSessionCache();
+builder.Services.AddCustomCors();
 
 builder.Services.AddEventBus(builder.Configuration);
 
@@ -192,6 +197,22 @@ builder.Services.AddScoped<CustomerLoginDisabledEventHandler>();
 
 var app = builder.Build();
 
+// MOSTRAR INFORMACIÓN DEL CACHÉ
+using (var scope = app.Services.CreateScope())
+{
+    var hybridCache = scope.ServiceProvider.GetService<SharedLibrary.Caching.IHybridCache>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    if (hybridCache != null)
+    {
+        logger.LogInformation(
+            "✅ Email Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+            hybridCache.CurrentCacheMode,
+            hybridCache.IsRedisAvailable
+        );
+    }
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
@@ -227,6 +248,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // app.UseMiddleware<RequireGatewayHeaderMiddleware>();
+
+// HEALTH ENDPOINT
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();

@@ -2,6 +2,7 @@ using System.Runtime.Intrinsics.Arm;
 using Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SharedLibrary.Contracts;
 using SharedLibrary.Contracts.Security;
 using SharedLibrary.Services;
@@ -30,14 +31,38 @@ public static class JwtServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// ✅ MÉTODO CORREGIDO - Delega la configuración del caché al nuevo sistema HybridCache,
+    /// manteniendo un fallback a un caché en memoria simple si la configuración avanzada falla.
+    /// </summary>
     public static IServiceCollection AddSessionCache(this IServiceCollection services)
     {
-        services.AddMemoryCache(options =>
+        // El service provider se necesita para acceder a la configuración y los logs.
+        var serviceProvider = services.BuildServiceProvider();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var logger = serviceProvider.GetRequiredService<ILogger<IServiceCollection>>();
+
+        try
         {
-            // Configuraciones óptimas para caché de sesiones
-            options.SizeLimit = 2048; // 2K entradas máximas
-            options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
-        });
+            // Intentar usar el nuevo sistema de caché híbrido, que es el método preferido.
+            logger.LogInformation("Inicializando sistema de caché a través de AddHybridCache.");
+            services.AddHybridCache(configuration);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Falló la inicialización de AddHybridCache. Se usará un fallback a AddMemoryCache simple."
+            );
+
+            // Fallback a la implementación anterior si el sistema híbrido falla catastróficamente.
+            // Esto llama al método AddSessionCache de la otra clase, que solo configura IMemoryCache.
+            services.AddMemoryCache(options =>
+            {
+                options.SizeLimit = 2048;
+                options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
+            });
+        }
 
         return services;
     }

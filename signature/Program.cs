@@ -32,6 +32,9 @@ try
 {
     Log.Information("Starting up the application");
 
+    // CONFIGURAR CACHÉ HÍBRIDO (OBLIGATORIO)
+    builder.Services.AddHybridCache(builder.Configuration);
+
     // Configurar JWT
     builder.Services.AddJwtAuth(builder.Configuration);
 
@@ -50,11 +53,11 @@ try
     // Add services to the container.
     builder.Services.AddCustomCors();
 
+    // HEALTH CHECKS
+    builder.Services.AddCacheHealthChecks();
+
     // Add services Origin URL to the container.
     builder.Services.AddCustomOrigin();
-
-    // Configurar caché en memoria en lugar de Redis
-    builder.Services.AddSessionCache();
 
     builder.Services.AddEventBus(builder.Configuration);
 
@@ -132,6 +135,22 @@ try
 
     var app = builder.Build();
 
+    // MOSTRAR INFORMACIÓN DEL CACHÉ
+    using (var scope = app.Services.CreateScope())
+    {
+        var hybridCache = scope.ServiceProvider.GetService<SharedLibrary.Caching.IHybridCache>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        if (hybridCache != null)
+        {
+            logger.LogInformation(
+                "✅ Signature Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                hybridCache.CurrentCacheMode,
+                hybridCache.IsRedisAvailable
+            );
+        }
+    }
+
     using (var scope = app.Services.CreateScope())
     {
         var bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
@@ -155,6 +174,9 @@ try
     app.UseHttpsRedirection();
     app.UseAuthorization();
     app.UseMiddleware<RequireGatewayHeaderMiddleware>();
+
+    // HEALTH ENDPOINT
+    app.MapHealthChecks("/health");
     app.MapControllers();
 
     app.Run();

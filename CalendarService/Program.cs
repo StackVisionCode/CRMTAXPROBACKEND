@@ -9,16 +9,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddAutoMapper(typeof(Program));
-   //configure mediator
-    builder.Services.AddMediatR(cfg =>
-    {
-        cfg.RegisterServicesFromAssemblyContaining<Program>();
-        cfg.Lifetime = ServiceLifetime.Scoped;
-    });
 
-
+//configure mediator
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssemblyContaining<Program>();
+    cfg.Lifetime = ServiceLifetime.Scoped;
+});
 
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
@@ -26,6 +26,7 @@ var objetoConexion = new ConnectionApp();
 
 var connectionString =
     $"Server={objetoConexion.Server};Database=CalendarDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+
 // Configurar DbContext
 builder.Services.AddDbContext<CalendarDbContext>(options =>
 {
