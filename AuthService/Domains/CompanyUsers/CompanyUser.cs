@@ -20,8 +20,8 @@ public class CompanyUser : BaseEntity
     public DateTime? OtpExpires { get; set; }
 
     // Navegación
-    public virtual required Company Company { get; set; }
-    public virtual required CompanyUserProfile CompanyUserProfile { get; set; }
+    public virtual Company? Company { get; set; }
+    public virtual CompanyUserProfile? CompanyUserProfile { get; set; }
     public virtual ICollection<CompanyUserSession> CompanyUserSessions { get; set; } =
         new List<CompanyUserSession>();
     public virtual ICollection<CompanyUserRole> CompanyUserRoles { get; set; } =

@@ -16,5 +16,5 @@ public class CompanyUserSession : BaseEntity
     public bool IsRevoke { get; set; }
 
     // Navegación
-    public virtual required CompanyUser CompanyUser { get; set; }
+    public virtual CompanyUser? CompanyUser { get; set; }
 }

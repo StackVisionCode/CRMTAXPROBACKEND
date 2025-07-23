@@ -29,24 +29,28 @@ public class GetCompanyUserByIdHandler
     {
         try
         {
-            var companyUser = await _db
-                .CompanyUsers.Where(cu => cu.Id == request.CompanyUserId)
-                .Include(cu => cu.CompanyUserProfile)
-                .Include(cu => cu.CompanyUserRoles)
-                .ThenInclude(cur => cur.Role)
-                .Select(cu => new CompanyUserGetDTO
+            // JOIN EXPLÍCITO: Una sola query optimizada para obtener todos los datos necesarios
+            var companyUser = await (
+                from cu in _db.CompanyUsers
+                join cup in _db.CompanyUserProfiles
+                    on cu.Id equals cup.CompanyUserId
+                    into profileGroup
+                from profile in profileGroup.DefaultIfEmpty() // LEFT JOIN para manejar usuarios sin perfil
+                where cu.Id == request.CompanyUserId
+                select new CompanyUserGetDTO
                 {
                     Id = cu.Id,
                     CompanyId = cu.CompanyId,
                     Email = cu.Email,
-                    Name = cu.CompanyUserProfile.Name,
-                    LastName = cu.CompanyUserProfile.LastName,
-                    Position = cu.CompanyUserProfile.Position,
+                    Name = profile != null ? profile.Name : null,
+                    LastName = profile != null ? profile.LastName : null,
+                    Position = profile != null ? profile.Position : null,
                     IsActive = cu.IsActive,
                     CreatedAt = cu.CreatedAt,
-                    RoleNames = cu.CompanyUserRoles.Select(cur => cur.Role.Name).ToList(),
-                })
-                .FirstOrDefaultAsync(cancellationToken);
+                    // Los roles se obtendrán en una consulta separada para evitar duplicación de datos
+                    RoleNames = new List<string>(),
+                }
+            ).FirstOrDefaultAsync(cancellationToken);
 
             if (companyUser is null)
             {
@@ -57,10 +61,23 @@ public class GetCompanyUserByIdHandler
                 return new ApiResponse<CompanyUserGetDTO>(false, "Company user not found");
             }
 
+            // CONSULTA SEPARADA: Obtener roles para evitar el problema N+1 y duplicación
+            var roleNames = await (
+                from cur in _db.CompanyUserRoles
+                join r in _db.Roles on cur.RoleId equals r.Id
+                where cur.CompanyUserId == request.CompanyUserId
+                select r.Name
+            ).ToListAsync(cancellationToken);
+
+            // Asignar los roles al DTO
+            companyUser.RoleNames = roleNames;
+
             _logger.LogInformation(
-                "Company user retrieved successfully: {CompanyUserId}",
-                request.CompanyUserId
+                "Company user retrieved successfully: {CompanyUserId} with {RoleCount} roles",
+                request.CompanyUserId,
+                roleNames.Count
             );
+
             return new ApiResponse<CompanyUserGetDTO>(
                 true,
                 "Company user retrieved successfully",
@@ -71,8 +88,9 @@ public class GetCompanyUserByIdHandler
         {
             _logger.LogError(
                 ex,
-                "Error retrieving company user {CompanyUserId}",
-                request.CompanyUserId
+                "Error retrieving company user {CompanyUserId}: {Message}",
+                request.CompanyUserId,
+                ex.Message
             );
             return new ApiResponse<CompanyUserGetDTO>(false, "Error retrieving company user");
         }

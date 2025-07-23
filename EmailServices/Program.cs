@@ -158,6 +158,10 @@ builder.Services.AddScoped<
     AccountActivatedHandler
 >();
 builder.Services.AddScoped<
+    IIntegrationEventHandler<CompanyAccountConfirmedEvent>,
+    CompanyAccountActivatedHandler
+>();
+builder.Services.AddScoped<
     IIntegrationEventHandler<SignatureInvitationEvent>,
     SignatureInvitationHandler
 >();
@@ -188,6 +192,7 @@ builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
 builder.Services.AddScoped<PasswordChangedEventHandler>();
 builder.Services.AddScoped<AccountConfirmationLinkHandler>();
 builder.Services.AddScoped<AccountActivatedHandler>();
+builder.Services.AddScoped<CompanyAccountActivatedHandler>();
 builder.Services.AddScoped<SignatureInvitationHandler>();
 builder.Services.AddScoped<PartiallySignedHandler>();
 builder.Services.AddScoped<SignatureRequestRejectedHandler>();
@@ -222,6 +227,7 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<PasswordChangedEvent, PasswordChangedEventHandler>();
     bus.Subscribe<AccountConfirmationLinkEvent, AccountConfirmationLinkHandler>();
     bus.Subscribe<AccountConfirmedEvent, AccountActivatedHandler>();
+    bus.Subscribe<CompanyAccountConfirmedEvent, CompanyAccountActivatedHandler>();
     bus.Subscribe<SignatureInvitationEvent, SignatureInvitationHandler>();
     bus.Subscribe<SignatureRequestRejectedEvent, SignatureRequestRejectedHandler>();
     bus.Subscribe<DocumentPartiallySignedEvent, PartiallySignedHandler>();

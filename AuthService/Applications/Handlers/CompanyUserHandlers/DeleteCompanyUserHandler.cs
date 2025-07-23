@@ -27,13 +27,13 @@ public class DeleteCompanyUserHandler : IRequestHandler<DeleteCompanyUserCommand
     {
         try
         {
-            var companyUser = await _dbContext
-                .CompanyUsers.Include(cu => cu.CompanyUserProfile)
-                .Include(cu => cu.CompanyUserSessions)
-                .Include(cu => cu.CompanyUserRoles)
-                .FirstOrDefaultAsync(cu => cu.Id == request.CompanyUserId, cancellationToken);
+            // PASO 1: Verificar existencia del usuario SIN Include
+            var userExists = await _dbContext
+                .CompanyUsers.Where(cu => cu.Id == request.CompanyUserId)
+                .Select(cu => new { cu.Id, cu.Email }) // Solo los datos necesarios
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (companyUser is null)
+            if (userExists is null)
             {
                 _logger.LogWarning(
                     "Company user not found: {CompanyUserId}",
@@ -42,29 +42,54 @@ public class DeleteCompanyUserHandler : IRequestHandler<DeleteCompanyUserCommand
                 return new ApiResponse<bool>(false, "Company user not found", false);
             }
 
-            // 1. Revocar todas las sesiones activas
-            foreach (var session in companyUser.CompanyUserSessions.Where(s => !s.IsRevoke))
+            // PASO 2: Revocar sesiones activas usando UPDATE directo
+            var sessionsUpdated = await _dbContext
+                .CompanyUserSessions.Where(s =>
+                    s.CompanyUserId == request.CompanyUserId && !s.IsRevoke
+                )
+                .ExecuteUpdateAsync(
+                    s =>
+                        s.SetProperty(session => session.IsRevoke, true)
+                            .SetProperty(session => session.UpdatedAt, DateTime.UtcNow),
+                    cancellationToken
+                );
+
+            // PASO 3: Soft delete del usuario usando UPDATE directo
+            var userUpdated = await _dbContext
+                .CompanyUsers.Where(cu => cu.Id == request.CompanyUserId)
+                .ExecuteUpdateAsync(
+                    u =>
+                        u.SetProperty(user => user.DeleteAt, DateTime.UtcNow)
+                            .SetProperty(user => user.IsActive, false)
+                            .SetProperty(user => user.UpdatedAt, DateTime.UtcNow),
+                    cancellationToken
+                );
+
+            var success = userUpdated > 0;
+
+            if (success)
             {
-                session.IsRevoke = true;
-                session.UpdatedAt = DateTime.UtcNow;
+                _logger.LogInformation(
+                    "Company user deleted successfully: {CompanyUserId}. Sessions revoked: {SessionsCount}",
+                    request.CompanyUserId,
+                    sessionsUpdated
+                );
             }
 
-            // 2. Soft delete del usuario (usando DeleteAt)
-            companyUser.DeleteAt = DateTime.UtcNow;
-            companyUser.IsActive = false;
-            companyUser.UpdatedAt = DateTime.UtcNow;
-
-            var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
-
-            _logger.LogInformation(
-                "Company user deleted successfully: {CompanyUserId}",
-                request.CompanyUserId
+            return new ApiResponse<bool>(
+                success,
+                success ? "Company user deleted successfully" : "No changes were made",
+                success
             );
-            return new ApiResponse<bool>(true, "Company user deleted successfully", true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting company user: {Message}", ex.Message);
+            _logger.LogError(
+                ex,
+                "Error deleting company user {CompanyUserId}: {Message}",
+                request.CompanyUserId,
+                ex.Message
+            );
             return new ApiResponse<bool>(false, ex.Message, false);
         }
     }

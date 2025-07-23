@@ -26,6 +26,7 @@ namespace SharedLibrary
             "/api/password/otp/validate",
             "/api/password/reset",
             "/api/account/confirm",
+            "/api/CompanyAccount/confirm",
             "/api/auth/client/login",
             "/api/auth/login",
             "/api/auth/company-user/login",

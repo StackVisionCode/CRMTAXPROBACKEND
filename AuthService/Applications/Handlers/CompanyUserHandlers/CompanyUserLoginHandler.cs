@@ -39,15 +39,37 @@ public class CompanyUserLoginHandler
     {
         try
         {
-            // 1. Validar credenciales y cargar datos relacionados
-            var user = await _context
-                .CompanyUsers.Include(u => u.CompanyUserProfile)
-                .Include(u => u.Company)
-                .Include(u => u.CompanyUserRoles)
-                .ThenInclude(cur => cur.Role)
-                .FirstOrDefaultAsync(x => x.Email == request.Petition.Email, cancellationToken);
+            // 1. JOIN EXPLÍCITO: Obtener datos completos del usuario con una sola consulta
+            var userLoginData = await (
+                from cu in _context.CompanyUsers
+                join cup in _context.CompanyUserProfiles on cu.Id equals cup.CompanyUserId
+                join c in _context.Companies on cu.CompanyId equals c.Id
+                where cu.Email == request.Petition.Email
+                select new
+                {
+                    // Datos del usuario
+                    UserId = cu.Id,
+                    Email = cu.Email,
+                    Password = cu.Password,
+                    IsActive = cu.IsActive,
+                    CompanyId = cu.CompanyId,
 
-            if (user is null)
+                    // Datos del perfil
+                    Name = cup.Name,
+                    LastName = cup.LastName,
+                    Address = cup.Address,
+                    PhotoUrl = cup.PhotoUrl,
+                    Position = cup.Position,
+
+                    // Datos de la empresa
+                    CompanyName = c.CompanyName,
+                    CompanyFullName = c.FullName,
+                    CompanyBrand = c.Brand,
+                    UserLimit = c.UserLimit,
+                }
+            ).FirstOrDefaultAsync(cancellationToken);
+
+            if (userLoginData is null)
             {
                 _logger.LogWarning(
                     "Login failed for company user {Email}: Invalid credentials",
@@ -56,7 +78,7 @@ public class CompanyUserLoginHandler
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
             }
 
-            if (!_passwordHasher.Verify(request.Petition.Password, user.Password))
+            if (!_passwordHasher.Verify(request.Petition.Password, userLoginData.Password))
             {
                 _logger.LogWarning(
                     "Login failed for company user {Email}: Invalid credentials",
@@ -65,7 +87,7 @@ public class CompanyUserLoginHandler
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
             }
 
-            if (!user.IsActive)
+            if (!userLoginData.IsActive)
             {
                 _logger.LogWarning(
                     "Login failed for company user {Email}: User is inactive",
@@ -74,18 +96,20 @@ public class CompanyUserLoginHandler
                 return new ApiResponse<LoginResponseDTO>(false, "User account is inactive");
             }
 
-            // 2. Verificar límite de usuarios activos de la empresa
-            var activeUsersCount = await _context
-                .CompanyUserSessions.Where(s =>
-                    s.CompanyUser.CompanyId == user.CompanyId
-                    && !s.IsRevoke
-                    && s.ExpireTokenRequest > DateTime.UtcNow
-                )
-                .Select(s => s.CompanyUserId)
+            // 2. JOIN EXPLÍCITO: Verificar límite de usuarios activos de la empresa
+            var activeUsersCount = await (
+                from cus in _context.CompanyUserSessions
+                join cu in _context.CompanyUsers on cus.CompanyUserId equals cu.Id
+                where
+                    cu.CompanyId == userLoginData.CompanyId
+                    && !cus.IsRevoke
+                    && cus.ExpireTokenRequest > DateTime.UtcNow
+                select cus.CompanyUserId
+            )
                 .Distinct()
                 .CountAsync(cancellationToken);
 
-            if (activeUsersCount >= user.Company.UserLimit)
+            if (activeUsersCount >= userLoginData.UserLimit)
             {
                 _logger.LogWarning(
                     "Login failed for company user {Email}: Company user limit reached",
@@ -97,35 +121,46 @@ public class CompanyUserLoginHandler
                 );
             }
 
-            // 3. Preparar datos para el token
-            var roleNames = user.CompanyUserRoles.Select(cur => cur.Role.Name).ToList();
+            // 3. JOIN EXPLÍCITO: Obtener roles del usuario
+            var roleNames = await (
+                from cur in _context.CompanyUserRoles
+                join r in _context.Roles on cur.RoleId equals r.Id
+                where cur.CompanyUserId == userLoginData.UserId
+                select r.Name
+            ).ToListAsync(cancellationToken);
 
-            var portals = await _context
-                .Roles.Where(r => roleNames.Contains(r.Name))
-                .Select(r => r.PortalAccess.ToString())
+            // 4. JOIN EXPLÍCITO: Obtener portales disponibles para los roles
+            var portals = await (
+                from cur in _context.CompanyUserRoles
+                join r in _context.Roles on cur.RoleId equals r.Id
+                where cur.CompanyUserId == userLoginData.UserId
+                select r.PortalAccess.ToString()
+            )
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
+            // 5. JOIN EXPLÍCITO: Obtener permisos del usuario
             var permCodes = await (
                 from cur in _context.CompanyUserRoles
-                where cur.CompanyUserId == user.Id
                 join rp in _context.RolePermissions on cur.RoleId equals rp.RoleId
                 join p in _context.Permissions on rp.PermissionId equals p.Id
+                where cur.CompanyUserId == userLoginData.UserId
                 select p.Code
             )
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            // 4. Verificar acceso al portal
-            bool allowed = await _context
-                .Roles.Where(r => roleNames.Contains(r.Name))
-                .AnyAsync(
-                    r =>
-                        r.PortalAccess == PortalAccess.Staff || r.PortalAccess == PortalAccess.Both,
-                    cancellationToken
-                );
+            // 6. JOIN EXPLÍCITO: Verificar acceso al portal
+            var hasStaffAccess = await (
+                from cur in _context.CompanyUserRoles
+                join r in _context.Roles on cur.RoleId equals r.Id
+                where
+                    cur.CompanyUserId == userLoginData.UserId
+                    && (r.PortalAccess == PortalAccess.Staff || r.PortalAccess == PortalAccess.Both)
+                select r.Id
+            ).AnyAsync(cancellationToken);
 
-            if (!allowed)
+            if (!hasStaffAccess)
             {
                 _logger.LogWarning(
                     "Role {Roles} not authorized for Company User login",
@@ -140,21 +175,20 @@ public class CompanyUserLoginHandler
                 };
             }
 
-            // 5. Generar tokens
+            // 7. Generar tokens
             var sessionId = Guid.NewGuid();
-            var profile = user.CompanyUserProfile;
 
             var userInfo = new UserInfo(
-                user.Id,
-                user.Email,
-                profile?.Name ?? string.Empty,
-                profile?.LastName ?? string.Empty,
-                profile?.Address ?? string.Empty,
-                profile?.PhotoUrl ?? string.Empty,
-                user.CompanyId,
-                user.Company?.CompanyName ?? string.Empty,
-                user.Company?.FullName ?? string.Empty,
-                user.Company?.Brand ?? string.Empty,
+                userLoginData.UserId,
+                userLoginData.Email,
+                userLoginData.Name ?? string.Empty,
+                userLoginData.LastName ?? string.Empty,
+                userLoginData.Address ?? string.Empty,
+                userLoginData.PhotoUrl ?? string.Empty,
+                userLoginData.CompanyId,
+                userLoginData.CompanyName ?? string.Empty,
+                userLoginData.CompanyFullName ?? string.Empty,
+                userLoginData.CompanyBrand ?? string.Empty,
                 roleNames,
                 permCodes,
                 portals
@@ -169,12 +203,11 @@ public class CompanyUserLoginHandler
                 new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromDays(2))
             );
 
-            // 6. Crear sesión
+            // 8. Crear sesión - SIN navegación, solo IDs
             var session = new CompanyUserSession
             {
                 Id = sessionId,
-                CompanyUser = user,
-                CompanyUserId = user.Id,
+                CompanyUserId = userLoginData.UserId, // Solo el ID, no la navegación
                 TokenRequest = access.AccessToken,
                 ExpireTokenRequest = access.ExpireAt,
                 TokenRefresh = refresh.AccessToken,
@@ -187,7 +220,7 @@ public class CompanyUserLoginHandler
             _context.CompanyUserSessions.Add(session);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // 7. Preparar respuesta
+            // 9. Preparar respuesta
             var response = new LoginResponseDTO
             {
                 TokenRequest = access.AccessToken,
@@ -197,7 +230,7 @@ public class CompanyUserLoginHandler
 
             _logger.LogInformation(
                 "Company user {Id} logged-in successfully. Session {SessionId} created",
-                user.Id,
+                userLoginData.UserId,
                 session.Id
             );
             return new ApiResponse<LoginResponseDTO>(true, "Login successful", response);

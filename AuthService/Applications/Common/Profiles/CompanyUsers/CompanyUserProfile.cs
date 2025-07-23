@@ -15,11 +15,11 @@ public class CompanyUserProfile : Profile
 
         CreateMap<CompanyUserProfileDTO, CompanyUser>()
             .ReverseMap()
-            .ForMember(d => d.Name, o => o.MapFrom(s => s.CompanyUserProfile.Name))
-            .ForMember(d => d.LastName, o => o.MapFrom(s => s.CompanyUserProfile.LastName))
-            .ForMember(d => d.Address, o => o.MapFrom(s => s.CompanyUserProfile.Address))
-            .ForMember(d => d.PhotoUrl, o => o.MapFrom(s => s.CompanyUserProfile.PhotoUrl))
-            .ForMember(d => d.Position, o => o.MapFrom(s => s.CompanyUserProfile.Position))
+            .ForMember(d => d.Name, o => o.MapFrom(s => s.CompanyUserProfile != null ? s.CompanyUserProfile.Name : null))
+            .ForMember(d => d.LastName, o => o.MapFrom(s => s.CompanyUserProfile != null ? s.CompanyUserProfile.LastName : null))
+            .ForMember(d => d.Address, o => o.MapFrom(s => s.CompanyUserProfile != null ? s.CompanyUserProfile.Address : null))
+            .ForMember(d => d.PhotoUrl, o => o.MapFrom(s => s.CompanyUserProfile != null ? s.CompanyUserProfile.PhotoUrl : null))
+            .ForMember(d => d.Position, o => o.MapFrom(s => s.CompanyUserProfile != null ? s.CompanyUserProfile.Position : null))
             .ForMember(
                 d => d.RoleNames,
                 o => o.MapFrom(s => s.CompanyUserRoles.Select(cur => cur.Role.Name))

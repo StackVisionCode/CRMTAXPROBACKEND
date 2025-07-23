@@ -1,5 +1,4 @@
 using AuthService.DTOs.CompanyUserDTOs;
-using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -12,17 +11,14 @@ public class GetCompanyUsersByCompanyIdHandler
     : IRequestHandler<GetCompanyUsersByCompanyIdQuery, ApiResponse<List<CompanyUserGetDTO>>>
 {
     private readonly ApplicationDbContext _db;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetCompanyUsersByCompanyIdHandler> _logger;
 
     public GetCompanyUsersByCompanyIdHandler(
         ApplicationDbContext db,
-        IMapper mapper,
         ILogger<GetCompanyUsersByCompanyIdHandler> logger
     )
     {
         _db = db;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -33,30 +29,71 @@ public class GetCompanyUsersByCompanyIdHandler
     {
         try
         {
-            var users = await _db
-                .CompanyUsers.Where(cu => cu.CompanyId == request.CompanyId)
-                .Include(cu => cu.CompanyUserProfile)
-                .Include(cu => cu.CompanyUserRoles)
-                .ThenInclude(cur => cur.Role)
-                .Select(cu => new CompanyUserGetDTO
+            // PASO 1: JOIN EXPLÍCITO para obtener usuarios con sus perfiles
+            var users = await (
+                from cu in _db.CompanyUsers
+                join cup in _db.CompanyUserProfiles
+                    on cu.Id equals cup.CompanyUserId
+                    into profileGroup
+                from profile in profileGroup.DefaultIfEmpty() // LEFT JOIN para usuarios sin perfil
+                where cu.CompanyId == request.CompanyId
+                select new CompanyUserGetDTO
                 {
                     Id = cu.Id,
                     CompanyId = cu.CompanyId,
                     Email = cu.Email,
-                    Name = cu.CompanyUserProfile.Name,
-                    LastName = cu.CompanyUserProfile.LastName,
-                    Position = cu.CompanyUserProfile.Position,
+                    Name = profile != null ? profile.Name : null,
+                    LastName = profile != null ? profile.LastName : null,
+                    Position = profile != null ? profile.Position : null,
                     IsActive = cu.IsActive,
                     CreatedAt = cu.CreatedAt,
-                    RoleNames = cu.CompanyUserRoles.Select(cur => cur.Role.Name).ToList(),
-                })
-                .ToListAsync(cancellationToken);
+                    RoleNames = new List<string>(), // Se llenará después
+                }
+            ).ToListAsync(cancellationToken);
+
+            if (!users.Any())
+            {
+                _logger.LogInformation(
+                    "No company users found for company {CompanyId}",
+                    request.CompanyId
+                );
+                return new ApiResponse<List<CompanyUserGetDTO>>(
+                    true,
+                    "No company users found",
+                    new List<CompanyUserGetDTO>()
+                );
+            }
+
+            // PASO 2: JOIN EXPLÍCITO para obtener todos los roles de los usuarios en una sola consulta
+            var userIds = users.Select(u => u.Id).ToList();
+
+            var userRoles = await (
+                from cur in _db.CompanyUserRoles
+                join r in _db.Roles on cur.RoleId equals r.Id
+                where userIds.Contains(cur.CompanyUserId)
+                select new { UserId = cur.CompanyUserId, RoleName = r.Name }
+            ).ToListAsync(cancellationToken);
+
+            // PASO 3: Agrupar roles por usuario y asignarlos eficientemente
+            var rolesByUser = userRoles
+                .GroupBy(ur => ur.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(ur => ur.RoleName).ToList());
+
+            // PASO 4: Asignar roles a cada usuario
+            foreach (var user in users)
+            {
+                user.RoleNames = rolesByUser.ContainsKey(user.Id)
+                    ? rolesByUser[user.Id]
+                    : new List<string>();
+            }
 
             _logger.LogInformation(
-                "Retrieved {Count} company users for company {CompanyId}",
+                "Retrieved {UserCount} company users for company {CompanyId} with a total of {RoleCount} role assignments",
                 users.Count,
-                request.CompanyId
+                request.CompanyId,
+                userRoles.Count
             );
+
             return new ApiResponse<List<CompanyUserGetDTO>>(
                 true,
                 "Company users retrieved successfully",
@@ -67,8 +104,9 @@ public class GetCompanyUsersByCompanyIdHandler
         {
             _logger.LogError(
                 ex,
-                "Error retrieving company users for company {CompanyId}",
-                request.CompanyId
+                "Error retrieving company users for company {CompanyId}: {Message}",
+                request.CompanyId,
+                ex.Message
             );
             return new ApiResponse<List<CompanyUserGetDTO>>(
                 false,

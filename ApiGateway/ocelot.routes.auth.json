@@ -419,6 +419,25 @@
       "SwaggerKey": "auth"
     },
     {
+      "DownstreamPathTemplate": "/api/CompanyAccount/confirm",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/auth/company/confirm",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 1,
+      "SwaggerKey": "auth"
+    },
+    {
       "DownstreamPathTemplate": "/api/health",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

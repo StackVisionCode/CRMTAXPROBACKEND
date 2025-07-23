@@ -10,17 +10,17 @@ using SharedLibrary.DTOs;
 
 namespace AuthService.Handlers.ResetPasswordHandlers;
 
-public sealed class ResetPasswordHandler : IRequestHandler<ResetPasswordCommands, ApiResponse<Unit>>
+public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommands, ApiResponse<Unit>>
 {
     private readonly ApplicationDbContext _db;
     private readonly IPasswordHash _passwordHash;
-    private readonly IEventBus _bus; // NUEVO
+    private readonly IEventBus _bus;
     private readonly ILogger<ResetPasswordHandler> _logger;
 
     public ResetPasswordHandler(
         ApplicationDbContext db,
         IPasswordHash passwordHash,
-        IEventBus bus, // NUEVO
+        IEventBus bus,
         ILogger<ResetPasswordHandler> logger
     )
     {
@@ -34,54 +34,155 @@ public sealed class ResetPasswordHandler : IRequestHandler<ResetPasswordCommands
     {
         try
         {
-            var user = await _db
-                .TaxUsers.Include(u => u.TaxUserProfile)
-                .Include(u => u.Company)
-                .FirstOrDefaultAsync(u => u.Email == r.Email, ct);
+            // 🔍 PASO 1: BUSCAR EN TAXUSERS CON VALIDACIONES COMPLETAS
+            var taxUserData = await (
+                from u in _db.TaxUsers
+                where
+                    u.Email == r.Email
+                    && u.OtpVerified == true
+                    && u.ResetPasswordToken == r.Token
+                    && u.ResetPasswordExpires > DateTime.UtcNow
+                join p in _db.TaxUserProfiles on u.Id equals p.TaxUserId into prof
+                from p in prof.DefaultIfEmpty()
+                join co in _db.Companies on u.CompanyId equals co.Id into comp
+                from co in comp.DefaultIfEmpty()
+                select new
+                {
+                    UserId = u.Id,
+                    Email = u.Email,
+                    OtpVerified = u.OtpVerified,
+                    ResetPasswordToken = u.ResetPasswordToken,
+                    ResetPasswordExpires = u.ResetPasswordExpires,
+                    // Datos para display
+                    ProfileName = p != null ? p.Name : null,
+                    ProfileLastName = p != null ? p.LastName : null,
+                    CompanyName = co != null ? co.CompanyName : null,
+                    UserType = "TaxUser",
+                }
+            ).FirstOrDefaultAsync(ct);
 
-            if (user is null)
+            // 🔍 PASO 2: SI NO ESTÁ EN TAXUSERS, BUSCAR EN COMPANYUSERS
+            var companyUserData =
+                taxUserData == null
+                    ? await (
+                        from cu in _db.CompanyUsers
+                        where
+                            cu.Email == r.Email
+                            && cu.OtpVerified == true
+                            && cu.ResetPasswordToken == r.Token
+                            && cu.ResetPasswordExpires > DateTime.UtcNow
+                        join cup in _db.CompanyUserProfiles
+                            on cu.Id equals cup.CompanyUserId
+                            into prof
+                        from cup in prof.DefaultIfEmpty()
+                        join co in _db.Companies on cu.CompanyId equals co.Id into comp
+                        from co in comp.DefaultIfEmpty()
+                        select new
+                        {
+                            UserId = cu.Id,
+                            Email = cu.Email,
+                            OtpVerified = cu.OtpVerified,
+                            ResetPasswordToken = cu.ResetPasswordToken,
+                            ResetPasswordExpires = cu.ResetPasswordExpires,
+                            // Datos para display
+                            ProfileName = cup != null ? cup.Name : null,
+                            ProfileLastName = cup != null ? cup.LastName : null,
+                            CompanyName = co != null ? co.CompanyName : null,
+                            UserType = "CompanyUser",
+                        }
+                    ).FirstOrDefaultAsync(ct)
+                    : null;
+
+            // 📋 PASO 3: DETERMINAR QUÉ USUARIO ENCONTRAMOS
+            var userData = taxUserData ?? companyUserData;
+            if (userData is null)
                 return new(false, "Usuario no encontrado");
 
-            if (user.OtpVerified == false)
-                return new(false, "OTP no verificada aún");
+            // 🔐 PASO 4: VALIDACIONES DE SEGURIDAD
+            if (userData.OtpVerified == false)
+                return new(false, "OTP no verificado aún");
 
-            // Token aún debe coincidir y seguir vigente
-            if (user.ResetPasswordToken != r.Token || user.ResetPasswordExpires < DateTime.UtcNow)
+            if (
+                userData.ResetPasswordToken != r.Token
+                || userData.ResetPasswordExpires < DateTime.UtcNow
+            )
                 return new(false, "Token expirado o inválido");
 
-            // 1. Actualizar contraseña y limpiar artefactos
-            user.Password = _passwordHash.HashPassword(r.NewPassword);
-            // user.ResetPasswordToken = null;
-            // user.ResetPasswordExpires = null;
-            user.OtpVerified = false;
-            user.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            // 🔒 PASO 5: HASHEAR NUEVA CONTRASEÑA
+            var hashedPassword = _passwordHash.HashPassword(r.NewPassword);
 
-            // 2. Calcular DisplayName coherente
+            // ✅ PASO 6: ACTUALIZAR CONTRASEÑA Y LIMPIAR TOKENS SEGÚN TIPO DE USUARIO
+            var updateResult = false;
+            if (userData.UserType == "TaxUser")
+            {
+                updateResult =
+                    await _db
+                        .TaxUsers.Where(u => u.Id == userData.UserId)
+                        .ExecuteUpdateAsync(
+                            s =>
+                                s.SetProperty(u => u.Password, hashedPassword)
+                                    .SetProperty(u => u.ResetPasswordToken, (string?)null) // Limpiar token
+                                    .SetProperty(u => u.ResetPasswordExpires, (DateTime?)null) // Limpiar expiración
+                                    .SetProperty(u => u.OtpVerified, false) // Reset OTP verification
+                                    .SetProperty(u => u.Otp, (string?)null) // Limpiar OTP
+                                    .SetProperty(u => u.OtpExpires, (DateTime?)null) // Limpiar expiración OTP
+                                    .SetProperty(u => u.UpdatedAt, DateTime.UtcNow),
+                            ct
+                        ) > 0;
+            }
+            else
+            {
+                updateResult =
+                    await _db
+                        .CompanyUsers.Where(cu => cu.Id == userData.UserId)
+                        .ExecuteUpdateAsync(
+                            s =>
+                                s.SetProperty(cu => cu.Password, hashedPassword)
+                                    .SetProperty(cu => cu.ResetPasswordToken, (string?)null) // Limpiar token
+                                    .SetProperty(cu => cu.ResetPasswordExpires, (DateTime?)null) // Limpiar expiración
+                                    .SetProperty(cu => cu.OtpVerified, false) // Reset OTP verification
+                                    .SetProperty(cu => cu.Otp, (string?)null) // Limpiar OTP
+                                    .SetProperty(cu => cu.OtpExpires, (DateTime?)null) // Limpiar expiración OTP
+                                    .SetProperty(cu => cu.UpdatedAt, DateTime.UtcNow),
+                            ct
+                        ) > 0;
+            }
+
+            if (!updateResult)
+                return new(false, "Error al actualizar la contraseña");
+
+            // 📝 PASO 7: CALCULAR DISPLAY NAME
             var display = DisplayNameHelper.From(
-                user.TaxUserProfile?.Name,
-                user.TaxUserProfile?.LastName,
-                user.Company?.CompanyName,
-                user.Email
+                userData.ProfileName,
+                userData.ProfileLastName,
+                userData.CompanyName,
+                userData.Email
             );
 
-            // 3. Publicar evento de confirmación
+            // 📧 PASO 8: PUBLICAR EVENTO DE CONTRASEÑA CAMBIADA
             _bus.Publish(
                 new PasswordChangedEvent(
                     Guid.NewGuid(),
                     DateTime.UtcNow,
-                    user.Id,
-                    user.Email,
+                    userData.UserId,
+                    userData.Email,
                     display,
                     DateTime.UtcNow
                 )
+            );
+
+            _logger.LogInformation(
+                "Password reset successfully: Email={Email}, UserId={UserId}, UserType={UserType}",
+                userData.Email,
+                userData.UserId,
+                userData.UserType
             );
 
             return new(true, "Contraseña actualizada correctamente");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al restablecer la contraseña");
+            _logger.LogError(ex, "Error al restablecer la contraseña para {Email}", r.Email);
             return new(false, "Error al restablecer la contraseña");
         }
     }
