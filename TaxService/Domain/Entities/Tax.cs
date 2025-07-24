@@ -11,7 +11,7 @@ public class Tax
     public string? TaxNumber { get; set; }
     public bool ShowTaxNumberOnInvoice { get; set; }
     public bool IsRecoverable { get; set; }
-    public bool IsCompound { get; set; }
+    public bool IsCompoundd { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
      public DateTime? UpdatedAt { get; set; }
