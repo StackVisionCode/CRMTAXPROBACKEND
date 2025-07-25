@@ -21,17 +21,25 @@ public class FormControllers : ControllerBase
     }
 
     // Endpoint to create a form
-     [HttpPost ("create")]
+    [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] CreateFormInstanceDto dto)
     {
         var result = await _mediator.Send(new CreateFormIntanceCommads(dto));
         return Ok(result);
     }
 
-    [HttpGet ("get-all")]
+    [HttpGet("get-all")]
     public async Task<IActionResult> GetAll()
     {
         var result = await _mediator.Send(new GetAllFormInstancesQuery());
         return Ok(result);
     }
+
+    [HttpGet("get-by-id/{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var result = await _mediator.Send(new GetAllForminstacesQueryByIdBuild(id));
+        return Ok(result);
+    }
+    
 }

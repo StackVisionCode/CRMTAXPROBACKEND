@@ -75,13 +75,28 @@ public class TaxProStoreDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.FormInstanceId)
             .OnDelete(DeleteBehavior.Cascade);
+
 });
 
         mb.Entity<FormInstance>()
            .HasMany(fi => fi.Responses)
            .WithOne(r => r.FormInstance)
            .HasForeignKey(r => r.FormInstanceId);
-               
+        mb.Entity<FormInstance>(builder =>
+        {
+            builder.ToTable("FormInstances");
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.CustomTitle).IsRequired().HasMaxLength(200);
+            builder.HasOne<Template>(x => x.Template)
+                .WithMany()
+                .HasForeignKey(x => x.TemplateId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasMany(x => x.Responses)
+                .WithOne(x => x.FormInstance)
+                .HasForeignKey(x => x.FormInstanceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         mb.Entity<ProductFeedback>()
             .HasIndex(p => new { p.ProductId, p.UserId })
             .IsUnique(); // Un usuario solo puede dar un feedback por producto
@@ -91,7 +106,10 @@ public class TaxProStoreDbContext : DbContext
             .WithMany(p => p.Feedbacks)
             .HasForeignKey(p => p.ProductId);
 
+
     }
+    
+    
 
 
 
