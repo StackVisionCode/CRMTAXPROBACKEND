@@ -1,11 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="14.0.0" />
     <PackageReference Include="MediatR" Version="12.5.0" />
@@ -25,12 +23,34 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.5" />
+    <!-- NUEVOS PAQUETES PARA FUNCIONALIDAD COMPLETA DE EMAIL -->
+    <!-- Para recepción de emails via IMAP -->
+    <PackageReference Include="MailKit" Version="4.13.0" />
+    <PackageReference Include="MimeKit" Version="4.13.0" />
+    <!-- Para manejo mejorado de HTTP y JSON -->
+    <PackageReference Include="System.Text.Json" Version="9.0.3" />
+    <!-- Para validaciones más robustas -->
+    <PackageReference Include="FluentValidation" Version="11.8.0" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <!-- Para manejo de archivos y storage -->
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Physical" Version="8.0.0" />
+    <!-- Para background services (opcional, para recepción automática de emails) -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <!-- Para mejores opciones de configuración -->
+    <PackageReference
+      Include="Microsoft.Extensions.Options.ConfigurationExtensions"
+      Version="8.0.0"
+    />
+    <!-- Para health checks -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.3" />
+    <PackageReference
+      Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore"
+      Version="8.0.0"
+    />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\SharedLibrary\SharedLibrary.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Content Include="Templates\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -39,5 +59,4 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-
 </Project>

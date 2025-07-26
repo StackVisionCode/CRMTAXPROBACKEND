@@ -1,6 +1,64 @@
 {
   "Routes": [
     {
+      "DownstreamPathTemplate": "/api/EmailConfig",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/email-configs",
+      "UpstreamHttpMethod": ["GET", "POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "ClientIdHeader": "X-ClientId",
+        "QuotaExceededMessage": "Email config rate limit exceeded",
+        "RateLimitCounterPrefix": "email_config",
+        "DisableRateLimitHeaders": false,
+        "HttpStatusCode": 429,
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 30
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/EmailConfig/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/email-configs/{id}",
+      "UpstreamHttpMethod": ["GET", "PUT", "DELETE"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 20
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+
+    {
       "DownstreamPathTemplate": "/api/Emails",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -10,12 +68,388 @@
         }
       ],
       "UpstreamPathTemplate": "/api/emails",
+      "UpstreamHttpMethod": ["GET", "POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 50
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Emails/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/emails/{id}",
+      "UpstreamHttpMethod": ["GET", "PUT", "DELETE"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 30
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Emails/{id}/send",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/emails/{id}/send",
       "UpstreamHttpMethod": ["POST"],
       "AddHeadersToRequest": {
         "X-From-Gateway": "Api-Gateway"
       },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 100
+      },
       "Priority": 1,
       "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Emails/by-status/{status}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/emails/by-status/{status}",
+      "UpstreamHttpMethod": ["GET"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 30
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+
+    {
+      "DownstreamPathTemplate": "/api/IncomingEmails",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/incoming-emails",
+      "UpstreamHttpMethod": ["GET"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 50
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/IncomingEmails/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/incoming-emails/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 30
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/IncomingEmails/{id}/mark-read",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/incoming-emails/{id}/mark-read",
+      "UpstreamHttpMethod": ["PATCH"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 20
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+
+    {
+      "DownstreamPathTemplate": "/api/EmailStatistics/{userId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/email-statistics/{userId}",
+      "UpstreamHttpMethod": ["GET"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 100
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/EmailStatistics/{userId}/daily",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/email-statistics/{userId}/daily",
+      "UpstreamHttpMethod": ["GET"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 100
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+
+    {
+      "DownstreamPathTemplate": "/api/ReactiveEmail/sync/{configId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/reactive-email/sync/{configId}",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "5m",
+        "PeriodTimespan": 300,
+        "Limit": 10,
+        "QuotaExceededMessage": "Email sync rate limit exceeded - please wait before syncing again"
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ReactiveEmail/start-watching/{configId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/reactive-email/start-watching/{configId}",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 5
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ReactiveEmail/stop-watching/{configId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/reactive-email/stop-watching/{configId}",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 5
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ReactiveEmail/watching-status",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/reactive-email/watching-status",
+      "UpstreamHttpMethod": ["GET"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 30
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+    {
+      "DownstreamPathTemplate": "/api/ReactiveEmail/search/{configId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/reactive-email/search/{configId}",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 20
+      },
+      "Priority": 1,
+      "SwaggerKey": "email"
+    },
+
+    {
+      "DownstreamPathTemplate": "/api/GmailWebhook/push-notification",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5004
+        }
+      ],
+      "UpstreamPathTemplate": "/api/gmail-webhook/push-notification",
+      "UpstreamHttpMethod": ["POST"],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "RateLimitOptions": {
+        "Period": "1m",
+        "PeriodTimespan": 60,
+        "Limit": 1000,
+        "QuotaExceededMessage": "Gmail webhook rate limit exceeded"
+      },
+      "Priority": 1,
+      "SwaggerKey": "email",
+      "DangerousAcceptAnyServerCertificateValidator": false
     }
   ]
 }

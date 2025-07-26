@@ -4,6 +4,7 @@ using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EmailServices.Migrations
 {
     [DbContext(typeof(EmailContext))]
-    partial class EmailContextModelSnapshot : ModelSnapshot
+    [Migration("20250726203744_AddedIncomingEmails")]
+    partial class AddedIncomingEmails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -318,15 +321,9 @@ namespace EmailServices.Migrations
 
                     b.HasIndex("IsRead");
 
-                    b.HasIndex("MessageId")
-                        .HasDatabaseName("IX_IncomingEmails_MessageId");
+                    b.HasIndex("MessageId");
 
                     b.HasIndex("ReceivedOn");
-
-                    b.HasIndex("MessageId", "ConfigId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_IncomingEmails_MessageId_ConfigId_Unique")
-                        .HasFilter("[MessageId] IS NOT NULL");
 
                     b.ToTable("IncomingEmails", (string)null);
                 });

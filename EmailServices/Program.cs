@@ -134,6 +134,14 @@ builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
 builder.Services.AddScoped<IEmailBuilder, EmailBuilder>();
 builder.Services.AddScoped<ISmtpSender, SmtpSender>();
 builder.Services.AddScoped<IEmailConfigProvider, EmailConfigProvider>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailSyncService, EmailSyncService>();
+builder.Services.AddScoped<IReactiveEmailReceivingService, ReactiveEmailReceivingService>();
+builder.Services.AddHostedService<ReactiveEmailBackgroundService>();
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+
+// SERVICIOS ADICIONALES
+builder.Services.AddScoped<IEmailStatisticsService, EmailStatisticsService>();
 
 // Configurar el contexto de eventos
 builder.Services.AddScoped<IIntegrationEventHandler<UserLoginEvent>, UserLoginEventsHandler>();
