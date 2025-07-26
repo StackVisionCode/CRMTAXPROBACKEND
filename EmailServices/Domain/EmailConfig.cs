@@ -24,4 +24,6 @@ public class EmailConfig
     public string? GmailEmailAddress { get; set; } // Gmail account email (the user)
     public int DailyLimit { get; set; } = 100;
     public Guid UserId { get; set; }
+    public DateTime CreatedOn { get; set; }
+    public DateTime? UpdatedOn { get; set; }
 }
