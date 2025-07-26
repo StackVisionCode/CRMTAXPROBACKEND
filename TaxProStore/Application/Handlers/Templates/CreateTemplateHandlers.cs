@@ -14,18 +14,20 @@ public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateComma
     private readonly TaxProStoreDbContext _db;
     private readonly ILogger<CreateTemplateHandlers> _log;
     private readonly IMapper _mapper;
-
+    private readonly IConfiguration _configuration;
 
     public CreateTemplateHandlers(
         TaxProStoreDbContext db,
          ILogger<CreateTemplateHandlers> log,
-          IMapper mapper
+          IMapper mapper,
+            IConfiguration configuration
 
     )
     {
         _db = db;
         _log = log;
         _mapper = mapper;
+        _configuration = configuration;
     }
 
     public async Task<ApiResponse<TemplateDto>> Handle(CreateTemplateCommads request, CancellationToken cancellationToken)
@@ -45,7 +47,8 @@ public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateComma
         templateEntity.Id = Guid.NewGuid();
         templateEntity.CreatedAt = DateTime.UtcNow;
         // Generar la URL del preview
-        templateEntity.PreviewUrl = $"http://localhost:5172/templates/preview/{templateEntity.Id}";
+         var backendBaseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:4200";
+         templateEntity.PreviewUrl = $"{backendBaseUrl}/template/preview/{templateEntity.Id}";
         await _db.Templates.AddAsync(templateEntity);
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -54,7 +57,7 @@ public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateComma
             _log.LogError("Failed to create template.");
             return new ApiResponse<TemplateDto>(false, "Failed to create template.");
         }
-    var valor = new TemplateDto
+        var valor = new TemplateDto
         {
             Id = templateEntity.Id,
             Name = templateEntity.Name,
@@ -63,6 +66,6 @@ public sealed class CreateTemplateHandlers : IRequestHandler<CreateTemplateComma
             OwnerUserId = templateEntity.OwnerUserId
         };
         _log.LogInformation("Template created successfully with ID: {TemplateId}", templateEntity.Id);
-        return new ApiResponse<TemplateDto>(true, "Template created successfully.",valor);
+        return new ApiResponse<TemplateDto>(true, "Template created successfully.", valor);
     }
 }
