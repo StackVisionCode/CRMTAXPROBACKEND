@@ -52,11 +52,17 @@ public static class EventBusServiceCollectionExtensions
                 sp.GetRequiredService<IOptions<RabbitMQOptions>>()
             );
 
-            // Intentar conectar al inicio
-            if (!connection.TryConnect())
+            // CAMBIO IMPORTANTE: Intentar conectar de forma NO BLOQUEANTE
+            _ = Task.Run(async () =>
             {
-                logger.LogWarning("No se pudo establecer conexión inicial con RabbitMQ");
-            }
+                await Task.Delay(1000); // Pequeño delay para que termine el startup
+                if (!connection.TryConnect())
+                {
+                    logger.LogWarning(
+                        "⚠️ RabbitMQ no disponible al inicio - microservicio funcionará sin messaging hasta que se conecte"
+                    );
+                }
+            });
 
             return connection;
         });

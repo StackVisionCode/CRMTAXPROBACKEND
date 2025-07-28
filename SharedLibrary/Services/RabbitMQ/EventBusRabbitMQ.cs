@@ -19,6 +19,7 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
     private readonly string _exchange;
     private readonly string _queue;
     private readonly Dictionary<string, IModel> _consumerChannels = new();
+    private readonly object _channelLock = new();
     private bool _disposed = false;
 
     public EventBusRabbitMQ(
@@ -35,6 +36,9 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
         _subsManager = subsManager;
         _exchange = settings.Value.ExchangeName;
         _queue = $"{AppDomain.CurrentDomain.FriendlyName}.Queue";
+
+        // Suscribirse al evento de reconexión para reestablecer consumidores
+        _connection.OnReconnected += HandleReconnection;
     }
 
     public void Publish(IntegrationEvent @event)
@@ -47,7 +51,10 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
 
         if (!_connection.IsConnected)
         {
-            _logger.LogWarning("RabbitMQ connection not available for publishing");
+            _logger.LogWarning(
+                "RabbitMQ connection not available for publishing event {EventName}",
+                @event.GetType().Name
+            );
             return;
         }
 
@@ -62,6 +69,8 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
             var message = JsonConvert.SerializeObject(@event);
             var body = Encoding.UTF8.GetBytes(message);
             var properties = channel.CreateBasicProperties();
+
+            // IMPORTANTE: Hacer los mensajes persistentes para que sobrevivan reinicios
             properties.DeliveryMode = 2; // persistente
             properties.MessageId = @event.Id.ToString();
             properties.Timestamp = new AmqpTimestamp(
@@ -93,17 +102,12 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
         }
     }
 
-    // **NEW: Helper method to deserialize events by name**
     private object? DeserializeEventByName(string json, string eventName)
     {
         try
         {
-            // 1️⃣  Preguntamos primero al subs-manager (en memoria)
             var type = _subsManager.GetEventTypeByName(eventName);
 
-            // 2️⃣  Fallback: reflexión genérica (por si llega un evento
-            //      que este microservicio aún no maneja pero podría necesitar
-            //      más adelante)
             type ??= AppDomain
                 .CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
@@ -136,29 +140,70 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
 
         var eventName = typeof(TEvent).Name;
 
-        if (_consumerChannels.ContainsKey(eventName))
+        lock (_channelLock)
         {
-            _logger.LogInformation("Already subscribed to event {EventName}", eventName);
-            return;
+            // CRÍTICO: Siempre registrar la suscripción primero
+            _subsManager.AddSubscription<TEvent, THandler>();
+
+            if (_consumerChannels.ContainsKey(eventName))
+            {
+                _logger.LogInformation("Already subscribed to event {EventName}", eventName);
+                return;
+            }
+
+            // CAMBIO IMPORTANTE: Intentar crear consumidor inmediatamente, sin importar el estado de conexión
+            // Esto asegura que se procesen mensajes en cola cuando el microservicio se levanta
+            if (_connection.IsConnected)
+            {
+                CreateConsumerForEvent(eventName);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "RabbitMQ no conectado - suscripción {EventName} registrada para cuando se conecte",
+                    eventName
+                );
+                // CRÍTICO: Aún así intentar establecer la suscripción para procesar mensajes en cola
+                _ = Task.Run(async () =>
+                {
+                    // Reintentar crear el consumidor cada 5 segundos hasta que se conecte
+                    while (!_disposed && !_connection.IsConnected)
+                    {
+                        await Task.Delay(5000);
+                        if (_connection.IsConnected && !_consumerChannels.ContainsKey(eventName))
+                        {
+                            lock (_channelLock)
+                            {
+                                if (!_consumerChannels.ContainsKey(eventName))
+                                {
+                                    CreateConsumerForEvent(eventName);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                });
+            }
         }
 
-        if (!_connection.IsConnected)
-        {
-            _logger.LogError("Cannot subscribe - RabbitMQ connection not available");
-            return;
-        }
+        _logger.LogInformation("✅ Suscrito a evento {EventName}", eventName);
+    }
 
-        _subsManager.AddSubscription<TEvent, THandler>();
-
-        var channel = _connection.CreateModel();
-        _consumerChannels[eventName] = channel;
-
+    private void CreateConsumerForEvent(string eventName)
+    {
         try
         {
+            if (_consumerChannels.ContainsKey(eventName))
+            {
+                return; // Ya existe
+            }
+
+            var channel = _connection.CreateModel();
+            _consumerChannels[eventName] = channel;
+
             EnsureExchangeQueue(channel);
             channel.QueueBind(_queue, _exchange, eventName);
 
-            // **FIXED: Create a generic consumer that can handle any event type**
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.Received += async (sender, ea) =>
             {
@@ -167,20 +212,67 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
 
             channel.BasicConsume(queue: _queue, autoAck: false, consumer: consumer);
 
-            _logger.LogInformation("Subscribed to {EventName}", eventName);
+            _logger.LogInformation("Consumer creado para evento {EventName}", eventName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error subscribing to event {EventName}", eventName);
+            _logger.LogError(ex, "Error creating consumer for event {EventName}", eventName);
 
             if (_consumerChannels.TryGetValue(eventName, out var errorChannel))
             {
                 errorChannel?.Dispose();
                 _consumerChannels.Remove(eventName);
             }
-
-            throw;
         }
+    }
+
+    private void HandleReconnection()
+    {
+        _logger.LogInformation("Reestableciendo consumidores después de reconexión...");
+
+        lock (_channelLock)
+        {
+            // Limpiar canales antiguos
+            foreach (var channel in _consumerChannels.Values)
+            {
+                try
+                {
+                    channel?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error disposing old channel during reconnection");
+                }
+            }
+            _consumerChannels.Clear();
+
+            // CRÍTICO: Recrear TODOS los consumidores para eventos suscritos
+            // Esto incluye eventos que pueden tener mensajes en cola esperando
+            var subscribedEvents = _subsManager.GetAllSubscribedEvents();
+            foreach (var eventName in subscribedEvents)
+            {
+                try
+                {
+                    CreateConsumerForEvent(eventName);
+                    _logger.LogInformation(
+                        "✅ Consumidor reestablecido para {EventName}",
+                        eventName
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "❌ Error reestablishing consumer for {EventName}",
+                        eventName
+                    );
+                }
+            }
+        }
+
+        _logger.LogInformation(
+            "✅ Todos los consumidores han sido reestablecidos - procesando mensajes en cola..."
+        );
     }
 
     private async Task ProcessEventGeneric(IModel channel, BasicDeliverEventArgs ea)
@@ -238,7 +330,7 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                     if (eventObj == null)
                     {
                         _logger.LogWarning("Failed to deserialize event {EventName}", eventName);
-                        continue; // Skip this handler but continue with others
+                        continue;
                     }
 
                     var task = (Task)method.Invoke(handler, new object[] { eventObj })!;
@@ -278,126 +370,8 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
                 eventName,
                 messageId
             );
-            channel.BasicNack(ea.DeliveryTag, false, true);
-        }
-    }
 
-    private async Task ProcessEvent<TEvent>(IModel channel, BasicDeliverEventArgs ea)
-        where TEvent : IntegrationEvent
-    {
-        var eventName = ea.RoutingKey;
-        var messageId = ea.BasicProperties?.MessageId ?? "unknown";
-
-        try
-        {
-            _logger.LogDebug(
-                "Processing event {EventName} with MessageId {MessageId}",
-                eventName,
-                messageId
-            );
-
-            // **FIXED: Remove the strict type checking that was causing the mismatch**
-            // The original code was rejecting events when the routing key didn't match the generic type
-            // Instead, we should handle the event based on the actual routing key
-
-            var raw = Encoding.UTF8.GetString(ea.Body.ToArray());
-
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                _logger.LogWarning("Empty message body for event {EventName}", eventName);
-                channel.BasicNack(ea.DeliveryTag, false, false);
-                return;
-            }
-
-            // **FIXED: Handle events based on routing key instead of generic type**
-            var handlerTypes = _subsManager.GetHandlersForEvent(eventName).ToList();
-            if (!handlerTypes.Any())
-            {
-                // This is normal - not all services handle all events
-                _logger.LogDebug(
-                    "No handlers found for event {EventName} - acknowledging",
-                    eventName
-                );
-                channel.BasicAck(ea.DeliveryTag, false);
-                return;
-            }
-
-            using var scope = _serviceProvider.CreateScope();
-
-            foreach (var handlerType in handlerTypes)
-            {
-                try
-                {
-                    var handler = scope.ServiceProvider.GetRequiredService(handlerType);
-                    var method = handlerType.GetMethod("Handle");
-
-                    if (method == null)
-                    {
-                        _logger.LogError(
-                            "Handle method not found on {HandlerType}",
-                            handlerType.Name
-                        );
-                        continue;
-                    }
-
-                    // **FIXED: Deserialize to the correct event type based on routing key**
-                    object? eventObj = DeserializeEventByName(raw, eventName);
-                    if (eventObj == null)
-                    {
-                        _logger.LogWarning("Failed to deserialize event {EventName}", eventName);
-                        channel.BasicNack(ea.DeliveryTag, false, false);
-                        return;
-                    }
-
-                    var task = (Task)method.Invoke(handler, new object[] { eventObj })!;
-                    await task;
-
-                    _logger.LogDebug(
-                        "Handler {HandlerType} processed event {EventName} successfully",
-                        handlerType.Name,
-                        eventName
-                    );
-                }
-                catch (Exception handlerEx)
-                {
-                    _logger.LogError(
-                        handlerEx,
-                        "Error in handler {HandlerType} processing event {EventName} with MessageId {MessageId}",
-                        handlerType.Name,
-                        eventName,
-                        messageId
-                    );
-
-                    channel.BasicNack(ea.DeliveryTag, false, true);
-                    return;
-                }
-            }
-
-            channel.BasicAck(ea.DeliveryTag, false);
-            _logger.LogDebug(
-                "Event {EventName} with MessageId {MessageId} processed successfully",
-                eventName,
-                messageId
-            );
-        }
-        catch (JsonException jsonEx)
-        {
-            _logger.LogError(
-                jsonEx,
-                "JSON deserialization error for event {EventName} with MessageId {MessageId}",
-                eventName,
-                messageId
-            );
-            channel.BasicNack(ea.DeliveryTag, false, false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Unexpected error processing event {EventName} with MessageId {MessageId}",
-                eventName,
-                messageId
-            );
+            // IMPORTANTE: Requeue el mensaje para que se procese cuando se reestablezca la conexión
             channel.BasicNack(ea.DeliveryTag, false, true);
         }
     }
@@ -408,49 +382,55 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
     {
         var eventName = typeof(TEvent).Name;
 
-        _subsManager.RemoveSubscription<TEvent, THandler>();
-
-        if (_consumerChannels.TryGetValue(eventName, out var channel))
+        lock (_channelLock)
         {
-            try
+            _subsManager.RemoveSubscription<TEvent, THandler>();
+
+            if (_consumerChannels.TryGetValue(eventName, out var channel))
             {
-                if (!_subsManager.HasSubscriptionsForEvent(eventName))
+                try
                 {
-                    channel.QueueUnbind(_queue, _exchange, eventName);
-                    channel.Dispose();
-                    _consumerChannels.Remove(eventName);
-                    _logger.LogInformation(
-                        "Unbound and disposed channel for {EventName}",
-                        eventName
-                    );
+                    if (!_subsManager.HasSubscriptionsForEvent(eventName))
+                    {
+                        if (_connection.IsConnected)
+                        {
+                            channel.QueueUnbind(_queue, _exchange, eventName);
+                        }
+                        channel.Dispose();
+                        _consumerChannels.Remove(eventName);
+                        _logger.LogInformation(
+                            "Unbound and disposed channel for {EventName}",
+                            eventName
+                        );
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "Handler {Handler} eliminado de {EventName}",
+                            typeof(THandler).Name,
+                            eventName
+                        );
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogInformation(
-                        "Handler {Handler} eliminado de {EventName}",
-                        typeof(THandler).Name,
-                        eventName
-                    );
+                    _logger.LogError(ex, "Error unsubscribing from event {EventName}", eventName);
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error unsubscribing from event {EventName}", eventName);
             }
         }
     }
 
     private void EnsureExchangeQueue(IModel channel)
     {
-        // Exchange durable
+        // Exchange durable - IMPORTANTE para persistencia
         channel.ExchangeDeclare(_exchange, ExchangeType.Direct, durable: true);
 
-        // Queue durable y sin auto-delete
+        // Queue durable y sin auto-delete - IMPORTANTE para persistencia
         channel.QueueDeclare(
             queue: _queue,
-            durable: true,
+            durable: true, // Sobrevive reinicios del broker
             exclusive: false,
-            autoDelete: false,
+            autoDelete: false, // No se elimina automáticamente
             arguments: null
         );
     }
@@ -462,18 +442,24 @@ public sealed class EventBusRabbitMQ : IEventBus, IDisposable
 
         _disposed = true;
 
-        foreach (var channel in _consumerChannels.Values)
-        {
-            try
-            {
-                channel?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error disposing consumer channel");
-            }
-        }
+        // Desuscribirse del evento de reconexión
+        _connection.OnReconnected -= HandleReconnection;
 
-        _consumerChannels.Clear();
+        lock (_channelLock)
+        {
+            foreach (var channel in _consumerChannels.Values)
+            {
+                try
+                {
+                    channel?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error disposing consumer channel");
+                }
+            }
+
+            _consumerChannels.Clear();
+        }
     }
 }

@@ -44,7 +44,20 @@ public sealed class InMemoryEventBusSubscriptionsManager
             _handlers.Remove(key);
     }
 
-    public IEnumerable<Type> GetHandlersForEvent(string eventName) => _handlers[eventName];
+    public IEnumerable<Type> GetHandlersForEvent(string eventName)
+    {
+        return _handlers.TryGetValue(eventName, out var handlers)
+            ? handlers
+            : Enumerable.Empty<Type>();
+    }
+
+    /// <summary>
+    /// Obtiene todos los nombres de eventos que tienen suscripciones activas
+    /// </summary>
+    public IEnumerable<string> GetAllSubscribedEvents()
+    {
+        return _handlers.Keys;
+    }
 
     public string GetEventKey<T>() => typeof(T).Name;
 
