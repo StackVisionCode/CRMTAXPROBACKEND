@@ -1,25 +1,33 @@
 using System.ComponentModel.DataAnnotations;
+using Applications.DTOs.CompanyDTOs;
 
 namespace AuthService.Applications.DTOs.CompanyDTOs;
 
 public class NewCompanyDTO
 {
-    [Key]
-    public Guid Id { get; set; }
+    public required bool IsCompany { get; set; }
+
     public string? FullName { get; set; }
     public string? CompanyName { get; set; }
-    public string? Address { get; set; }
+    public AddressDTO? Address { get; set; }
     public string? Phone { get; set; }
     public string? Description { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "UserLimit must be greater than 0.")]
-    public int UserLimit { get; set; }
-    public string? Domain { get; set; }
+    [Range(0, int.MaxValue)]
+    public int UserLimit { get; set; } = 1; // Default 1 para individuales
+    public required string Domain { get; set; } = default!;
 
-    [EmailAddress]
-    public required string? Email { get; set; }
     public string? Brand { get; set; }
 
+    // Alta del Admin (dueño)
+    [EmailAddress]
+    public required string Email { get; set; } = default!;
+
     [MinLength(8)]
-    public string? Password { get; set; }
+    public required string Password { get; set; } = default!;
+    public string? Name { get; set; }
+    public string? LastName { get; set; }
+    public string? PhoneNumber { get; set; }
+    public AddressDTO? AdminAddress { get; set; }
+    public string? PhotoUrl { get; set; }
 }

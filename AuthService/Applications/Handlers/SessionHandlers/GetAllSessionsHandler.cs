@@ -1,4 +1,3 @@
-using AuthService.DTOs.PaginationDTO;
 using AuthService.DTOs.SessionDTOs;
 using AutoMapper;
 using Common;
@@ -34,14 +33,12 @@ public class GetAllSessionsHandler
     {
         try
         {
-            var sessions = await _context
-                .Sessions.Include(s => s.TaxUser)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
+            var sessionsQuery = from s in _context.Sessions select s;
 
+            var sessions = await sessionsQuery.ToListAsync(cancellationToken);
             var sessionDtos = _mapper.Map<List<SessionDTO>>(sessions);
 
-            _logger.LogInformation("Sessions retrieved successfully: {Sessions}", sessionDtos);
+            _logger.LogInformation("Retrieved {Count} sessions successfully", sessionDtos.Count);
             return new ApiResponse<List<SessionDTO>>(
                 true,
                 "Sessions retrieved successfully",
@@ -53,7 +50,8 @@ public class GetAllSessionsHandler
             _logger.LogError(ex, "Error retrieving all sessions");
             return new ApiResponse<List<SessionDTO>>(
                 false,
-                "An error occurred while retrieving sessions"
+                "An error occurred while retrieving sessions",
+                new List<SessionDTO>()
             );
         }
     }

@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Queries.UserQueries;
 
-public record class GetAllUserQuery:IRequest<ApiResponse<List<UserGetDTO>>>;
+public record class GetAllUserQuery : IRequest<ApiResponse<List<UserGetDTO>>>;

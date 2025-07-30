@@ -32,15 +32,14 @@ public class GetSessionByIdHandler : IRequestHandler<GetSessionByIdQuery, ApiRes
     {
         try
         {
-            var session = await _context
-                .Sessions.Include(s => s.TaxUser)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
+            var sessionQuery = from s in _context.Sessions where s.Id == request.SessionId select s;
+
+            var session = await sessionQuery.FirstOrDefaultAsync(cancellationToken);
 
             if (session == null)
             {
                 _logger.LogWarning("Session {SessionId} not found", request.SessionId);
-                return new ApiResponse<SessionDTO>(false, "Session not found");
+                return new ApiResponse<SessionDTO>(false, "Session not found", null!);
             }
 
             var sessionDTO = _mapper.Map<SessionDTO>(session);
@@ -53,7 +52,8 @@ public class GetSessionByIdHandler : IRequestHandler<GetSessionByIdQuery, ApiRes
             _logger.LogError(ex, "Error retrieving session {SessionId}", request.SessionId);
             return new ApiResponse<SessionDTO>(
                 false,
-                "An error occurred while retrieving the session"
+                "An error occurred while retrieving the session",
+                null!
             );
         }
     }

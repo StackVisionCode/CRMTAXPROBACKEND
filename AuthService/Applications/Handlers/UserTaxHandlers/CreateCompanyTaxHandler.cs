@@ -1,9 +1,7 @@
 using Applications.Common;
-using AuthService.Applications.DTOs.CompanyDTOs;
+using AuthService.Domains.Addresses;
 using AuthService.Domains.Companies;
-using AuthService.Domains.Roles;
 using AuthService.Domains.Users;
-using AuthService.DTOs.UserDTOs;
 using AuthService.Infraestructure.Services;
 using AutoMapper;
 using Commands.UserCommands;
@@ -12,7 +10,6 @@ using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
-using SharedLibrary.DTOs;
 using SharedLibrary.DTOs.AuthEvents;
 
 namespace Handlers.UserTaxHandlers;
@@ -26,6 +23,9 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
     private readonly IEventBus _eventBus;
     private readonly LinkBuilder _linkBuilder;
     private readonly IConfirmTokenService _confirmTokenService;
+
+    // Constantes de geografía (US-only)
+    private const int USA = 220;
 
     public CreateCompanyTaxHandler(
         ApplicationDbContext dbContext,
@@ -51,135 +51,361 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         CancellationToken cancellationToken
     )
     {
+        using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
         try
         {
-            var userExists = await Exists(request.Companytax);
-            if (userExists)
+            // Verificar si ya existe el email o domain
+            var existsQuery =
+                from u in _dbContext.TaxUsers
+                where u.Email == request.CompanyTax.Email
+                select u.Id;
+
+            var domainExistsQuery =
+                from c in _dbContext.Companies
+                where c.Domain == request.CompanyTax.Domain
+                select c.Id;
+
+            if (await existsQuery.AnyAsync(cancellationToken))
             {
-                _logger.LogWarning("Company already exists: {Email}", request.Companytax.Email);
-                return new ApiResponse<bool>(false, "Company already exists", false);
+                _logger.LogWarning("Email already exists: {Email}", request.CompanyTax.Email);
+                return new ApiResponse<bool>(false, "Email already exists", false);
             }
 
-            request.Companytax.Id = Guid.NewGuid();
-            request.Companytax.Password = _passwordHash.HashPassword(request.Companytax.Password!);
-
-            var companyTax = _mapper.Map<Company>(request.Companytax);
-            companyTax.CreatedAt = DateTime.UtcNow;
-
-            var UserCompanyTax = _mapper.Map<NewUserDTO>(request.Companytax);
-            var MapToUser = _mapper.Map<TaxUser>(UserCompanyTax);
-            MapToUser.CompanyId = companyTax.Id;
-            MapToUser.IsActive = false;
-            MapToUser.Confirm = false;
-            MapToUser.CreatedAt = DateTime.UtcNow;
-
-            // Rol “Administrator”
-            var adminRole = await _dbContext
-                .Roles.AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Name == "TaxPreparer", cancellationToken);
-
-            if (adminRole is null)
-                return new(false, "TaxPreparer role not found", false);
-
-            await _dbContext.Companies.AddAsync(companyTax);
-            var CompanyResult = await _dbContext.SaveChangesAsync() > 0;
-            if (!CompanyResult)
+            if (await domainExistsQuery.AnyAsync(cancellationToken))
             {
-                _logger.LogError("Error creating company tax");
-                return new ApiResponse<bool>(false, "Error creating company tax", false);
+                _logger.LogWarning("Domain already exists: {Domain}", request.CompanyTax.Domain);
+                return new ApiResponse<bool>(false, "Domain already exists", false);
             }
 
-            var (token, expiration) = _confirmTokenService.Generate(MapToUser.Id, MapToUser.Email);
-            MapToUser.ConfirmToken = token;
+            // Obtener rol Administrator usando Join
+            var adminRoleQuery =
+                from r in _dbContext.Roles
+                where r.Name == "Administrator"
+                select new { r.Id, r.Name };
 
-            await _dbContext.TaxUsers.AddAsync(MapToUser);
+            var adminRole = await adminRoleQuery.FirstOrDefaultAsync(cancellationToken);
+            if (adminRole == null)
+            {
+                _logger.LogError("Administrator role not found");
+                return new ApiResponse<bool>(false, "Administrator role not found", false);
+            }
 
+            // Lógica de direcciones según el tipo de cuenta
+            Address? companyAddressEntity = null;
+            Address? adminAddressEntity = null;
+
+            // 3a. Para EMPRESAS: crear ambas direcciones si existen
+            if (request.CompanyTax.IsCompany)
+            {
+                // Dirección de la empresa (usando Address del DTO)
+                if (request.CompanyTax.Address is not null)
+                {
+                    var addrDto = request.CompanyTax.Address;
+                    var validateResult = await ValidateAddressAsync(
+                        addrDto.CountryId,
+                        addrDto.StateId,
+                        cancellationToken
+                    );
+                    if (!validateResult.Success)
+                        return new ApiResponse<bool>(false, validateResult.Message, false);
+
+                    companyAddressEntity = new Address
+                    {
+                        Id = Guid.NewGuid(),
+                        CountryId = addrDto.CountryId,
+                        StateId = addrDto.StateId,
+                        City = addrDto.City?.Trim(),
+                        Street = addrDto.Street?.Trim(),
+                        Line = addrDto.Line?.Trim(),
+                        ZipCode = addrDto.ZipCode?.Trim(),
+                        CreatedAt = DateTime.UtcNow,
+                    };
+
+                    await _dbContext.Addresses.AddAsync(companyAddressEntity, cancellationToken);
+                    _logger.LogDebug(
+                        "Created company address with ID: {AddressId}",
+                        companyAddressEntity.Id
+                    );
+                }
+
+                // Dirección del administrador (separada)
+                if (request.CompanyTax.AdminAddress is not null)
+                {
+                    var addrDto = request.CompanyTax.AdminAddress;
+                    var validateResult = await ValidateAddressAsync(
+                        addrDto.CountryId,
+                        addrDto.StateId,
+                        cancellationToken
+                    );
+                    if (!validateResult.Success)
+                        return new ApiResponse<bool>(false, validateResult.Message, false);
+
+                    adminAddressEntity = new Address
+                    {
+                        Id = Guid.NewGuid(),
+                        CountryId = addrDto.CountryId,
+                        StateId = addrDto.StateId,
+                        City = addrDto.City?.Trim(),
+                        Street = addrDto.Street?.Trim(),
+                        Line = addrDto.Line?.Trim(),
+                        ZipCode = addrDto.ZipCode?.Trim(),
+                        CreatedAt = DateTime.UtcNow,
+                    };
+
+                    await _dbContext.Addresses.AddAsync(adminAddressEntity, cancellationToken);
+                    _logger.LogDebug(
+                        "Created admin address with ID: {AddressId}",
+                        adminAddressEntity.Id
+                    );
+                }
+            }
+            // 3b. Para INDIVIDUALES: usar Address como dirección del usuario
+            else
+            {
+                if (request.CompanyTax.Address is not null)
+                {
+                    var addrDto = request.CompanyTax.Address;
+                    var validateResult = await ValidateAddressAsync(
+                        addrDto.CountryId,
+                        addrDto.StateId,
+                        cancellationToken
+                    );
+                    if (!validateResult.Success)
+                        return new ApiResponse<bool>(false, validateResult.Message, false);
+
+                    // Para individuales: Address se usa tanto para company como para user
+                    companyAddressEntity = new Address
+                    {
+                        Id = Guid.NewGuid(),
+                        CountryId = addrDto.CountryId,
+                        StateId = addrDto.StateId,
+                        City = addrDto.City?.Trim(),
+                        Street = addrDto.Street?.Trim(),
+                        Line = addrDto.Line?.Trim(),
+                        ZipCode = addrDto.ZipCode?.Trim(),
+                        CreatedAt = DateTime.UtcNow,
+                    };
+
+                    await _dbContext.Addresses.AddAsync(companyAddressEntity, cancellationToken);
+
+                    // Para individuales: misma dirección para usuario
+                    adminAddressEntity = companyAddressEntity;
+
+                    _logger.LogDebug(
+                        "Created individual address with ID: {AddressId} (shared for company and user)",
+                        companyAddressEntity.Id
+                    );
+                }
+            }
+
+            // 4. GUARDAR DIRECCIONES PRIMERO para obtener sus IDs
+            if (companyAddressEntity != null)
+            {
+                var addressesSaved = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+                if (!addressesSaved)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    _logger.LogError("Failed to save addresses");
+                    return new ApiResponse<bool>(false, "Failed to save addresses", false);
+                }
+                _logger.LogDebug("Addresses saved successfully");
+            }
+
+            // 5. Crear Company con AddressId ya disponible
+            var company = _mapper.Map<Company>(request.CompanyTax);
+            company.Id = Guid.NewGuid();
+            company.CreatedAt = DateTime.UtcNow;
+
+            // CRÍTICO: Asignar AddressId si existe la dirección
+            if (companyAddressEntity != null)
+            {
+                company.AddressId = companyAddressEntity.Id;
+                _logger.LogDebug("Assigned company AddressId: {AddressId}", company.AddressId);
+            }
+
+            await _dbContext.Companies.AddAsync(company, cancellationToken);
+
+            // 6. Crear TaxUser administrador con AddressId ya disponible
+            var adminUser = new TaxUser
+            {
+                Id = Guid.NewGuid(),
+                CompanyId = company.Id,
+                Email = request.CompanyTax.Email,
+                Password = _passwordHash.HashPassword(request.CompanyTax.Password),
+                Name = request.CompanyTax.Name,
+                LastName = request.CompanyTax.LastName,
+                PhoneNumber = request.CompanyTax.PhoneNumber,
+                PhotoUrl = request.CompanyTax.PhotoUrl,
+                IsActive = false,
+                Confirm = false,
+                OtpVerified = false,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            // CRÍTICO: Asignar AddressId si existe la dirección
+            if (adminAddressEntity != null)
+            {
+                adminUser.AddressId = adminAddressEntity.Id;
+                _logger.LogDebug("Assigned admin AddressId: {AddressId}", adminUser.AddressId);
+            }
+
+            // 7. Generar token de confirmación
+            var (token, expiration) = _confirmTokenService.Generate(adminUser.Id, adminUser.Email);
+            adminUser.ConfirmToken = token;
+
+            await _dbContext.TaxUsers.AddAsync(adminUser, cancellationToken);
+
+            // 8. Asignar rol Administrator
             await _dbContext.UserRoles.AddAsync(
                 new UserRole
                 {
                     Id = Guid.NewGuid(),
-                    TaxUserId = MapToUser.Id,
+                    TaxUserId = adminUser.Id,
                     RoleId = adminRole.Id,
                     CreatedAt = DateTime.UtcNow,
                 },
                 cancellationToken
             );
 
-            var ResultUserSaved = await _dbContext.SaveChangesAsync() > 0;
+            // 9. Guardar Company, User y UserRole
+            var finalResult = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
+            if (!finalResult)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError("Failed to create company and user");
+                return new ApiResponse<bool>(false, "Failed to create company", false);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            // 10. Construir payloads de address para el evento
+            var companyAddressPayload = await BuildAddressPayloadAsync(
+                companyAddressEntity,
+                cancellationToken
+            );
+
+            // Para individuales: no duplicar la dirección en el evento
+            var adminAddressPayload = request.CompanyTax.IsCompany
+                ? await BuildAddressPayloadAsync(adminAddressEntity, cancellationToken)
+                : null; // Para individuales, adminAddress es null porque usan la misma dirección que Address
+
+            // 11. Link de confirmación
             string link = _linkBuilder.BuildConfirmationLink(
                 request.Origin,
-                MapToUser.Email,
+                adminUser.Email,
                 token
             );
 
-            if (!ResultUserSaved)
-            {
-                _logger.LogError("Error creating user tax");
-                return new ApiResponse<bool>(false, "Error creating user tax", false);
-            }
+            _logger.LogInformation("Company created successfully: {CompanyId}", company.Id);
 
-            _logger.LogInformation("User tax created successfully: {UserTax}", companyTax);
-
-            _eventBus.Publish(
-                new AccountConfirmationLinkEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    MapToUser.Id,
-                    MapToUser.Email,
-                    request.Companytax.CompanyName ?? MapToUser.Email,
-                    link,
-                    expiration,
-                    true,
-                    CompanyName: request.Companytax.CompanyName,
-                    AdminName: request.Companytax.FullName,
-                    Domain: request.Companytax.Domain
-                )
-            );
-
+            // Publicar eventos
+            // Evento legacy (sin Address)
             _eventBus.Publish(
                 new AccountRegisteredEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    MapToUser.Id,
-                    MapToUser.Email,
-                    string.Empty,
-                    string.Empty,
-                    request.Companytax.Phone ?? string.Empty,
-                    true, // IsCompany
-                    companyTax.Id,
-                    request.Companytax.FullName,
-                    request.Companytax.CompanyName,
-                    request.Companytax.Domain
+                    Id: Guid.NewGuid(),
+                    OccurredOn: DateTime.UtcNow,
+                    UserId: adminUser.Id,
+                    Email: adminUser.Email,
+                    Name: adminUser.Name ?? string.Empty,
+                    LastName: adminUser.LastName ?? string.Empty,
+                    Phone: adminUser.PhoneNumber ?? string.Empty,
+                    IsCompany: company.IsCompany,
+                    CompanyId: company.Id,
+                    FullName: company.FullName,
+                    CompanyName: company.CompanyName,
+                    Domain: company.Domain,
+                    Brand: company.Brand,
+                    CompanyAddress: companyAddressPayload,
+                    UserAddress: adminAddressPayload
                 )
             );
 
-            return new ApiResponse<bool>(
-                ResultUserSaved,
-                ResultUserSaved
-                    ? "Company tax created successfully"
-                    : "Failed to create company tax",
-                ResultUserSaved
+            // Publicacion de evento de correo de confirmacion
+            _eventBus.Publish(
+                new AccountConfirmationLinkEvent(
+                    Id: Guid.NewGuid(),
+                    OccurredOn: DateTime.UtcNow,
+                    UserId: adminUser.Id,
+                    Email: adminUser.Email,
+                    DisplayName: company.IsCompany
+                        ? (company.CompanyName ?? company.FullName ?? adminUser.Email)
+                        : $"{adminUser.Name} {adminUser.LastName}".Trim(),
+                    ConfirmLink: link,
+                    ExpiresAt: expiration,
+                    CompanyId: company.Id,
+                    IsCompany: company.IsCompany,
+                    CompanyFullName: company.FullName,
+                    CompanyName: company.CompanyName,
+                    AdminName: $"{adminUser.Name} {adminUser.LastName}".Trim(),
+                    Domain: company.Domain
+                )
             );
+
+            return new ApiResponse<bool>(true, "Company created successfully", true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating company tax: {Message}", ex.Message);
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error creating company: {Message}", ex.Message);
             return new ApiResponse<bool>(false, ex.Message, false);
         }
     }
 
-    private async Task<bool> Exists(NewCompanyDTO companyDTO)
+    // ==========================
+    // Helpers privados del handler
+    // ==========================
+
+    private async Task<(bool Success, string Message)> ValidateAddressAsync(
+        int countryId,
+        int stateId,
+        CancellationToken ct
+    )
     {
-        try
-        {
-            return await _dbContext.TaxUsers.FirstOrDefaultAsync(a => a.Email == companyDTO.Email)
-                != null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while checking if company exists.");
-            throw new Exception("Error occurred while checking if company exists.");
-        }
+        // País (US-only)
+        if (countryId != USA)
+            return (false, "Only United States (CountryId = 220) is supported.");
+
+        var country = await _dbContext
+            .Countries.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == countryId, ct);
+        if (country is null)
+            return (false, $"CountryId '{countryId}' not found.");
+
+        var state = await _dbContext
+            .States.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == stateId && s.CountryId == countryId, ct);
+        if (state is null)
+            return (false, $"StateId '{stateId}' not found for CountryId '{countryId}'.");
+
+        return (true, "OK");
+    }
+
+    private async Task<AddressPayload?> BuildAddressPayloadAsync(
+        Address? address,
+        CancellationToken ct
+    )
+    {
+        if (address is null)
+            return null;
+
+        var country = await _dbContext
+            .Countries.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == address.CountryId, ct);
+        var state = await _dbContext
+            .States.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == address.StateId, ct);
+
+        return new AddressPayload(
+            CountryId: address.CountryId,
+            CountryName: country?.Name ?? string.Empty,
+            StateId: address.StateId,
+            StateName: state?.Name ?? string.Empty,
+            City: address.City?.Trim(),
+            Street: address.Street?.Trim(),
+            Line: address.Line?.Trim(),
+            ZipCode: address.ZipCode?.Trim()
+        );
     }
 }

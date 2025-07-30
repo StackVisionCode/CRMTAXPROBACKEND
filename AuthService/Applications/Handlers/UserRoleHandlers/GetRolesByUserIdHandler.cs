@@ -24,37 +24,85 @@ public class GetRolesByUserIdHandler
         CancellationToken ct
     )
     {
-        var data = await (
-            from ur in _db.UserRoles
-            where ur.TaxUserId == req.UserId
-            join r in _db.Roles on ur.RoleId equals r.Id
-            join rp in _db.RolePermissions on r.Id equals rp.RoleId into rps
-            from rp in rps.DefaultIfEmpty()
-            join p in _db.Permissions on rp.PermissionId equals p.Id into ps
-            from p in ps.DefaultIfEmpty()
-
-            group p by new
-            {
-                r.Id,
-                r.Name,
-                r.Description,
-            } into g
-            select new RoleDTO
-            {
-                Id = g.Key.Id,
-                Name = g.Key.Name,
-                Description = g.Key.Description,
-                PermissionCodes = g.Where(p => p != null!).Select(p => p!.Code).Distinct().ToList(),
-            }
-        ).ToListAsync(ct);
-
-        if (data is null)
+        try
         {
-            _log.LogError("User has no roles");
-            return new ApiResponse<List<RoleDTO>>(false, "User has no roles");
-        }
+            // Verificar que el usuario existe
+            var userExistsQuery = from u in _db.TaxUsers where u.Id == req.UserId select u.Id;
 
-        _log.LogInformation("User has roles");
-        return new ApiResponse<List<RoleDTO>>(true, "Ok", data);
+            var userExists = await userExistsQuery.AnyAsync(ct);
+            if (!userExists)
+            {
+                _log.LogWarning("User not found: {UserId}", req.UserId);
+                return new ApiResponse<List<RoleDTO>>(false, "User not found", new List<RoleDTO>());
+            }
+
+            // Obtener roles del usuario con sus permisos
+            var rolesData = await (
+                from ur in _db.UserRoles
+                where ur.TaxUserId == req.UserId
+                join r in _db.Roles on ur.RoleId equals r.Id
+                select new
+                {
+                    r.Id,
+                    r.Name,
+                    r.Description,
+                    r.PortalAccess,
+                }
+            ).Distinct().ToListAsync(ct);
+
+            if (!rolesData.Any())
+            {
+                _log.LogInformation("User {UserId} has no roles assigned", req.UserId);
+                return new ApiResponse<List<RoleDTO>>(
+                    true,
+                    "User has no roles",
+                    new List<RoleDTO>()
+                );
+            }
+
+            // Obtener permisos por separado para evitar problemas de GROUP BY
+            var roleIds = rolesData.Select(r => r.Id).ToList();
+            var permissionsData = await (
+                from rp in _db.RolePermissions
+                join p in _db.Permissions on rp.PermissionId equals p.Id
+                where roleIds.Contains(rp.RoleId)
+                select new { rp.RoleId, p.Code }
+            ).ToListAsync(ct);
+
+            var permissionsByRole = permissionsData
+                .GroupBy(x => x.RoleId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
+
+            // Construir el resultado
+            var result = rolesData
+                .Select(role => new RoleDTO
+                {
+                    Id = role.Id,
+                    Name = role.Name,
+                    Description = role.Description,
+                    PortalAccess = role.PortalAccess,
+                    PermissionCodes = permissionsByRole.TryGetValue(role.Id, out var permissions)
+                        ? permissions
+                        : new List<string>(),
+                })
+                .ToList();
+
+            _log.LogInformation(
+                "Retrieved {Count} roles for user {UserId}",
+                result.Count,
+                req.UserId
+            );
+            return new ApiResponse<List<RoleDTO>>(true, "Roles retrieved successfully", result);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(
+                ex,
+                "Error retrieving roles for user {UserId}: {Message}",
+                req.UserId,
+                ex.Message
+            );
+            return new ApiResponse<List<RoleDTO>>(false, ex.Message, new List<RoleDTO>());
+        }
     }
 }

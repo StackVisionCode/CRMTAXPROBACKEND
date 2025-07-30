@@ -1,4 +1,3 @@
-using AuthService.DTOs.PaginationDTO;
 using AuthService.DTOs.SessionDTOs;
 using Common;
 using MediatR;

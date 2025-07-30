@@ -11,12 +11,28 @@ public class CompanyProfile : Profile
 {
     public CompanyProfile()
     {
-        CreateMap<NewCompanyDTO, Company>().ReverseMap();
-        CreateMap<NewCompanyDTO, NewUserDTO>().ReverseMap();
-        CreateMap<UpdateCompanyDTO, Company>().ReverseMap();
-        CreateMap<UpdateCompanyDTO, UpdateUserDTO>().ReverseMap();
-        CreateMap<UpdateCompanyDTO, TaxUser>().ReverseMap();
-        CreateMap<CreateTaxCompanyCommands, Company>().ReverseMap();
-        CreateMap<UpdateTaxCompanyCommands, Company>().ReverseMap();
+        CreateMap<NewCompanyDTO, Company>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.AddressId, o => o.Ignore()) // se setea en handler tras crear Address
+            .ForMember(d => d.Address, o => o.Ignore())
+            .ForMember(d => d.TaxUsers, o => o.Ignore());
+
+        CreateMap<UpdateCompanyDTO, Company>()
+            .ForMember(d => d.AddressId, o => o.Ignore())
+            .ForMember(d => d.Address, o => o.Ignore());
+
+        CreateMap<Company, CompanyDTO>()
+            .ForMember(
+                dest => dest.CurrentUserCount,
+                opt => opt.MapFrom(src => src.TaxUsers.Count())
+            )
+            .ForMember(d => d.Address, o => o.MapFrom(s => s.Address));
+
+        // Command mappings
+        CreateMap<NewCompanyDTO, CreateTaxCompanyCommands>()
+            .ConstructUsing(src => new CreateTaxCompanyCommands(src, string.Empty));
+
+        CreateMap<UpdateCompanyDTO, UpdateTaxCompanyCommands>()
+            .ConstructUsing(src => new UpdateTaxCompanyCommands(src));
     }
 }

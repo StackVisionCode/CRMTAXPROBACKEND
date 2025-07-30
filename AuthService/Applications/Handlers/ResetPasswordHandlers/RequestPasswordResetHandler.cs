@@ -38,112 +38,74 @@ public class RequestPasswordResetHandler
     {
         try
         {
-            // 🔍 PASO 1: BUSCAR EN TAXUSERS CON JOIN EXPLÍCITO
-            var taxUserData = await (
+            // 🔍 BUSCAR USUARIO CON COMPANY INFO
+            var userData = await (
                 from u in _db.TaxUsers
                 where u.Email == r.Email && u.IsActive
-                join p in _db.TaxUserProfiles on u.Id equals p.TaxUserId into prof
-                from p in prof.DefaultIfEmpty()
-                join co in _db.Companies on u.CompanyId equals co.Id into comp
-                from co in comp.DefaultIfEmpty()
+                join c in _db.Companies on u.CompanyId equals c.Id into companies
+                from c in companies.DefaultIfEmpty()
                 select new
                 {
                     UserId = u.Id,
                     Email = u.Email,
                     IsActive = u.IsActive,
-                    // Datos para display
-                    ProfileName = p != null ? p.Name : null,
-                    ProfileLastName = p != null ? p.LastName : null,
-                    CompanyName = co != null ? co.CompanyName : null,
-                    Domain = u.Domain,
-                    UserType = "TaxUser",
+                    // Datos del usuario (ahora en TaxUser directamente)
+                    Name = u.Name,
+                    LastName = u.LastName,
+                    // Datos de la company
+                    CompanyFullName = c != null ? c.FullName : null,
+                    CompanyName = c != null ? c.CompanyName : null,
+                    IsCompany = c != null ? c.IsCompany : false,
                 }
             ).FirstOrDefaultAsync(ct);
 
-            // 🔍 PASO 2: SI NO ESTÁ EN TAXUSERS, BUSCAR EN COMPANYUSERS
-            var companyUserData =
-                taxUserData == null
-                    ? await (
-                        from cu in _db.CompanyUsers
-                        where cu.Email == r.Email && cu.IsActive
-                        join cup in _db.CompanyUserProfiles
-                            on cu.Id equals cup.CompanyUserId
-                            into prof
-                        from cup in prof.DefaultIfEmpty()
-                        join co in _db.Companies on cu.CompanyId equals co.Id into comp
-                        from co in comp.DefaultIfEmpty()
-                        select new
-                        {
-                            UserId = cu.Id,
-                            Email = cu.Email,
-                            IsActive = cu.IsActive,
-                            // Datos para display
-                            ProfileName = cup != null ? cup.Name : null,
-                            ProfileLastName = cup != null ? cup.LastName : null,
-                            CompanyName = co != null ? co.CompanyName : null,
-                            Domain = (string?)null,
-                            UserType = "CompanyUser",
-                        }
-                    ).FirstOrDefaultAsync(ct)
-                    : null;
-
-            // 📋 PASO 3: DETERMINAR QUÉ USUARIO ENCONTRAMOS
-            var userData = taxUserData ?? companyUserData;
-            if (userData is null || !userData.IsActive)
+            if (userData == null || !userData.IsActive)
+            {
+                _log.LogWarning(
+                    "Password reset requested for non-existent or inactive user: {Email}",
+                    r.Email
+                );
                 return new(false, "Cuenta no encontrada o inactiva");
+            }
 
-            // 🔑 PASO 4: GENERAR TOKEN DE RESET
+            // 🔑 GENERAR TOKEN DE RESET
             var (token, exp) = _tokenSrv.Generate(userData.UserId, userData.Email);
 
-            // ✅ PASO 5: ACTUALIZAR USUARIO SEGÚN SU TIPO
-            var updateResult = false;
-            if (userData.UserType == "TaxUser")
-            {
-                updateResult =
-                    await _db
-                        .TaxUsers.Where(u => u.Id == userData.UserId)
-                        .ExecuteUpdateAsync(
-                            s =>
-                                s.SetProperty(u => u.ResetPasswordToken, token)
-                                    .SetProperty(u => u.ResetPasswordExpires, exp)
-                                    .SetProperty(u => u.Otp, (string?)null) // invalidar OTP previa
-                                    .SetProperty(u => u.OtpExpires, (DateTime?)null)
-                                    .SetProperty(u => u.UpdatedAt, DateTime.UtcNow),
-                            ct
-                        ) > 0;
-            }
-            else
-            {
-                updateResult =
-                    await _db
-                        .CompanyUsers.Where(cu => cu.Id == userData.UserId)
-                        .ExecuteUpdateAsync(
-                            s =>
-                                s.SetProperty(cu => cu.ResetPasswordToken, token)
-                                    .SetProperty(cu => cu.ResetPasswordExpires, exp)
-                                    .SetProperty(cu => cu.Otp, (string?)null) // invalidar OTP previa
-                                    .SetProperty(cu => cu.OtpExpires, (DateTime?)null)
-                                    .SetProperty(cu => cu.UpdatedAt, DateTime.UtcNow),
-                            ct
-                        ) > 0;
-            }
+            // ✅ ACTUALIZAR USUARIO CON TOKEN
+            var updateResult =
+                await _db
+                    .TaxUsers.Where(u => u.Id == userData.UserId)
+                    .ExecuteUpdateAsync(
+                        s =>
+                            s.SetProperty(u => u.ResetPasswordToken, token)
+                                .SetProperty(u => u.ResetPasswordExpires, exp)
+                                .SetProperty(u => u.Otp, (string?)null) // invalidar OTP previa
+                                .SetProperty(u => u.OtpExpires, (DateTime?)null)
+                                .SetProperty(u => u.UpdatedAt, DateTime.UtcNow),
+                        ct
+                    ) > 0;
 
             if (!updateResult)
+            {
+                _log.LogError("Failed to update reset token for user: {Email}", userData.Email);
                 return new(false, "Error al procesar la solicitud de reset");
+            }
 
-            // 🔗 PASO 6: GENERAR LINK DE RESET
+            // 🔗 GENERAR LINK DE RESET
             var link =
                 $"{r.Origin.TrimEnd('/')}/auth/reset-password/validate?email={Uri.EscapeDataString(userData.Email)}&token={Uri.EscapeDataString(token)}";
 
-            // 📝 PASO 7: CALCULAR DISPLAY NAME
+            // 📝 CALCULAR DISPLAY NAME CON NUEVA ESTRUCTURA
             var display = DisplayNameHelper.From(
-                userData.ProfileName,
-                userData.ProfileLastName,
+                userData.Name,
+                userData.LastName,
+                userData.CompanyFullName,
                 userData.CompanyName,
+                userData.IsCompany,
                 userData.Email
             );
 
-            // 📧 PASO 8: PUBLICAR EVENTO DE RESET
+            // 📧 PUBLICAR EVENTO DE RESET
             _bus.Publish(
                 new PasswordResetLinkEvent(
                     Guid.NewGuid(),
@@ -157,10 +119,9 @@ public class RequestPasswordResetHandler
             );
 
             _log.LogInformation(
-                "Password reset link sent: Email={Email}, UserId={UserId}, UserType={UserType}",
+                "Password reset link sent: Email={Email}, UserId={UserId}",
                 userData.Email,
-                userData.UserId,
-                userData.UserType
+                userData.UserId
             );
 
             return new(true, "Se envió un correo con el enlace para reestablecer contraseña");

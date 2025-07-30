@@ -8,7 +8,9 @@ public sealed record AccountConfirmationLinkEvent(
     string DisplayName,
     string ConfirmLink,
     DateTime ExpiresAt,
+    Guid CompanyId,
     bool IsCompany,
+    string? CompanyFullName = null,
     string? CompanyName = null,
     string? AdminName = null,
     string? Domain = null

@@ -1,12 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using AuthService.Applications.DTOs.CompanyDTOs;
+using AuthService.DTOs.RoleDTOs;
 using AuthService.DTOs.UserDTOs;
 using Commands.UserCommands;
 using Common;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Queries.CompanyQueries;
 using Queries.UserQueries;
+using Queries.UserRoleQueries;
 
 namespace AuthService.Controllers
 {
@@ -21,6 +24,7 @@ namespace AuthService.Controllers
             _mediator = mediator;
         }
 
+        // Crear Usuario de Compañia
         [HttpPost("Create")]
         public async Task<ActionResult<ApiResponse<bool>>> Create(
             [FromBody] NewUserDTO userDto,
@@ -35,6 +39,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        // Crear Usuario Admin o Preparador
         [HttpPost("CreateCompany")]
         public async Task<ActionResult<ApiResponse<bool>>> CreateCompany(
             [FromBody] NewCompanyDTO companyDto,
@@ -49,6 +54,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        // Actualizar Usuario de Compañia
         [HttpPut("UpdateUser")]
         public async Task<ActionResult<ApiResponse<bool>>> UpdateUser(
             [FromBody] UpdateUserDTO userDto
@@ -63,6 +69,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        // Actualizar Usuario de Admin o Prpeparador
         [HttpPut("UpdateCompany")]
         public async Task<ActionResult<ApiResponse<bool>>> UpdateCompany(
             [FromBody] UpdateCompanyDTO companyDto
@@ -77,7 +84,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        // Endpoint adicional para actualizar el perfil del usuario autenticado
+        // Actualizar Usuario de Compañia
         [HttpPut("UpdateProfile")]
         public async Task<ActionResult<ApiResponse<bool>>> UpdateProfile(
             [FromBody] UpdateUserDTO userDto
@@ -102,7 +109,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        // Endpoint adicional para actualizar el perfil del usuario autenticado
+        // Actualizar Usuario Admin O Preparador
         [HttpPut("UpdateCompanyProfile")]
         public async Task<ActionResult<ApiResponse<bool>>> UpdateCompanyProfile(
             [FromBody] UpdateCompanyDTO companyDto
@@ -127,6 +134,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        // Eliminar Usuario de Compañia
         [HttpDelete("Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
         {
@@ -137,6 +145,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        // Obtener todas las Compañias
         [HttpGet("GetAll")]
         public async Task<ActionResult<ApiResponse<UserGetDTO[]>>> GetAll()
         {
@@ -148,6 +157,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        // Obtener compañia por Id
         [HttpGet("GetByUserId")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -159,6 +169,7 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        // Obtener Perfil de Usuario de Compañia
         [HttpGet("Profile")]
         public async Task<ActionResult<ApiResponse<UserProfileDTO>>> GetProfile()
         {
@@ -189,27 +200,74 @@ namespace AuthService.Controllers
                 profileDto.LastName = User.FindFirst(ClaimTypes.Surname)?.Value;
             }
 
-            // AGREGAR: Si FullName está vacío, usar el del JWT
-            if (string.IsNullOrWhiteSpace(profileDto.FullName))
-            {
-                profileDto.FullName = User.FindFirst("fullName")?.Value;
-            }
-
-            // OPCIONAL: También puedes enriquecer otros campos si están vacíos
             if (string.IsNullOrWhiteSpace(profileDto.CompanyName))
             {
                 profileDto.CompanyName = User.FindFirst("companyName")?.Value;
             }
 
-            if (string.IsNullOrWhiteSpace(profileDto.CompanyBrand))
+            if (string.IsNullOrWhiteSpace(profileDto.CompanyDomain))
             {
-                profileDto.CompanyBrand = User.FindFirst("companyBrand")?.Value;
+                profileDto.CompanyDomain = User.FindFirst("companyDomain")?.Value;
             }
 
-            // Crear respuesta enriquecida
-            var enrichedResponse = new ApiResponse<UserProfileDTO>(true, "Ok", profileDto);
+            if (bool.TryParse(User.FindFirst("isCompany")?.Value, out var isCompany))
+            {
+                profileDto.CompanyIsIndividual = !isCompany;
+            }
 
+            var enrichedResponse = new ApiResponse<UserProfileDTO>(true, "Ok", profileDto);
             return Ok(enrichedResponse);
+        }
+
+        [HttpGet("GetMyRoles")]
+        public async Task<ActionResult<ApiResponse<List<RoleDTO>>>> GetMyRoles()
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized(new ApiResponse<List<RoleDTO>>(false, "Invalid session"));
+
+            var query = new GetRolesByUserIdQuery(userId);
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetCompanyUsers")]
+        public async Task<ActionResult<ApiResponse<List<UserGetDTO>>>> GetCompanyUsers(
+            Guid companyId
+        )
+        {
+            var query = new GetUsersByCompanyIdQuery(companyId);
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetMyCompanyUsers")]
+        public async Task<ActionResult<ApiResponse<List<UserGetDTO>>>> GetMyCompanyUsers()
+        {
+            var companyIdRaw = User.FindFirst("companyId")?.Value;
+            if (!Guid.TryParse(companyIdRaw, out var companyId))
+                return Unauthorized(
+                    new ApiResponse<List<UserGetDTO>>(false, "Invalid company session")
+                );
+
+            var query = new GetUsersByCompanyIdQuery(companyId);
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
         }
     }
 }

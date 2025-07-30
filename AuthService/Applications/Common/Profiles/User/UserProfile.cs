@@ -2,7 +2,6 @@ using AuthService.Domains.Users;
 using AuthService.DTOs.UserDTOs;
 using AutoMapper;
 using Commands.UserCommands;
-using UserDTOS;
 
 namespace AuthService.Profiles.User;
 
@@ -10,35 +9,47 @@ public class UserProfile : Profile
 {
     public UserProfile()
     {
-        CreateMap<NewUserDTO, TaxUser>().ReverseMap();
-        CreateMap<UpdateUserDTO, TaxUser>().ReverseMap();
-        CreateMap<UserDTO, TaxUser>().ReverseMap();
-        CreateMap<UserGetDTO, TaxUser>().ReverseMap();
-        CreateMap<UserProfileDTO, TaxUser>()
-            .ReverseMap()
-            .ForMember(d => d.Name, o => o.MapFrom(s => s.TaxUserProfile.Name))
-            .ForMember(d => d.LastName, o => o.MapFrom(s => s.TaxUserProfile.LastName))
-            .ForMember(d => d.Address, o => o.MapFrom(s => s.TaxUserProfile.Address))
-            .ForMember(d => d.PhotoUrl, o => o.MapFrom(s => s.TaxUserProfile.PhotoUrl))
+        // Basic mappings
+        CreateMap<NewUserDTO, TaxUser>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.AddressId, o => o.Ignore())
+            .ForMember(d => d.Address, o => o.Ignore());
+
+        CreateMap<UpdateUserDTO, TaxUser>()
+            .ForMember(d => d.AddressId, o => o.Ignore())
+            .ForMember(d => d.Address, o => o.Ignore());
+
+        CreateMap<TaxUser, UserGetDTO>()
+            .ForMember(d => d.Address, o => o.MapFrom(s => s.Address))
+            .ForMember(d => d.CompanyFullName, o => o.MapFrom(s => s.Company.FullName))
+            .ForMember(d => d.CompanyName, o => o.MapFrom(s => s.Company.CompanyName))
+            .ForMember(d => d.CompanyBrand, o => o.MapFrom(s => s.Company.Brand))
+            .ForMember(d => d.CompanyIsIndividual, o => o.MapFrom(s => !s.Company.IsCompany))
+            .ForMember(d => d.CompanyDomain, o => o.MapFrom(s => s.Company.Domain))
+            .ForMember(d => d.CompanyAddress, o => o.MapFrom(s => s.Company.Address))
             .ForMember(
                 d => d.RoleNames,
                 o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role.Name))
-            )
+            );
+
+        CreateMap<TaxUser, UserProfileDTO>()
+            .ForMember(d => d.Address, o => o.MapFrom(s => s.Address))
+            .ForMember(d => d.CompanyFullName, o => o.MapFrom(s => s.Company.FullName))
+            .ForMember(d => d.CompanyName, o => o.MapFrom(s => s.Company.CompanyName))
+            .ForMember(d => d.CompanyBrand, o => o.MapFrom(s => s.Company.Brand))
+            .ForMember(d => d.CompanyIsIndividual, o => o.MapFrom(s => !s.Company.IsCompany))
+            .ForMember(d => d.CompanyDomain, o => o.MapFrom(s => s.Company.Domain))
+            .ForMember(d => d.CompanyAddress, o => o.MapFrom(s => s.Company.Address))
             .ForMember(
-                d => d.FullName,
-                o => o.MapFrom(s => s.Company != null ? s.Company.FullName : null)
-            )
-            .ForMember(
-                d => d.CompanyName,
-                o => o.MapFrom(s => s.Company != null ? s.Company.CompanyName : null)
-            )
-            .ForMember(
-                d => d.CompanyBrand,
-                o => o.MapFrom(s => s.Company != null ? s.Company.Brand : null)
-            )
-            .ReverseMap();
-        CreateMap<NewUserDTO, CreateTaxUserCommands>().ReverseMap();
-        CreateMap<UpdateUserDTO, UpdateTaxUserCommands>().ReverseMap();
-        CreateMap<CreateTaxUserCommands, TaxUser>().ReverseMap();
+                d => d.RoleNames,
+                o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role.Name))
+            );
+
+        // Command mappings
+        CreateMap<NewUserDTO, CreateTaxUserCommands>()
+            .ConstructUsing(src => new CreateTaxUserCommands(src, string.Empty));
+
+        CreateMap<UpdateUserDTO, UpdateTaxUserCommands>()
+            .ConstructUsing(src => new UpdateTaxUserCommands(src));
     }
 }

@@ -128,12 +128,10 @@ public class CustomerLoginHandler
                 Email: data.Email,
                 Name: data.DisplayName, // ⟵ para clientes guardamos DisplayName en Name
                 LastName: null,
-                Address: null,
-                PhotoUrl: null,
                 CompanyId: Guid.Empty,
                 CompanyName: null,
-                FullName: null,
-                CompanyBrand: null,
+                CompanyDomain: null, // ✅ Agregado
+                IsCompany: false, // ✅ Agregado (customers no son companies)
                 Roles: roleNames,
                 Permissions: permCodes,
                 Portals: portals

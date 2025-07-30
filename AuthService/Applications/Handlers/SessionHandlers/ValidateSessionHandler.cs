@@ -44,16 +44,7 @@ public class ValidateSessionHandler : IRequestHandler<ValidateSessionQuery, bool
                 cancellationToken
             );
 
-            // 3) CompanyUserSessions (usuarios de empresa) - NUEVO
-            var companyUserSessionValid = await _context.CompanyUserSessions.AnyAsync(
-                s =>
-                    s.Id == request.SessionId
-                    && !s.IsRevoke
-                    && s.ExpireTokenRequest > DateTime.UtcNow,
-                cancellationToken
-            );
-
-            return taxUserSessionValid || customerSessionValid || companyUserSessionValid;
+            return taxUserSessionValid || customerSessionValid;
         }
         catch (Exception ex)
         {

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
+using SharedLibrary.DTOs.AuthEvents;
 
 namespace AuthService.Handlers.UserTaxHandlers;
 
@@ -37,30 +38,29 @@ public class ConfirmAccountHandler : IRequestHandler<AccountConfirmCommands, Api
         var data = await (
             from u in _db.TaxUsers
             where u.Email == c.Email
-            join p in _db.TaxUserProfiles on u.Id equals p.TaxUserId into prof
-            from p in prof.DefaultIfEmpty() // ← LEFT JOIN perfil
             join co in _db.Companies on u.CompanyId equals co.Id into comp
-            from co in comp.DefaultIfEmpty() // ← LEFT JOIN compañía
+            from co in comp.DefaultIfEmpty()
             select new
             {
                 User = u,
-                Profile = p,
                 Company = co,
+                // Obtener roles del usuario
+                UserRoles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
             }
         ).FirstOrDefaultAsync(ct);
 
         if (data is null)
-            return new(false, "Cuenta no encontrada");
+            return new(false, "Account not found");
 
         var user = data.User;
 
         if (user.Confirm is true)
-            return new(false, "La cuenta ya está confirmada");
+            return new(false, "Account is already confirmed");
 
         if (user.ConfirmToken != c.Token)
-            return new(false, "Token inválido");
+            return new(false, "Invalid token");
 
-        // validar expiración
+        // Validar expiración del token
         var handler = new JwtSecurityTokenHandler();
         var prm = new TokenValidationParameters
         {
@@ -78,33 +78,111 @@ public class ConfirmAccountHandler : IRequestHandler<AccountConfirmCommands, Api
         }
         catch (SecurityTokenException)
         {
-            return new(false, "Token expirado o inválido");
+            return new(false, "Token expired or invalid");
         }
 
         user.Confirm = true;
         user.IsActive = true;
-        // user.ConfirmToken = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
         await _db.SaveChangesAsync(ct);
 
-        bool isCompany = data.Company is not null;
+        bool isAdministrator =
+            data.UserRoles.Contains("Administrator") || data.UserRoles.Contains("Developer");
 
-        // ► Evento de cuenta activada
-        string display = isCompany
-            ? data.Company!.CompanyName ?? user.Email
-            : $"{data.Profile?.Name} {data.Profile?.LastName}".Trim();
+        string fullNameForDisplay = BuildFullNameForDisplay(data);
 
-        _eventBus.Publish(
-            new AccountConfirmedEvent(
-                Guid.NewGuid(),
-                DateTime.UtcNow,
-                user.Id,
-                user.Email,
-                display,
-                isCompany
-            )
-        );
+        if (isAdministrator)
+        {
+            // 📧 Evento para ADMINISTRADORES (ya existente)
+            _eventBus.Publish(
+                new AccountConfirmedEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    data.Company?.Id ?? Guid.Empty,
+                    data.User?.Name,
+                    data.User?.LastName,
+                    fullNameForDisplay,
+                    data.Company?.CompanyName,
+                    data.Company?.Domain,
+                    data.Company?.IsCompany ?? false,
+                    user.Id,
+                    user.Email
+                )
+            );
 
-        _log.LogInformation("Cuenta {Email} confirmada", c.Email);
-        return new(true, "Cuenta confirmada");
+            _log.LogInformation("Administrator account {Email} confirmed", c.Email);
+        }
+        else
+        {
+            // 📧 Evento para EMPLEADOS (nuevo)
+            _eventBus.Publish(
+                new EmployeeAccountConfirmedEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    user.Id,
+                    user.Email,
+                    user.Name,
+                    user.LastName,
+                    data.Company?.Id ?? Guid.Empty,
+                    fullNameForDisplay,
+                    data.Company?.CompanyName,
+                    data.Company?.Domain,
+                    data.Company?.IsCompany ?? false,
+                    data.Company?.Brand,
+                    data.UserRoles
+                )
+            );
+
+            _log.LogInformation(
+                "Employee account {Email} confirmed for company {CompanyId}",
+                c.Email,
+                data.Company?.Id
+            );
+        }
+
+        return new(true, "Account confirmed");
+    }
+
+    /// <summary>
+    /// Construye el FullName correcto dependiendo del tipo de cuenta
+    /// </summary>
+    private static string BuildFullNameForDisplay(dynamic data)
+    {
+        // Para empresas: usar CompanyName
+        if (
+            data.Company?.IsCompany == true
+            && !string.IsNullOrWhiteSpace(data.Company?.CompanyName)
+        )
+        {
+            return data.Company.CompanyName;
+        }
+
+        // Para individuales: construir nombre completo del usuario
+        if (data.Company?.IsCompany == false)
+        {
+            // Opción 1: Si la company tiene FullName (nombre del preparador individual)
+            if (!string.IsNullOrWhiteSpace(data.Company?.FullName))
+            {
+                return data.Company.FullName;
+            }
+
+            // Opción 2: Construir desde Name + LastName del usuario
+            var name = data.User?.Name?.Trim();
+            var lastName = data.User?.LastName?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(lastName))
+            {
+                return $"{name} {lastName}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name ?? "User";
+            }
+        }
+
+        // Fallback: usar email del usuario
+        return data.User?.Email ?? "Unknown User";
     }
 }

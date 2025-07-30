@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using AuthService.DTOs.PaginationDTO;
 using AuthService.DTOs.SessionDTOs;
 using Commands.SessionCommands;
 using Common;
@@ -115,9 +114,7 @@ namespace AuthService.Controllers
 
         [Authorize]
         [HttpGet("GetAllSessions")]
-        public async Task<
-            ActionResult<ApiResponse<PaginatedResultDTO<SessionDTO>>>
-        > GetAllSessions()
+        public async Task<ActionResult<ApiResponse<SessionDTO>>> GetAllSessions()
         {
             var command = new GetAllSessionsQuery();
             var result = await _mediator.Send(command);

@@ -5,6 +5,7 @@ using Common;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using SharedLibrary.Common.Helpers;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 
@@ -26,13 +27,14 @@ internal sealed class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg.SecretKey));
         var handler = new JwtSecurityTokenHandler();
 
-        // Construir nombre completo correctamente
-        var completeName = $"{req.User.Name} {req.User.LastName}".Trim();
-
-        // Si viene CompanyName ⇒ ese será el ClaimTypes.Name
-        var displayName = string.IsNullOrWhiteSpace(req.User.CompanyName)
-            ? completeName
-            : req.User.CompanyName!;
+        var displayName = DisplayNameHelper.From(
+            req.User.Name,
+            req.User.LastName,
+            null,
+            req.User.CompanyName,
+            req.User.IsCompany,
+            req.User.Email
+        );
 
         var claims = new List<Claim>
         {
@@ -51,23 +53,15 @@ internal sealed class TokenService : ITokenService
         if (!string.IsNullOrWhiteSpace(req.User.LastName))
             claims.Add(new Claim(ClaimTypes.Surname, req.User.LastName));
 
-        if (!string.IsNullOrWhiteSpace(req.User.Address))
-            claims.Add(new Claim("address", req.User.Address));
-
-        if (!string.IsNullOrWhiteSpace(req.User.PhotoUrl))
-            claims.Add(new Claim("picture", req.User.PhotoUrl));
-
-        if (req.User.CompanyId != Guid.Empty)
-            claims.Add(new Claim("companyId", req.User.CompanyId.ToString()));
+        // Claims de company
+        claims.Add(new Claim("companyId", req.User.CompanyId.ToString()));
+        claims.Add(new Claim("isCompany", req.User.IsCompany.ToString().ToLower()));
 
         if (!string.IsNullOrWhiteSpace(req.User.CompanyName))
             claims.Add(new Claim("companyName", req.User.CompanyName));
 
-        if (!string.IsNullOrWhiteSpace(req.User.FullName))
-            claims.Add(new Claim("fullName", req.User.FullName));
-
-        if (!string.IsNullOrWhiteSpace(req.User.CompanyBrand))
-            claims.Add(new Claim("companyBrand", req.User.CompanyBrand));
+        if (!string.IsNullOrWhiteSpace(req.User.CompanyDomain))
+            claims.Add(new Claim("companyDomain", req.User.CompanyDomain));
 
         foreach (var role in req.User.Roles.Distinct())
             claims.Add(new Claim("roles", role));

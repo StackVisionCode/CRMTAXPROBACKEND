@@ -1,5 +1,5 @@
+using AuthService.Domains.Addresses;
 using AuthService.Domains.Companies;
-using AuthService.Domains.Roles;
 using AuthService.Domains.Sessions;
 using Common;
 
@@ -7,11 +7,15 @@ namespace AuthService.Domains.Users;
 
 public class TaxUser : BaseEntity
 {
-    public Guid? CompanyId { get; set; }
+    public required Guid CompanyId { get; set; }
+    public virtual Company? Company { get; set; }
     public required string Email { get; set; }
     public required string Password { get; set; }
-    public string? Domain { get; set; }
     public required bool IsActive { get; set; }
+    public string? Name { get; set; }
+    public string? LastName { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? PhotoUrl { get; set; }
     public bool? Confirm { get; set; }
     public string? ConfirmToken { get; set; }
     public string? ResetPasswordToken { get; set; }
@@ -20,8 +24,10 @@ public class TaxUser : BaseEntity
     public string? Otp { get; set; }
     public bool OtpVerified { get; set; }
     public DateTime? OtpExpires { get; set; }
+
+    // Dirección
+    public virtual Guid? AddressId { get; set; }
+    public virtual Address? Address { get; set; }
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public virtual required TaxUserProfile TaxUserProfile { get; set; }
-    public virtual Company? Company { get; set; }
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

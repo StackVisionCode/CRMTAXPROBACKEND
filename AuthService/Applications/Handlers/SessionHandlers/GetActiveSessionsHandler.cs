@@ -33,14 +33,15 @@ public class GetActiveSessionsHandler
     {
         try
         {
-            var activeSessions = await _context
-                .Sessions.Where(s =>
+            var activeSessionsQuery =
+                from s in _context.Sessions
+                where
                     s.TaxUserId == request.UserId
                     && !s.IsRevoke
                     && s.ExpireTokenRequest > DateTime.UtcNow
-                )
-                .ToListAsync(cancellationToken);
+                select s;
 
+            var activeSessions = await activeSessionsQuery.ToListAsync(cancellationToken);
             var sessionDTOs = _mapper.Map<List<SessionDTO>>(activeSessions);
 
             _logger.LogInformation(
@@ -63,7 +64,8 @@ public class GetActiveSessionsHandler
             );
             return new ApiResponse<List<SessionDTO>>(
                 false,
-                "An error occurred while retrieving active sessions"
+                "An error occurred while retrieving active sessions",
+                new List<SessionDTO>()
             );
         }
     }

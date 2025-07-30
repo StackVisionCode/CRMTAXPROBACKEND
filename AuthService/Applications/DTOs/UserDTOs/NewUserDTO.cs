@@ -1,27 +1,24 @@
 using System.ComponentModel.DataAnnotations;
+using Applications.DTOs.CompanyDTOs;
 
 namespace AuthService.DTOs.UserDTOs;
 
 public class NewUserDTO
 {
     [Key]
-    public Guid Id { get; set; }
+    public required Guid CompanyId { get; set; }
 
-    [Required]
-    public string Name { get; set; } = default!;
+    [EmailAddress]
+    public required string Email { get; set; } = default!;
 
-    [Required]
-    public string LastName { get; set; } = default!;
+    [MinLength(8)]
+    public required string Password { get; set; } = default!;
 
-    [Required]
-    public string Phone { get; set; } = default!;
-
-    [Required, EmailAddress]
-    public string Email { get; set; } = default!;
-
-    [Required, MinLength(8)]
-    public string Password { get; set; } = default!;
-    public string? Address { get; set; }
+    // Información personal
+    public string? Name { get; set; }
+    public string? LastName { get; set; }
+    public string? PhoneNumber { get; set; }
+    public AddressDTO? Address { get; set; }
     public string? PhotoUrl { get; set; }
-    public string? Domain { get; set; }
+    public ICollection<Guid> RoleIds { get; set; } = new List<Guid>();
 }

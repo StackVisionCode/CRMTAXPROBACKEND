@@ -41,77 +41,39 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     {
         try
         {
-            // 1. Validamos credenciales
-            var user = await _context
-                .TaxUsers.Include(u => u.TaxUserProfile)
-                .Include(u => u.Company)
-                .Include(s => s.Sessions)
-                .FirstOrDefaultAsync(x => x.Email == request.Petition.Email, cancellationToken);
+            // 1. Buscar usuario con Company usando JOIN (sin Include)
+            var userQuery =
+                from u in _context.TaxUsers
+                join c in _context.Companies on u.CompanyId equals c.Id into companies
+                from c in companies.DefaultIfEmpty()
+                where u.Email == request.Petition.Email
+                select new { User = u, Company = c };
 
-            if (user is null)
+            var userData = await userQuery.FirstOrDefaultAsync(cancellationToken);
+
+            if (userData?.User == null)
             {
                 _logger.LogWarning(
-                    "Login failed for user {Email}: Invalid credentials",
+                    "Login failed for user {Email}: User not found",
                     request.Petition.Email
                 );
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
             }
 
-            // 1) Consultar roles y permisos
-            var roleNames = await _context
-                .UserRoles.Where(ur => ur.TaxUserId == user.Id)
-                .Select(ur => ur.Role.Name)
-                .ToListAsync(cancellationToken);
+            var user = userData.User;
+            var company = userData.Company;
 
-            var portals = await _context
-                .Roles.Where(r => roleNames.Contains(r.Name))
-                .Select(r => r.PortalAccess.ToString()) // enum → string
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            var permCodes = await (
-                from ur in _context.UserRoles
-                where ur.TaxUserId == user.Id
-                join rp in _context.RolePermissions on ur.RoleId equals rp.RoleId
-                join p in _context.Permissions on rp.PermissionId equals p.Id
-                select p.Code
-            )
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            bool allowed = await _context
-                .Roles.Where(r => roleNames.Contains(r.Name)) // ← COMPARO POR NOMBRE
-                .AnyAsync(
-                    r =>
-                        r.PortalAccess == PortalAccess.Staff // STAFF   ✔
-                        || r.PortalAccess == PortalAccess.Both, // BOTH    ✔
-                    cancellationToken
-                );
-
-            if (!allowed)
-            {
-                _logger.LogWarning(
-                    "Role {Roles} not authorized for Staff login",
-                    string.Join(",", roleNames)
-                );
-                return new ApiResponse<LoginResponseDTO>(
-                    false,
-                    "You do not have permission to log in here."
-                )
-                {
-                    StatusCode = 403,
-                }; // ◄─ sin crear sesión
-            }
-
+            // 2. Verificar contraseña
             if (!_passwordHasher.Verify(request.Petition.Password, user.Password))
             {
                 _logger.LogWarning(
-                    "Login failed for user {Email}: Invalid credentials",
+                    "Login failed for user {Email}: Invalid password",
                     request.Petition.Email
                 );
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
             }
 
+            // 3. Verificar estado del usuario
             if (!user.IsActive)
             {
                 _logger.LogWarning(
@@ -121,50 +83,96 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 return new ApiResponse<LoginResponseDTO>(false, "User account is inactive");
             }
 
-            var sessionId = Guid.NewGuid();
+            if (user.Confirm != true)
+            {
+                _logger.LogWarning(
+                    "Login failed for user {Email}: Account not confirmed",
+                    request.Petition.Email
+                );
+                return new ApiResponse<LoginResponseDTO>(
+                    false,
+                    "Please confirm your account first"
+                );
+            }
 
-            // 2. Objetos compuestos para el token
-            var profile = user.TaxUserProfile;
-            var companyId = user.Company?.Id;
-            var companyName = user.Company?.CompanyName;
-            var fullName = user.Company?.FullName;
-            var companyBrand = user.Company?.Brand;
+            // 4. Obtener roles del usuario
+            var rolesQuery =
+                from ur in _context.UserRoles
+                join r in _context.Roles on ur.RoleId equals r.Id
+                where ur.TaxUserId == user.Id
+                select r;
 
+            var roles = await rolesQuery.ToListAsync(cancellationToken);
+            var roleNames = roles.Select(r => r.Name).ToList();
+
+            // 5. Verificar autorización para Staff portal
+            var allowedPortals = roles.Select(r => r.PortalAccess).Distinct().ToList();
+            bool allowed =
+                allowedPortals.Contains(PortalAccess.Staff)
+                || allowedPortals.Contains(PortalAccess.Developer);
+
+            if (!allowed)
+            {
+                _logger.LogWarning(
+                    "Login failed for user {Email}: Not authorized for Staff portal. Roles: {Roles}",
+                    request.Petition.Email,
+                    string.Join(",", roleNames)
+                );
+                return new ApiResponse<LoginResponseDTO>(
+                    false,
+                    "You do not have permission to log in here."
+                )
+                {
+                    StatusCode = 403,
+                };
+            }
+
+            // 6. Obtener permisos del usuario
+            var permissionsQuery =
+                from ur in _context.UserRoles
+                join rp in _context.RolePermissions on ur.RoleId equals rp.RoleId
+                join p in _context.Permissions on rp.PermissionId equals p.Id
+                where ur.TaxUserId == user.Id
+                select p.Code;
+
+            var permissionCodes = await permissionsQuery.Distinct().ToListAsync(cancellationToken);
+            var portals = allowedPortals.Select(p => p.ToString()).ToList();
+
+            // 7. Crear información del usuario para el token
             var userInfo = new UserInfo(
-                user.Id,
-                user.Email,
-                profile?.Name ?? string.Empty,
-                profile?.LastName ?? string.Empty,
-                profile?.Address ?? string.Empty,
-                profile?.PhotoUrl ?? string.Empty,
-                companyId ?? Guid.Empty,
-                companyName ?? string.Empty,
-                fullName ?? string.Empty,
-                companyBrand ?? string.Empty,
-                roleNames,
-                permCodes,
-                portals
+                UserId: user.Id,
+                Email: user.Email,
+                Name: user.Name,
+                LastName: user.LastName,
+                CompanyId: company?.Id ?? Guid.Empty,
+                CompanyName: company?.CompanyName,
+                CompanyDomain: company?.Domain,
+                IsCompany: company?.IsCompany ?? false,
+                Roles: roleNames,
+                Permissions: permissionCodes,
+                Portals: portals
             );
 
+            // 8. Generar tokens
+            var sessionId = Guid.NewGuid();
             var sessionInfo = new SessionInfo(sessionId);
 
-            var access = _tokenService.Generate(
+            var accessToken = _tokenService.Generate(
                 new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromDays(1))
             );
-
-            var refresh = _tokenService.Generate(
-                new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromDays(2))
+            var refreshToken = _tokenService.Generate(
+                new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromDays(7))
             );
 
-            // 3. Creamos sesión
+            // 9. Crear sesión en base de datos
             var session = new Session
             {
-                Id = sessionId, // Use the same sessionId as above
-                TaxUser = user,
+                Id = sessionId,
                 TaxUserId = user.Id,
-                TokenRequest = access.AccessToken,
-                ExpireTokenRequest = access.ExpireAt,
-                TokenRefresh = refresh.AccessToken,
+                TaxUser = user,
+                TokenRequest = accessToken.AccessToken,
+                ExpireTokenRequest = accessToken.ExpireAt,
+                TokenRefresh = refreshToken.AccessToken,
                 IpAddress = request.IpAddress,
                 Device = request.Device,
                 IsRevoke = false,
@@ -174,45 +182,47 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             _context.Sessions.Add(session);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Determinar el nombre a mostrar
-            string displayName = DetermineDisplayName(
-                profile?.Name,
-                profile?.LastName,
-                companyName
+            // 10. Publicar evento de login
+            var displayName = DetermineDisplayName(
+                user.Name,
+                user.LastName,
+                company?.CompanyName,
+                company?.FullName,
+                company?.IsCompany ?? false
             );
 
-            // 3.5 Publicamos un evento de sesión creada
             var loginEvent = new UserLoginEvent(
                 Guid.NewGuid(),
                 DateTime.UtcNow,
                 user.Id,
                 user.Email,
-                profile?.Name ?? string.Empty,
-                profile?.LastName ?? string.Empty,
+                user.Name,
+                user.LastName,
                 DateTime.UtcNow,
                 request.IpAddress,
                 request.Device,
-                user.CompanyId ?? Guid.Empty,
-                companyName ?? string.Empty,
-                fullName ?? string.Empty,
-                displayName, // <-- Nombre Completo de Usuario Individual calculado
+                company?.Id ?? Guid.Empty,
+                company?.FullName,
+                company?.CompanyName,
+                company?.IsCompany ?? false,
+                company?.Domain,
                 DateTime.Now.Year
             );
 
             _eventBus.Publish(loginEvent);
 
-            // 4. Preparamos una respuesta
+            // 11. Preparar respuesta
             var response = new LoginResponseDTO
             {
-                TokenRequest = access.AccessToken,
-                ExpireTokenRequest = access.ExpireAt,
-                TokenRefresh = refresh.AccessToken,
+                TokenRequest = accessToken.AccessToken,
+                ExpireTokenRequest = accessToken.ExpireAt,
+                TokenRefresh = refreshToken.AccessToken,
             };
 
             _logger.LogInformation(
-                "User {Id} logged-in successfully. Session {SessionId} created",
+                "User {UserId} logged in successfully. Session {SessionId} created",
                 user.Id,
-                session.Id
+                sessionId
             );
             return new ApiResponse<LoginResponseDTO>(true, "Login successful", response);
         }
@@ -223,21 +233,32 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         }
     }
 
-    private static string DetermineDisplayName(string? name, string? lastName, string? companyName)
+    private static string DetermineDisplayName(
+        string? name,
+        string? lastName,
+        string? companyName,
+        string? fullName,
+        bool isCompany
+    )
     {
-        // Si es un usuario individual (tiene nombre o apellido)
+        // Para empresas, usar CompanyName o FullName
+        if (isCompany)
+        {
+            return companyName ?? fullName ?? "Company";
+        }
+
+        // Para individuales, usar nombre personal o FullName
         if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(lastName))
         {
             return $"{name} {lastName}".Trim();
         }
 
-        // Si es una oficina/empresa (solo tiene companyName)
-        if (!string.IsNullOrWhiteSpace(companyName))
+        if (!string.IsNullOrWhiteSpace(fullName))
         {
-            return companyName;
+            return fullName;
         }
 
         // Fallback
-        return "Usuario";
+        return "User";
     }
 }

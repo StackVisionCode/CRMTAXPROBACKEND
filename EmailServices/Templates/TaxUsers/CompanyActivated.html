@@ -1,409 +1,122 @@
 <!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Empresa Activada - TAXPRO SHIELD</title>
-  </head>
-  <body
-    style="
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-        Helvetica, Arial, sans-serif;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      line-height: 1.6;
-    "
-  >
-    <table
-      role="presentation"
-      width="100%"
-      cellpadding="0"
-      cellspacing="0"
-      style="background: transparent"
-    >
-      <tr>
-        <td style="padding: 40px 20px">
-          <table
-            role="presentation"
-            width="100%"
-            cellpadding="0"
-            cellspacing="0"
-            style="
-              max-width: 600px;
-              margin: 0 auto;
-              background: #ffffff;
-              border-radius: 16px;
-              box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);
-              overflow: hidden;
-            "
-          >
-            <!-- Header con fondo blanco para mejor contraste -->
-            <tr>
-              <td
-                style="
-                  background: #ffffff;
-                  padding: 30px;
-                  text-align: center;
-                  border-bottom: 5px solid #2563eb;
-                "
-              >
-                <img
-                  src="cid:logo_cid"
-                  alt="TAXPRO SHIELD"
-                  style="max-width: 180px; height: auto"
-                />
-              </td>
-            </tr>
+<html lang="en">
 
-            <!-- Barra de color -->
-            <tr>
-              <td
-                style="
-                  padding: 0;
-                  height: 6px;
-                  background: linear-gradient(90deg, #2563eb 0%, #22c55e 100%);
-                "
-              ></td>
-            </tr>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Welcome - TAXPRO SHIELD</title>
+</head>
 
-            <!-- Contenido principal -->
-            <tr>
-              <td style="padding: 40px 30px">
-                <div style="text-align: center; margin-bottom: 30px">
+<body
+  style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); line-height: 1.6;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: transparent;">
+    <tr>
+      <td style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+          style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1); overflow: hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background: #ffffff; padding: 30px; text-align: center; border-bottom: 5px solid #2563eb;">
+              <img src="cid:logo_cid" alt="TAXPRO SHIELD" style="max-width: 180px; height: auto;" />
+            </td>
+          </tr>
+
+          <!-- Color bar -->
+          <tr>
+            <td style="padding: 0; height: 6px; background: linear-gradient(90deg, #2563eb 0%, #22c55e 100%);"></td>
+          </tr>
+
+          <!-- Main content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <div
+                  style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); width: 60px; height: 60px; border-radius: 50%; position: relative; margin-bottom: 20px;">
                   <div
-                    style="
-                      display: inline-block;
-                      background: linear-gradient(135deg, #22c55e, #16a34a);
-                      width: 60px;
-                      height: 60px;
-                      border-radius: 50%;
-                      position: relative;
-                      margin-bottom: 20px;
-                    "
-                  >
-                    <div
-                      style="
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        color: white;
-                        font-size: 24px;
-                        font-weight: bold;
-                      "
-                    >
-                      🏆
-                    </div>
-                  </div>
-                  <h1
-                    style="
-                      margin: 0;
-                      color: #1e293b;
-                      font-size: 28px;
-                      font-weight: 700;
-                      letter-spacing: -0.5px;
-                    "
-                  >
-                    ¡Empresa Activada!
-                  </h1>
-                  <p
-                    style="margin: 10px 0 0 0; color: #64748b; font-size: 16px"
-                  >
-                    Su plataforma empresarial está lista para operar
-                  </p>
+                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold;">
+                    🏢</div>
                 </div>
+                <h1 style="margin: 0; color: #1e293b; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                  {{DisplayName}} is now active!</h1>
+                <p style="margin: 10px 0 0 0; color: #64748b; font-size: 16px;">Welcome to the leading enterprise
+                  platform</p>
+                <span
+                  style="display: inline-block; background: #f0fdf4; color: #166534; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; margin-top: 8px;">
+                  Tax Firm
+                </span>
+              </div>
 
-                <!-- Tarjeta de activación empresarial -->
-                <div
-                  style="
-                    background: linear-gradient(
-                      135deg,
-                      #ecfdf5 0%,
-                      #d1fae5 100%
-                    );
-                    border: 1px solid #a7f3d0;
-                    border-radius: 12px;
-                    padding: 25px;
-                    margin: 25px 0;
-                  "
-                >
-                  <div
-                    style="
-                      display: flex;
-                      align-items: center;
-                      margin-bottom: 20px;
-                    "
-                  >
-                    <div
-                      style="
-                        background: #22c55e;
-                        width: 4px;
-                        height: 40px;
-                        border-radius: 2px;
-                        margin-right: 15px;
-                      "
-                    ></div>
-                    <div>
-                      <h3
-                        style="
-                          margin: 0;
-                          color: #166534;
-                          font-size: 18px;
-                          font-weight: 600;
-                        "
-                      >
-                        ¡Felicitaciones {{DisplayName}}!
-                      </h3>
-                      <p
-                        style="
-                          margin: 5px 0 0 0;
-                          color: #166534;
-                          font-size: 14px;
-                        "
-                      >
-                        Cuenta Empresarial Activada
-                      </p>
-                    </div>
+              <!-- Business welcome card -->
+              <div
+                style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1px solid #a7f3d0; border-radius: 12px; padding: 25px; margin: 25px 0;">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                  <div style="background: #22c55e; width: 4px; height: 40px; border-radius: 2px; margin-right: 15px;">
                   </div>
-
-                  <p
-                    style="
-                      margin: 0 0 20px 0;
-                      color: #166534;
-                      font-size: 15px;
-                      line-height: 1.5;
-                    "
-                  >
-                    Su cuenta empresarial en <strong>TAXPRO SHIELD</strong> ha
-                    sido activada exitosamente. Ya puede acceder al panel
-                    administrativo y comenzar a gestionar su equipo de
-                    preparadores con todas las herramientas empresariales
-                    disponibles.
-                  </p>
-
-                  <!-- Botón de acceso empresarial -->
-                  <div style="text-align: center; margin: 25px 0">
-                    <a
-                      href="#"
-                      style="
-                        display: inline-block;
-                        background: linear-gradient(135deg, #22c55e, #16a34a);
-                        color: white;
-                        text-decoration: none;
-                        padding: 16px 32px;
-                        border-radius: 8px;
-                        font-weight: 600;
-                        font-size: 16px;
-                        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-                        transition: all 0.3s ease;
-                      "
-                    >
-                      🏢 Acceder al Panel Empresarial
-                    </a>
+                  <div>
+                    <h3 style="margin: 0; color: #166534; font-size: 18px; font-weight: 600;">Congratulations! Your
+                      Company is Active!</h3>
+                    <p style="margin: 5px 0 0 0; color: #166534; font-size: 14px;">Tax Preparation Office</p>
                   </div>
                 </div>
 
-                <!-- Configuración inicial -->
-                <div
-                  style="
-                    background: linear-gradient(
-                      135deg,
-                      #eff6ff 0%,
-                      #dbeafe 100%
-                    );
-                    border-left: 4px solid #2563eb;
-                    border-radius: 8px;
-                    padding: 20px;
-                    margin: 25px 0;
-                  "
-                >
-                  <h4
-                    style="
-                      margin: 0 0 15px 0;
-                      color: #1e40af;
-                      font-size: 16px;
-                      font-weight: 600;
-                    "
-                  >
-                    ⚙️ Configuración Inicial Recomendada:
-                  </h4>
-                  <ul
-                    style="
-                      margin: 0;
-                      padding-left: 20px;
-                      color: #1e40af;
-                      font-size: 14px;
-                      line-height: 1.8;
-                    "
-                  >
-                    <li>
-                      <strong>Configure los roles</strong> y permisos de su
-                      equipo
-                    </li>
-                    <li>
-                      <strong>Personalice la marca</strong> de su empresa en la
-                      plataforma
-                    </li>
-                    <li>
-                      <strong>Establezca flujos de trabajo</strong> para su
-                      organización
-                    </li>
-                    <li>
-                      <strong>Invite a sus preparadores</strong> al sistema
-                      empresarial
-                    </li>
-                    <li>
-                      <strong>Configure reportes</strong> y métricas de
-                      productividad
-                    </li>
-                  </ul>
-                </div>
+                <p style="margin: 0 0 20px 0; color: #166534; font-size: 15px; line-height: 1.5;">
+                  Hello <strong>{{Name}} {{LastName}}</strong>, your company <strong>{{DisplayName}}</strong> is now
+                  active and ready to access our enterprise
+                  tax preparation tools. You can now start managing multiple preparers and clients.
+                </p>
 
-                <!-- Soporte empresarial -->
-                <div
-                  style="
-                    background: linear-gradient(
-                      135deg,
-                      #f3e8ff 0%,
-                      #e9d5ff 100%
-                    );
-                    border-left: 4px solid #8b5cf6;
-                    border-radius: 8px;
-                    padding: 20px;
-                    margin: 25px 0;
-                  "
-                >
-                  <h4
-                    style="
-                      margin: 0 0 10px 0;
-                      color: #6b21a8;
-                      font-size: 16px;
-                      font-weight: 600;
-                    "
-                  >
-                    🎯 Soporte Empresarial Premium:
-                  </h4>
-                  <p
-                    style="
-                      margin: 0;
-                      color: #6b21a8;
-                      font-size: 14px;
-                      line-height: 1.5;
-                    "
-                  >
-                    Como cliente empresarial, tiene acceso a soporte
-                    prioritario, gerente de cuenta dedicado, sesiones de
-                    capacitación personalizadas y consultoría especializada para
-                    optimizar sus procesos fiscales.
-                  </p>
-                </div>
-
-                <!-- Contacto directo -->
-                <div
-                  style="
-                    background: linear-gradient(
-                      135deg,
-                      #fef3c7 0%,
-                      #fde68a 100%
-                    );
-                    border-left: 4px solid #f59e0b;
-                    border-radius: 8px;
-                    padding: 20px;
-                    margin: 25px 0;
-                    text-align: center;
-                  "
-                >
-                  <h4
-                    style="
-                      margin: 0 0 10px 0;
-                      color: #92400e;
-                      font-size: 16px;
-                      font-weight: 600;
-                    "
-                  >
-                    📞 ¿Necesita Asistencia Inmediata?
-                  </h4>
-                  <p
-                    style="
-                      margin: 0;
-                      color: #92400e;
-                      font-size: 14px;
-                      line-height: 1.5;
-                    "
-                  >
-                    Nuestro equipo de onboarding empresarial está listo para
-                    ayudarle. Programe una sesión gratuita de configuración y
-                    capacitación.
-                  </p>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Footer -->
-            <tr>
-              <td
-                style="
-                  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                  padding: 25px 30px;
-                  border-top: 1px solid #e2e8f0;
-                "
-              >
-                <div style="text-align: center">
-                  <div style="margin-bottom: 15px">
+                <!-- Domain information -->
+                <div style="background: rgba(34, 197, 94, 0.1); border-radius: 8px; padding: 15px; margin: 20px 0;">
+                  <p style="margin: 0; color: #166534; font-size: 14px;">
+                    <strong>🌐 Your Business Domain:</strong><br>
                     <span
-                      style="
-                        display: inline-block;
-                        background: #22c55e;
-                        width: 30px;
-                        height: 3px;
-                        border-radius: 2px;
-                        margin: 0 5px;
-                      "
-                    ></span>
-                    <span
-                      style="
-                        display: inline-block;
-                        background: #2563eb;
-                        width: 30px;
-                        height: 3px;
-                        border-radius: 2px;
-                        margin: 0 5px;
-                      "
-                    ></span>
-                    <span
-                      style="
-                        display: inline-block;
-                        background: #22c55e;
-                        width: 30px;
-                        height: 3px;
-                        border-radius: 2px;
-                        margin: 0 5px;
-                      "
-                    ></span>
-                  </div>
-                  <p
-                    style="
-                      margin: 0;
-                      color: #6b7280;
-                      font-size: 13px;
-                      line-height: 1.4;
-                    "
-                  >
-                    © {{Year}}
-                    <strong style="color: #374151">TAXPRO SHIELD</strong> –
-                    Todos los derechos reservados<br />
-                    <span style="color: #9ca3af"
-                      >Protegiendo tu información fiscal con tecnología
-                      avanzada</span
-                    >
+                      style="font-family: 'Courier New', monospace; font-size: 16px; font-weight: 600;">{{Domain}}</span>
                   </p>
                 </div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
+
+                <!-- Main button -->
+                <div style="text-align: center; margin: 25px 0;">
+                  <a href="#"
+                    style="display: inline-block; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: all 0.3s ease;">
+                    🚀 Access Dashboard
+                  </a>
+                </div>
+              </div>
+
+              <!-- Enterprise benefits -->
+              <div
+                style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #2563eb; border-radius: 8px; padding: 20px; margin: 25px 0;">
+                <h4 style="margin: 0 0 15px 0; color: #1e40af; font-size: 16px; font-weight: 600;">🚀 Your Enterprise
+                  Features:</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 14px; line-height: 1.8;">
+                  <li><strong>Multi-user management</strong> for preparer teams</li>
+                  <li><strong>Administrative dashboard</strong> with real-time metrics</li>
+                  <li><strong>Enterprise security</strong> with advanced access controls</li>
+                  <li><strong>Priority support</strong> with dedicated account manager</li>
+                  <li><strong>API integration</strong> for existing systems</li>
+                  <li><strong>Custom reports</strong> and productivity analytics</li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td
+              style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 25px 30px; border-top: 1px solid #e2e8f0;">
+              <div style="text-align: center;">
+                <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.4;">
+                  © {{Year}} <strong style="color: #374151;">TAXPRO SHIELD</strong> – All rights reserved<br>
+                  <span style="color: #9ca3af;">Protecting your tax information with advanced technology</span>
+                </p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
 </html>
