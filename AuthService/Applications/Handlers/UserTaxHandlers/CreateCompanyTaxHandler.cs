@@ -280,16 +280,43 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
 
             await transaction.CommitAsync(cancellationToken);
 
-            // 10. Construir payloads de address para el evento
-            var companyAddressPayload = await BuildAddressPayloadAsync(
-                companyAddressEntity,
-                cancellationToken
-            );
+            AddressPayload? companyAddressPayload = null;
+            AddressPayload? adminAddressPayload = null;
 
-            // Para individuales: no duplicar la dirección en el evento
-            var adminAddressPayload = request.CompanyTax.IsCompany
-                ? await BuildAddressPayloadAsync(adminAddressEntity, cancellationToken)
-                : null; // Para individuales, adminAddress es null porque usan la misma dirección que Address
+            // 10. Construir payloads de address para el evento
+            if (request.CompanyTax.IsCompany)
+            {
+                // EMPRESAS: CompanyAddress y UserAddress separadas
+                companyAddressPayload = await BuildAddressPayloadAsync(
+                    companyAddressEntity,
+                    cancellationToken
+                );
+                adminAddressPayload = await BuildAddressPayloadAsync(
+                    adminAddressEntity,
+                    cancellationToken
+                );
+
+                _logger.LogDebug(
+                    "Company account - CompanyAddress and UserAddress both populated for {Email}",
+                    request.CompanyTax.Email
+                );
+            }
+            else
+            {
+                // INDIVIDUALES: Misma dirección para CompanyAddress y UserAddress
+                // porque en individuales, address representa tanto la ubicación del "negocio" como del usuario
+                var sharedAddressPayload = await BuildAddressPayloadAsync(
+                    companyAddressEntity,
+                    cancellationToken
+                );
+                companyAddressPayload = sharedAddressPayload;
+                adminAddressPayload = sharedAddressPayload; // Misma dirección compartida
+
+                _logger.LogDebug(
+                    "Individual account - Same address used for both CompanyAddress and UserAddress for {Email}",
+                    request.CompanyTax.Email
+                );
+            }
 
             // 11. Link de confirmación
             string link = _linkBuilder.BuildConfirmationLink(

@@ -255,17 +255,22 @@ namespace AuthService.Controllers
         [HttpGet("GetMyCompanyUsers")]
         public async Task<ActionResult<ApiResponse<List<UserGetDTO>>>> GetMyCompanyUsers()
         {
+            // Obtener CompanyId del JWT
             var companyIdRaw = User.FindFirst("companyId")?.Value;
             if (!Guid.TryParse(companyIdRaw, out var companyId))
+            {
                 return Unauthorized(
                     new ApiResponse<List<UserGetDTO>>(false, "Invalid company session")
                 );
+            }
 
-            var query = new GetUsersByCompanyIdQuery(companyId);
+            var query = new GetMyCompanyUsersQuery(companyId);
             var result = await _mediator.Send(query);
 
             if (result.Success == false)
+            {
                 return BadRequest(result);
+            }
 
             return Ok(result);
         }

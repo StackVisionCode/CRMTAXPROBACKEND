@@ -1,0 +1,134 @@
+{
+    "Routes": [
+        {
+            "DownstreamPathTemplate": "/api/State/GetByCountry/{countryId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5001
+                }
+            ],
+            "UpstreamPathTemplate": "/api/geography/countries/{countryId}/states",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "RateLimitOptions": {
+                "ClientIdHeader": "ClientId",
+                "Period": "1m",
+                "PeriodTimespan": 60,
+                "Limit": 150,
+                "EnableRateLimiting": true
+            },
+            "Priority": 10,
+            "SwaggerKey": "auth"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Country/GetById/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5001
+                }
+            ],
+            "UpstreamPathTemplate": "/api/geography/countries/{id}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "RateLimitOptions": {
+                "ClientIdHeader": "ClientId",
+                "Period": "1m",
+                "PeriodTimespan": 60,
+                "Limit": 200,
+                "EnableRateLimiting": true
+            },
+            "Priority": 5,
+            "SwaggerKey": "auth"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Country/GetAll",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5001
+                }
+            ],
+            "UpstreamPathTemplate": "/api/geography/countries",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "RateLimitOptions": {
+                "ClientIdHeader": "ClientId",
+                "Period": "1m",
+                "PeriodTimespan": 60,
+                "Limit": 100,
+                "EnableRateLimiting": true
+            },
+            "Priority": 1,
+            "SwaggerKey": "auth"
+        },
+        {
+            "DownstreamPathTemplate": "/api/State/GetById/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5001
+                }
+            ],
+            "UpstreamPathTemplate": "/api/geography/states/{id}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "RateLimitOptions": {
+                "ClientIdHeader": "ClientId",
+                "Period": "1m",
+                "PeriodTimespan": 60,
+                "Limit": 200,
+                "EnableRateLimiting": true
+            },
+            "Priority": 5,
+            "SwaggerKey": "auth"
+        },
+        {
+            "DownstreamPathTemplate": "/api/State/GetAll",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5001
+                }
+            ],
+            "UpstreamPathTemplate": "/api/geography/states",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "RateLimitOptions": {
+                "ClientIdHeader": "ClientId",
+                "Period": "1m",
+                "PeriodTimespan": 60,
+                "Limit": 50,
+                "EnableRateLimiting": true
+            },
+            "Priority": 1,
+            "SwaggerKey": "auth"
+        }
+    ]
+}

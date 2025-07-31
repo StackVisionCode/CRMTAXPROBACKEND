@@ -49,6 +49,12 @@ namespace SharedLibrary
             "/api/signature/preview/invalidate",
             // Descarga documento final
             "/api/documentsigning/document",
+            // Paises y States
+            "/api/geography/countries",
+            "/api/geography/states",
+            "/api/geography/countries/{id}",
+            "/api/geography/states/{id}",
+            "/api/geography/countries/{countryId}/states",
         };
 
         /* ------------------ RUTAS PÚBLICAS "UPSTREAM" (si las expones por gateway) ------------------ */
