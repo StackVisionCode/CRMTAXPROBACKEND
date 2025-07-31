@@ -149,7 +149,7 @@ try
     var objetoConexion = new ConnectionApp();
 
     var connectionString =
-        $"Server={objetoConexion.Server};Database=CommLinkDBTest;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
+        $"Server={objetoConexion.Server};Database=CommLinkDB;User Id={objetoConexion.User};Password={objetoConexion.Password};TrustServerCertificate=True;";
     // Configurar DbContext
     builder.Services.AddDbContext<CommLinkDbContext>(options =>
     {
