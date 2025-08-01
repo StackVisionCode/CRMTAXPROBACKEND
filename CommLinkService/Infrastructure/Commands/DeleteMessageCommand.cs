@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace CommLinkService.Application.Commands;
+namespace CommLinkService.Infrastructure.Commands;
 
 public sealed record DeleteMessageCommand(Guid MessageId, Guid UserId)
     : IRequest<DeleteMessageResult>;

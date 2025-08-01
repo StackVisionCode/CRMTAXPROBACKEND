@@ -1,6 +1,6 @@
-using CommLinkService.Application.Commands;
 using CommLinkService.Application.Events;
 using CommLinkService.Domain.Entities;
+using CommLinkService.Infrastructure.Commands;
 using CommLinkService.Infrastructure.Persistence;
 using CommLinkService.Infrastructure.Services;
 using MediatR;

@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace CommLinkService.Application.Commands;
+namespace CommLinkService.Infrastructure.Commands;
 
 public sealed record LeaveRoomCommand(Guid RoomId, Guid UserId) : IRequest<LeaveRoomResult>;
 

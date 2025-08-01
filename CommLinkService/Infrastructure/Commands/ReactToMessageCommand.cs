@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace CommLinkService.Application.Commands;
+namespace CommLinkService.Infrastructure.Commands;
 
 public sealed record ReactToMessageCommand(Guid MessageId, Guid UserId, string Emoji)
     : IRequest<ReactToMessageResult>;

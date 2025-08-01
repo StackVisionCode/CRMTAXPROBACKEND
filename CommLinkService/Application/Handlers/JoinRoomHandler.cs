@@ -1,5 +1,5 @@
-using CommLinkService.Application.Commands;
 using CommLinkService.Domain.Entities;
+using CommLinkService.Infrastructure.Commands;
 using CommLinkService.Infrastructure.Persistence;
 using MediatR;
 using Microsoft.Data.SqlClient;

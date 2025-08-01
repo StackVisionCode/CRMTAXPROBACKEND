@@ -1,5 +1,5 @@
-using CommLinkService.Application.Queries;
 using CommLinkService.Infrastructure.Persistence;
+using CommLinkService.Infrastructure.Queries;
 using CommLinkService.Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

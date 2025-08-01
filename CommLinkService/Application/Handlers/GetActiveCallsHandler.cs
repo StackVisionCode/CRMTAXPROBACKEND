@@ -1,7 +1,7 @@
 using System.Text.Json;
-using CommLinkService.Application.Queries;
 using CommLinkService.Domain.Entities;
 using CommLinkService.Infrastructure.Persistence;
+using CommLinkService.Infrastructure.Queries;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 

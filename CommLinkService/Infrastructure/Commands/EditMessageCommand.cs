@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace CommLinkService.Application.Commands;
+namespace CommLinkService.Infrastructure.Commands;
 
 public sealed record EditMessageCommand(Guid MessageId, Guid UserId, string NewContent)
     : IRequest<EditMessageResult>;

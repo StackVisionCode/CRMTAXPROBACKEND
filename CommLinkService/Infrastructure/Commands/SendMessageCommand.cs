@@ -1,7 +1,7 @@
 using CommLinkService.Domain.Entities;
 using MediatR;
 
-namespace CommLinkService.Application.Commands;
+namespace CommLinkService.Infrastructure.Commands;
 
 public sealed record SendMessageCommand(
     Guid RoomId,

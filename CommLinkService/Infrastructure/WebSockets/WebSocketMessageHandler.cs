@@ -1,6 +1,6 @@
 using System.Text.Json;
-using CommLinkService.Application.Commands;
 using CommLinkService.Domain.Entities;
+using CommLinkService.Infrastructure.Commands;
 using CommLinkService.Infrastructure.Services;
 using MediatR;
 

@@ -1,7 +1,7 @@
 using CommLinkService.Domain.Entities;
 using MediatR;
 
-namespace CommLinkService.Application.Queries;
+namespace CommLinkService.Infrastructure.Queries;
 
 public sealed record GetRoomMessagesQuery(Guid RoomId, int PageNumber = 1, int PageSize = 50)
     : IRequest<GetRoomMessagesResult>;

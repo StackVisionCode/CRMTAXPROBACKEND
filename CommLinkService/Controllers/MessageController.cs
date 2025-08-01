@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using CommLinkService.Application.Commands;
 using CommLinkService.Domain.Entities;
+using CommLinkService.Infrastructure.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

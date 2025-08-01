@@ -1,7 +1,7 @@
 using CommLinkService.Domain.Entities;
 using MediatR;
 
-namespace CommLinkService.Application.Queries;
+namespace CommLinkService.Infrastructure.Queries;
 
 public sealed record GetUserRoomsQuery(Guid UserId) : IRequest<GetUserRoomsResult>;
 

@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace CommLinkService.Application.Queries;
+namespace CommLinkService.Infrastructure.Queries;
 
 public sealed record GetActiveCallsQuery(Guid UserId) : IRequest<GetActiveCallsResult>;
 
