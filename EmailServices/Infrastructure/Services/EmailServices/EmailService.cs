@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Domain;
 using EmailServices.Domain;
 using Infrastructure.Context;
@@ -13,13 +14,23 @@ public class EmailService : IEmailService
     private readonly EmailContext _context; // contexto de base de datos (inyectado)
     private readonly ILogger<EmailService> _logger;
 
-    // Allowed domains for recipients (could also come from config or database)
-    private readonly string[] _allowedDomains = new string[]
+    // Lista de dominios bloqueados por seguridad (spam, malware, etc.)
+    private readonly string[] _blockedDomains = new string[]
     {
-        "gmail.com",
-        "outlook.com",
-        "empresa.com",
+        "tempmail.org",
+        "10minutemail.com",
+        "guerrillamail.com",
+        "mailinator.com",
+        "spam4.me",
+        "throwaway.email",
+        // Añadir más dominios temporales o de spam según sea necesario
     };
+
+    // Regex para validar formato de email más robusto
+    private readonly Regex _emailRegex = new Regex(
+        @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
 
     public EmailService(EmailContext context, ILogger<EmailService> logger)
     {
@@ -42,7 +53,7 @@ public class EmailService : IEmailService
             throw new InvalidOperationException("Daily email limit reached for this configuration");
         }
 
-        // Validation: email addresses format and domain
+        // Validation: email addresses format and domain security
         // Combine To, Cc, Bcc into one list for validation
         var allRecipients = new System.Collections.Generic.List<string>();
         if (!string.IsNullOrWhiteSpace(email.ToAddresses))
@@ -66,20 +77,43 @@ public class EmailService : IEmailService
                     StringSplitOptions.RemoveEmptyEntries
                 )
             );
+
         foreach (string addr in allRecipients)
         {
+            string trimmedAddr = addr.Trim();
+
+            // Validación de formato con regex más robusto
+            if (!_emailRegex.IsMatch(trimmedAddr))
+            {
+                throw new InvalidOperationException($"Invalid email address format: {trimmedAddr}");
+            }
+
             try
             {
-                var mailAddr = new MailAddress(addr);
-                string domain = mailAddr.Host;
-                if (!_allowedDomains.Contains(domain, StringComparer.OrdinalIgnoreCase))
+                var mailAddr = new MailAddress(trimmedAddr);
+                string domain = mailAddr.Host.ToLowerInvariant();
+
+                // Verificar que el dominio no esté en la lista de bloqueados
+                if (_blockedDomains.Contains(domain, StringComparer.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException($"Email domain not allowed: {domain}");
+                    throw new InvalidOperationException(
+                        $"Email domain is blocked for security reasons: {domain}"
+                    );
                 }
+
+                // Validación adicional de seguridad del dominio
+                if (!IsValidDomain(domain))
+                {
+                    throw new InvalidOperationException(
+                        $"Invalid or potentially unsafe domain: {domain}"
+                    );
+                }
+
+                _logger.LogDebug($"Email address validated successfully: {trimmedAddr}");
             }
             catch (FormatException)
             {
-                throw new InvalidOperationException($"Invalid email address format: {addr}");
+                throw new InvalidOperationException($"Invalid email address format: {trimmedAddr}");
             }
         }
 
@@ -324,5 +358,50 @@ public class EmailService : IEmailService
         email.ErrorMessage = null;
         await _context.SaveChangesAsync();
         _logger.LogInformation($"Email Id={email.Id} sent successfully via {config.ProviderType}");
+    }
+
+    /// <summary>
+    /// Validates if a domain is safe for sending emails
+    /// </summary>
+    /// <param name="domain">Domain to validate</param>
+    /// <returns>True if domain is considered safe</returns>
+    private bool IsValidDomain(string domain)
+    {
+        if (string.IsNullOrWhiteSpace(domain))
+            return false;
+
+        // Validaciones básicas de seguridad
+
+        // No debe contener caracteres peligrosos
+        if (domain.Contains("..") || domain.StartsWith("-") || domain.EndsWith("-"))
+            return false;
+
+        // No debe ser demasiado largo (RFC sugiere max 253 caracteres)
+        if (domain.Length > 253)
+            return false;
+
+        // Debe tener al menos un punto (dominio.tld)
+        if (!domain.Contains("."))
+            return false;
+
+        // No debe ser una dirección IP (para mayor seguridad)
+        if (IPAddress.TryParse(domain, out _))
+        {
+            _logger.LogWarning($"Blocked attempt to send email to IP address: {domain}");
+            return false;
+        }
+
+        // Verificar que no sea un dominio local
+        if (
+            domain.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || domain.EndsWith(".local", StringComparison.OrdinalIgnoreCase)
+            || domain.EndsWith(".internal", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            _logger.LogWarning($"Blocked attempt to send email to local domain: {domain}");
+            return false;
+        }
+
+        return true;
     }
 }
