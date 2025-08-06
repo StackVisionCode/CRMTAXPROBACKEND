@@ -40,65 +40,73 @@ public class GetCustomerSignatureRequestsHandler
                 request.CustomerId
             );
 
+            // Primero obtener los IDs de las solicitudes donde participa el cliente
+            var requestIds = await _db
+                .Signers.Where(s => s.CustomerId == request.CustomerId)
+                .Select(s => s.SignatureRequestId)
+                .Distinct()
+                .ToListAsync(ct);
+
+            if (!requestIds.Any())
+            {
+                _logger.LogInformation(
+                    "No se encontraron solicitudes para cliente {CustomerId}",
+                    request.CustomerId
+                );
+                return ApiResponse<List<CustomerSignatureRequestDto>>.Ok(
+                    new List<CustomerSignatureRequestDto>()
+                );
+            }
+
+            // Ahora obtener todas las solicitudes completas (incluyendo firmantes externos)
             var requests = await (
                 from r in _db.SignatureRequests
-                join s in _db.Signers on r.Id equals s.SignatureRequestId
-                where s.CustomerId == request.CustomerId
-                group new { r, s } by new
-                {
-                    r.Id,
-                    r.DocumentId,
-                    r.Status,
-                    r.CreatedAt,
-                    r.UpdatedAt,
-                    r.RejectedBySignerId,
-                    r.RejectReason,
-                    r.RejectedAtUtc,
-                } into g
+                where requestIds.Contains(r.Id)
                 select new CustomerSignatureRequestDto
                 {
-                    Id = g.Key.Id,
-                    DocumentId = g.Key.DocumentId,
+                    Id = r.Id,
+                    DocumentId = r.DocumentId,
                     DocumentTitle =
-                        $"Documento {new string(g.Key.DocumentId.ToString().Take(8).ToArray())}...",
+                        $"Documento {new string(r.DocumentId.ToString().Take(8).ToArray())}...",
                     CustomerId = request.CustomerId,
                     CustomerName = "Cliente", // Obtener del servicio de customers en el futuro
-                    Status = g.Key.Status,
-                    CreatedAt = g.Key.CreatedAt,
-                    UpdatedAt = g.Key.UpdatedAt,
-                    CompletedAt =
-                        g.Key.Status == SignatureStatus.Completed ? g.Key.UpdatedAt : null,
-                    TotalSigners = g.Count(),
-                    CompletedSigners = g.Count(x => x.s.Status == SignerStatus.Signed),
-                    RejectedBySignerId = g.Key.RejectedBySignerId,
-                    RejectReason = g.Key.RejectReason,
-                    RejectedAtUtc = g.Key.RejectedAtUtc,
-                    Signers = g.Select(x => new CustomerSignerDto
+                    Status = r.Status,
+                    CreatedAt = r.CreatedAt,
+                    UpdatedAt = r.UpdatedAt,
+                    CompletedAt = r.Status == SignatureStatus.Completed ? r.UpdatedAt : null,
+                    RejectedBySignerId = r.RejectedBySignerId,
+                    RejectReason = r.RejectReason,
+                    RejectedAtUtc = r.RejectedAtUtc,
+                    Signers = (
+                        from s in _db.Signers
+                        where s.SignatureRequestId == r.Id
+                        select new CustomerSignerDto
                         {
-                            Id = x.s.Id,
-                            CustomerId = x.s.CustomerId,
-                            FullName = x.s.FullName ?? x.s.Email,
-                            Email = x.s.Email,
-                            Status = x.s.Status,
-                            Order = x.s.Order,
-                            SignedAtUtc = x.s.SignedAtUtc,
-                            RejectedAtUtc = x.s.RejectedAtUtc,
-                            RejectReason = x.s.RejectReason,
-                            AccessCount = 0, // Calcular si es necesario
-                            RemindersSent = 0, // Calcular si es necesario
-                            CreatedAt = x.s.CreatedAt,
+                            Id = s.Id,
+                            CustomerId = s.CustomerId,
+                            FullName = s.FullName ?? s.Email,
+                            Email = s.Email,
+                            Status = s.Status,
+                            Order = s.Order,
+                            SignedAtUtc = s.SignedAtUtc,
+                            RejectedAtUtc = s.RejectedAtUtc,
+                            RejectReason = s.RejectReason,
+                            CreatedAt = s.CreatedAt,
                             TimeToSign =
-                                x.s.SignedAtUtc.HasValue && x.s.CreatedAt != default
-                                    ? (int)(x.s.SignedAtUtc.Value - x.s.CreatedAt).TotalHours
+                                s.SignedAtUtc.HasValue && s.CreatedAt != default
+                                    ? (int)(s.SignedAtUtc.Value - s.CreatedAt).TotalHours
                                     : null,
-                        })
-                        .ToList(),
+                        }
+                    ).OrderBy(s => s.Order).ToList(),
                 }
             ).OrderByDescending(x => x.CreatedAt).ToListAsync(ct);
 
-            // Calcular IsCurrentTurn para cada firmante
+            // Calcular propiedades derivadas
             foreach (var req in requests)
             {
+                req.TotalSigners = req.Signers.Count;
+                req.CompletedSigners = req.Signers.Count(s => s.Status == SignerStatus.Signed);
+
                 foreach (var signer in req.Signers)
                 {
                     signer.IsCurrentTurn = DetermineCurrentTurn(signer, req.Signers);

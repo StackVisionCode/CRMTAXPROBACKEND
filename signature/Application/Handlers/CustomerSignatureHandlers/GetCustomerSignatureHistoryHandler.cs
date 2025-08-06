@@ -42,7 +42,11 @@ public class GetCustomerSignatureHistoryHandler
             var requests = await (
                 from r in _db.SignatureRequests
                 join s in _db.Signers on r.Id equals s.SignatureRequestId
-                where s.CustomerId == request.CustomerId
+                where
+                    s.CustomerId == request.CustomerId
+                    || _db.Signers.Where(signer => signer.CustomerId == request.CustomerId)
+                        .Select(signer => signer.SignatureRequestId)
+                        .Contains(s.SignatureRequestId)
                 group new { r, s } by new
                 {
                     r.Id,
