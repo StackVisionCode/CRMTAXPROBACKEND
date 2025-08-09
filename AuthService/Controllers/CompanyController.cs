@@ -86,6 +86,24 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        [HttpGet("CheckNameExists")]
+        public async Task<ActionResult<ApiResponse<bool>>> CheckNameExists(
+            string companyName,
+            Guid? excludeCompanyId = null
+        )
+        {
+            if (string.IsNullOrWhiteSpace(companyName))
+                return BadRequest(new ApiResponse<bool>(false, "Company name is required"));
+
+            var query = new CheckCompanyNameExistsQuery(companyName, excludeCompanyId);
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
         [HttpDelete("Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
         {

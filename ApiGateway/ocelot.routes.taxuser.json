@@ -432,6 +432,25 @@
       },
       "Priority": 0,
       "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/Company/CheckNameExists",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxcompany/checkcompanyname",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 0,
+      "SwaggerKey": "auth"
     }
   ]
 }

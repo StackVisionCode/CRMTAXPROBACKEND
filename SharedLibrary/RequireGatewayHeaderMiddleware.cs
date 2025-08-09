@@ -55,6 +55,7 @@ namespace SharedLibrary
             "/api/geography/countries/{id}",
             "/api/geography/states/{id}",
             "/api/geography/countries/{countryId}/states",
+            "/api/Company/CheckNameExists",
         };
 
         /* ------------------ RUTAS PÚBLICAS "UPSTREAM" (si las expones por gateway) ------------------ */
