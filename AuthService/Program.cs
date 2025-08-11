@@ -112,9 +112,6 @@ try
     // CONFIGURAR RABBITMQ
     builder.Services.AddEventBus(builder.Configuration);
 
-    // Configurar RabbitMQ
-    builder.Services.AddEventBus(builder.Configuration);
-
     builder
         .Services.AddAuthentication("Bearer")
         .AddJwtBearer(

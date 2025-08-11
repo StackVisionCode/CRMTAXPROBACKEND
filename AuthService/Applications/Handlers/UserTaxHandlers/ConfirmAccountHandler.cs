@@ -87,57 +87,45 @@ public class ConfirmAccountHandler : IRequestHandler<AccountConfirmCommands, Api
 
         await _db.SaveChangesAsync(ct);
 
-        bool isAdministrator =
-            data.UserRoles.Contains("Administrator") || data.UserRoles.Contains("Developer");
+        bool isDeveloper = data.UserRoles.Contains("Developer");
+        bool isAdministrator = data.UserRoles.Any(r => r.Contains("Administrator"));
 
         string fullNameForDisplay = BuildFullNameForDisplay(data);
 
-        if (isAdministrator)
-        {
-            // 📧 Evento para ADMINISTRADORES (ya existente)
-            _eventBus.Publish(
-                new AccountConfirmedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    data.Company?.Id ?? Guid.Empty,
-                    data.User?.Name,
-                    data.User?.LastName,
-                    fullNameForDisplay,
-                    data.Company?.CompanyName,
-                    data.Company?.Domain,
-                    data.Company?.IsCompany ?? false,
-                    user.Id,
-                    user.Email
-                )
-            );
+        _eventBus.Publish(
+            new AccountConfirmedEvent(
+                Guid.NewGuid(),
+                DateTime.UtcNow,
+                data.Company?.Id ?? Guid.Empty,
+                data.User?.Name,
+                data.User?.LastName,
+                fullNameForDisplay,
+                data.Company?.CompanyName,
+                data.Company?.Domain,
+                data.Company?.IsCompany ?? false,
+                user.Id,
+                user.Email
+            )
+        );
 
-            _log.LogInformation("Administrator account {Email} confirmed", c.Email);
+        if (isDeveloper)
+        {
+            _log.LogInformation("Developer account {Email} confirmed", c.Email);
+        }
+        else if (isAdministrator)
+        {
+            _log.LogInformation(
+                "Company Administrator account {Email} confirmed for company {CompanyId}",
+                c.Email,
+                data.Company?.Id
+            );
         }
         else
         {
-            // 📧 Evento para EMPLEADOS (nuevo)
-            _eventBus.Publish(
-                new EmployeeAccountConfirmedEvent(
-                    Guid.NewGuid(),
-                    DateTime.UtcNow,
-                    user.Id,
-                    user.Email,
-                    user.Name,
-                    user.LastName,
-                    data.Company?.Id ?? Guid.Empty,
-                    fullNameForDisplay,
-                    data.Company?.CompanyName,
-                    data.Company?.Domain,
-                    data.Company?.IsCompany ?? false,
-                    data.Company?.Brand,
-                    data.UserRoles
-                )
-            );
-
-            _log.LogInformation(
-                "Employee account {Email} confirmed for company {CompanyId}",
+            _log.LogWarning(
+                "Unexpected role confirmation for {Email} with roles: {Roles}",
                 c.Email,
-                data.Company?.Id
+                string.Join(", ", data.UserRoles)
             );
         }
 

@@ -12,17 +12,14 @@ namespace Handlers.UserTaxHandlers;
 public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse<List<UserGetDTO>>>
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetAllUserTaxHandler> _logger;
 
     public GetAllUserTaxHandler(
         ApplicationDbContext dbContext,
-        IMapper mapper,
         ILogger<GetAllUserTaxHandler> logger
     )
     {
         _dbContext = dbContext;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -33,10 +30,11 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
     {
         try
         {
+            // Query mejorado con CustomPlan info
             var userQuery =
                 from u in _dbContext.TaxUsers
-                join c in _dbContext.Companies on u.CompanyId equals c.Id into companies
-                from c in companies.DefaultIfEmpty()
+                join c in _dbContext.Companies on u.CompanyId equals c.Id
+                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join a in _dbContext.Addresses on u.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
                 join country in _dbContext.Countries on a.CountryId equals country.Id into countries
@@ -63,7 +61,8 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                     IsActive = u.IsActive,
                     Confirm = u.Confirm ?? false,
                     CreatedAt = u.CreatedAt,
-                    // User Address
+
+                    // Dirección del preparador
                     Address =
                         a != null
                             ? new AddressDTO
@@ -78,13 +77,15 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                                 StateName = state.Name,
                             }
                             : null,
-                    // Company info
-                    CompanyFullName = c != null ? c.FullName : null,
-                    CompanyName = c != null ? c.CompanyName : null,
-                    CompanyBrand = c != null ? c.Brand : null,
-                    CompanyIsIndividual = c != null ? !c.IsCompany : false,
-                    CompanyDomain = c != null ? c.Domain : null,
-                    // Company Address
+
+                    // Company info completa
+                    CompanyFullName = c.FullName,
+                    CompanyName = c.CompanyName,
+                    CompanyBrand = c.Brand,
+                    CompanyIsIndividual = !c.IsCompany,
+                    CompanyDomain = c.Domain,
+
+                    // Dirección de la company
                     CompanyAddress =
                         ca != null
                             ? new AddressDTO
@@ -99,6 +100,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                                 StateName = cstate.Name,
                             }
                             : null,
+
                     RoleNames = new List<string>(), // Se llenará después
                 };
 
@@ -108,7 +110,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
             {
                 return new ApiResponse<List<UserGetDTO>>(
                     true,
-                    "No users found",
+                    "No tax preparers found",
                     new List<UserGetDTO>()
                 );
             }
@@ -135,12 +137,16 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                 }
             }
 
-            _logger.LogInformation("Retrieved {Count} users successfully", users.Count);
-            return new ApiResponse<List<UserGetDTO>>(true, "Users retrieved successfully", users);
+            _logger.LogInformation("Retrieved {Count} tax preparers successfully", users.Count);
+            return new ApiResponse<List<UserGetDTO>>(
+                true,
+                "Tax preparers retrieved successfully",
+                users
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving users: {Message}", ex.Message);
+            _logger.LogError(ex, "Error retrieving tax preparers: {Message}", ex.Message);
             return new ApiResponse<List<UserGetDTO>>(false, ex.Message, new List<UserGetDTO>());
         }
     }

@@ -24,21 +24,6 @@ namespace AuthService.Controllers
             _mediator = mediator;
         }
 
-        // Crear Usuario de Compañia
-        [HttpPost("Create")]
-        public async Task<ActionResult<ApiResponse<bool>>> Create(
-            [FromBody] NewUserDTO userDto,
-            [FromHeader(Name = "Origin")] string origin
-        )
-        {
-            // Mapeas el DTO al Command (usando AutoMapper)
-            var command = new CreateTaxUserCommands(userDto, origin);
-            var result = await _mediator.Send(command);
-            if (result == null)
-                return BadRequest(new { message = "Failed to create user" });
-            return Ok(result);
-        }
-
         // Crear Usuario Admin o Preparador
         [HttpPost("CreateCompany")]
         public async Task<ActionResult<ApiResponse<bool>>> CreateCompany(

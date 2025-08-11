@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs; // ✅ Agregar este using
+using Applications.DTOs.CompanyDTOs;
 using AuthService.Domains.Addresses;
 using AuthService.Domains.Users;
 using AuthService.Infraestructure.Services;
@@ -42,15 +42,21 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
         try
         {
-            // ✅ Buscar el usuario usando Join
-            var userQuery = from u in _dbContext.TaxUsers where u.Id == request.UserTax.Id select u;
+            // Buscar el usuario con info de company para validaciones
+            var userQuery =
+                from u in _dbContext.TaxUsers
+                join c in _dbContext.Companies on u.CompanyId equals c.Id
+                where u.Id == request.UserTax.Id
+                select new { User = u, Company = c };
 
-            var user = await userQuery.FirstOrDefaultAsync(cancellationToken);
-            if (user == null)
+            var userData = await userQuery.FirstOrDefaultAsync(cancellationToken);
+            if (userData?.User == null)
             {
-                _logger.LogWarning("User not found: {UserId}", request.UserTax.Id);
-                return new ApiResponse<bool>(false, "User not found", false);
+                _logger.LogWarning("Tax preparer not found: {UserId}", request.UserTax.Id);
+                return new ApiResponse<bool>(false, "Tax preparer not found", false);
             }
+
+            var user = userData.User;
 
             // Verificar si el email ya existe en otro usuario (si se está cambiando)
             if (!string.IsNullOrEmpty(request.UserTax.Email) && request.UserTax.Email != user.Email)
@@ -67,30 +73,30 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 }
             }
 
-            // ✅ Guardar AddressId actual para evitar que AutoMapper lo sobreescriba
+            // Guardar valores actuales
             var currentAddressId = user.AddressId;
-            var currentPassword = user.Password; // Preservar password actual
+            var currentPassword = user.Password;
 
             // Actualizar campos del usuario
             _mapper.Map(request.UserTax, user);
 
-            // ✅ Restaurar campos que manejaremos manualmente
+            // Restaurar campos que manejaremos manualmente
             user.AddressId = currentAddressId;
 
-            // ✅ Si se proporciona una nueva contraseña, hashearla
+            // Manejar contraseña
             if (!string.IsNullOrWhiteSpace(request.UserTax.Password))
             {
                 user.Password = _passwordHash.HashPassword(request.UserTax.Password);
-                _logger.LogDebug("Password updated for user: {UserId}", user.Id);
+                _logger.LogDebug("Password updated for tax preparer: {UserId}", user.Id);
             }
             else
             {
-                user.Password = currentPassword; // Restaurar password original
+                user.Password = currentPassword;
             }
 
             user.UpdatedAt = DateTime.UtcNow;
 
-            // ✅ MEJORADO: Manejar actualización de dirección con mejor logging
+            // Manejar dirección (código existente está bien)
             if (request.UserTax.Address is not null)
             {
                 var addrDto = request.UserTax.Address;
@@ -104,7 +110,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
                 if (user.AddressId.HasValue)
                 {
-                    // ✅ Actualizar dirección existente usando Join
                     var addressQuery =
                         from a in _dbContext.Addresses
                         where a.Id == user.AddressId.Value
@@ -122,31 +127,23 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                         existingAddress.UpdatedAt = DateTime.UtcNow;
 
                         _logger.LogDebug(
-                            "Updated existing address: {AddressId} for user: {UserId}",
+                            "Updated existing address: {AddressId} for tax preparer: {UserId}",
                             existingAddress.Id,
                             user.Id
                         );
                     }
                     else
                     {
-                        _logger.LogWarning(
-                            "Address not found: {AddressId} for user: {UserId}",
-                            user.AddressId.Value,
-                            user.Id
-                        );
-                        // Crear nueva dirección si la referenciada no existe
                         await CreateNewAddressAsync(user, addrDto, cancellationToken);
                     }
                 }
                 else
                 {
-                    // ✅ Crear nueva dirección
                     await CreateNewAddressAsync(user, addrDto, cancellationToken);
                 }
             }
             else if (user.AddressId.HasValue)
             {
-                // ✅ Si no se envía dirección pero existía una, eliminarla
                 var addressToDeleteQuery =
                     from a in _dbContext.Addresses
                     where a.Id == user.AddressId.Value
@@ -159,7 +156,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 {
                     _dbContext.Addresses.Remove(addressToDelete);
                     _logger.LogDebug(
-                        "Removed address: {AddressId} for user: {UserId}",
+                        "Removed address: {AddressId} for tax preparer: {UserId}",
                         addressToDelete.Id,
                         user.Id
                     );
@@ -167,10 +164,9 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 user.AddressId = null;
             }
 
-            // ✅ Actualizar roles si se especifican
+            // Actualizar roles si se especifican
             if (request.UserTax.RoleIds?.Any() == true)
             {
-                // Eliminar roles existentes
                 var existingRolesQuery =
                     from ur in _dbContext.UserRoles
                     where ur.TaxUserId == user.Id
@@ -179,7 +175,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 var existingRoles = await existingRolesQuery.ToListAsync(cancellationToken);
                 _dbContext.UserRoles.RemoveRange(existingRoles);
 
-                // Agregar nuevos roles
                 foreach (var roleId in request.UserTax.RoleIds.Distinct())
                 {
                     await _dbContext.UserRoles.AddAsync(
@@ -195,36 +190,37 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 }
 
                 _logger.LogDebug(
-                    "Updated roles for user: {UserId}, RoleCount: {RoleCount}",
+                    "Updated roles for tax preparer: {UserId}, RoleCount: {RoleCount}",
                     user.Id,
                     request.UserTax.RoleIds.Count()
                 );
             }
 
-            // ✅ Guardar todos los cambios de una vez (esto evita problemas de FK)
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
             if (result)
             {
                 await transaction.CommitAsync(cancellationToken);
                 _logger.LogInformation(
-                    "User updated successfully: UserId={UserId}, AddressId={AddressId}",
+                    "Tax preparer updated successfully: UserId={UserId}, Company={CompanyName}",
                     user.Id,
-                    user.AddressId
+                    userData.Company.IsCompany
+                        ? userData.Company.CompanyName
+                        : userData.Company.FullName
                 );
-                return new ApiResponse<bool>(true, "User updated successfully", true);
+                return new ApiResponse<bool>(true, "Tax preparer updated successfully", true);
             }
             else
             {
                 await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError("Failed to update user: {UserId}", request.UserTax.Id);
-                return new ApiResponse<bool>(false, "Failed to update user", false);
+                _logger.LogError("Failed to update tax preparer: {UserId}", request.UserTax.Id);
+                return new ApiResponse<bool>(false, "Failed to update tax preparer", false);
             }
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Error updating user: {Message}", ex.Message);
+            _logger.LogError(ex, "Error updating tax preparer: {Message}", ex.Message);
             return new ApiResponse<bool>(false, ex.Message, false);
         }
     }
@@ -254,7 +250,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
         user.AddressId = newAddress.Id;
 
         _logger.LogDebug(
-            "Created new address: {AddressId} for user: {UserId}",
+            "Created new address: {AddressId} for tax preparer: {UserId}",
             newAddress.Id,
             user.Id
         );
@@ -282,6 +278,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
         if (state is null)
             return (false, $"StateId '{stateId}' not found for CountryId '{countryId}'.");
 
-        return (true, "OK");
+        return (true, "Address validation passed");
     }
 }

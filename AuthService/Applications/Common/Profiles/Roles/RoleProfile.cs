@@ -13,6 +13,10 @@ public class RoleProfile : Profile
                 d => d.PermissionCodes,
                 o => o.MapFrom(s => s.RolePermissions.Select(rp => rp.Permission.Code))
             );
-        CreateMap<RoleDTO, Role>().ReverseMap();
+
+        CreateMap<RoleDTO, Role>()
+            .ForMember(d => d.RolePermissions, o => o.Ignore())
+            .ForMember(d => d.UserRoles, o => o.Ignore())
+            .ForMember(d => d.UserCompanyRoles, o => o.Ignore());
     }
 }

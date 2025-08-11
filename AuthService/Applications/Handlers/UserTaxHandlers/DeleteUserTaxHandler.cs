@@ -29,14 +29,17 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
 
         try
         {
-            // ✅ MEJORADO: Buscar usuario con información completa
+            //  Buscar usuario con información completa de company y plan
             var userQuery =
                 from u in _dbContext.TaxUsers
+                join c in _dbContext.Companies on u.CompanyId equals c.Id
+                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where u.Id == request.Id
                 select new
                 {
                     User = u,
-                    CompanyId = u.CompanyId,
+                    Company = c,
+                    CustomPlan = cp,
                     HasAddress = u.AddressId.HasValue,
                     AddressId = u.AddressId,
                     UserRoles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
@@ -45,16 +48,16 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
             var userData = await userQuery.FirstOrDefaultAsync(cancellationToken);
             if (userData?.User == null)
             {
-                _logger.LogWarning("User not found: {UserId}", request.Id);
-                return new ApiResponse<bool>(false, "User not found", false);
+                _logger.LogWarning("Tax preparer not found: {UserId}", request.Id);
+                return new ApiResponse<bool>(false, "Tax preparer not found", false);
             }
 
             var user = userData.User;
 
-            // ✅ NUEVO: Verificar si es el último administrador
-            var isAdmin =
-                userData.UserRoles.Contains("Administrator")
-                || userData.UserRoles.Contains("Developer");
+            //  Verificar si es el último administrador
+            var isAdmin = userData.UserRoles.Any(role =>
+                role.Contains("Administrator") || role.Equals("Developer")
+            );
 
             if (isAdmin)
             {
@@ -63,9 +66,9 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
                     join ur in _dbContext.UserRoles on u.Id equals ur.TaxUserId
                     join r in _dbContext.Roles on ur.RoleId equals r.Id
                     where
-                        u.CompanyId == userData.CompanyId
+                        u.CompanyId == userData.Company.Id
                         && u.Id != request.Id
-                        && (r.Name == "Administrator" || r.Name == "Developer")
+                        && (r.Name.Contains("Administrator") || r.Name == "Developer")
                     select u.Id;
 
                 var otherAdminsCount = await otherAdminsCountQuery.CountAsync(cancellationToken);
@@ -73,10 +76,13 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
                 if (otherAdminsCount == 0)
                 {
                     _logger.LogWarning(
-                        "Cannot delete last administrator: UserId={UserId}, CompanyId={CompanyId}",
+                        "Cannot delete last administrator: UserId={UserId}, Company={CompanyName}",
                         request.Id,
-                        userData.CompanyId
+                        userData.Company.IsCompany
+                            ? userData.Company.CompanyName
+                            : userData.Company.FullName
                     );
+
                     return new ApiResponse<bool>(
                         false,
                         "Cannot delete the last administrator of the company. Assign another administrator first.",
@@ -85,86 +91,94 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
                 }
             }
 
-            // ✅ MEJORADO: Obtener y eliminar sesiones del usuario
+            // Eliminar sesiones del usuario
             var sessionsQuery =
                 from s in _dbContext.Sessions
                 where s.TaxUserId == request.Id
                 select s;
-
             var sessions = await sessionsQuery.ToListAsync(cancellationToken);
             if (sessions.Any())
             {
                 _dbContext.Sessions.RemoveRange(sessions);
                 _logger.LogDebug(
-                    "Marked {SessionCount} sessions for deletion for user: {UserId}",
+                    "Marked {SessionCount} sessions for deletion for tax preparer: {UserId}",
                     sessions.Count,
                     request.Id
                 );
             }
 
-            // ✅ MEJORADO: Obtener y eliminar roles del usuario
+            // Eliminar roles del usuario
             var userRolesQuery =
                 from ur in _dbContext.UserRoles
                 where ur.TaxUserId == request.Id
                 select ur;
-
             var userRoles = await userRolesQuery.ToListAsync(cancellationToken);
             if (userRoles.Any())
             {
                 _dbContext.UserRoles.RemoveRange(userRoles);
                 _logger.LogDebug(
-                    "Marked {RoleCount} user roles for deletion for user: {UserId}",
+                    "Marked {RoleCount} user roles for deletion for tax preparer: {UserId}",
                     userRoles.Count,
                     request.Id
                 );
             }
 
-            // ✅ NUEVO: Eliminar dirección del usuario si existe
+            // Eliminar dirección del usuario si existe
             if (userData.HasAddress && userData.AddressId.HasValue)
             {
                 var addressQuery =
                     from a in _dbContext.Addresses
                     where a.Id == userData.AddressId.Value
                     select a;
-
                 var address = await addressQuery.FirstOrDefaultAsync(cancellationToken);
                 if (address != null)
                 {
                     _dbContext.Addresses.Remove(address);
-                    _logger.LogDebug("Marked user address for deletion: {AddressId}", address.Id);
+                    _logger.LogDebug(
+                        "Marked tax preparer address for deletion: {AddressId}",
+                        address.Id
+                    );
                 }
             }
 
-            // ✅ Eliminar el usuario
+            // Eliminar el usuario
             _dbContext.TaxUsers.Remove(user);
 
-            // ✅ Guardar todos los cambios de una vez
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
             if (result)
             {
                 await transaction.CommitAsync(cancellationToken);
                 _logger.LogInformation(
-                    "User deleted successfully: UserId={UserId}, SessionsDeleted={SessionCount}, RolesDeleted={RoleCount}, AddressDeleted={AddressDeleted}",
+                    "Tax preparer deleted successfully: UserId={UserId}, Company={CompanyName}, "
+                        + "SessionsDeleted={SessionCount}, RolesDeleted={RoleCount}, AddressDeleted={AddressDeleted}",
                     request.Id,
+                    userData.Company.IsCompany
+                        ? userData.Company.CompanyName
+                        : userData.Company.FullName,
                     sessions.Count,
                     userRoles.Count,
                     userData.HasAddress
                 );
-                return new ApiResponse<bool>(true, "User deleted successfully", true);
+
+                return new ApiResponse<bool>(true, "Tax preparer deleted successfully", true);
             }
             else
             {
                 await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError("Failed to delete user: {UserId}", request.Id);
-                return new ApiResponse<bool>(false, "Failed to delete user", false);
+                _logger.LogError("Failed to delete tax preparer: {UserId}", request.Id);
+                return new ApiResponse<bool>(false, "Failed to delete tax preparer", false);
             }
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Error deleting user: {UserId}", request.Id);
-            return new ApiResponse<bool>(false, "An error occurred while deleting the user", false);
+            _logger.LogError(ex, "Error deleting tax preparer: {UserId}", request.Id);
+            return new ApiResponse<bool>(
+                false,
+                "An error occurred while deleting the tax preparer",
+                false
+            );
         }
     }
 }

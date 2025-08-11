@@ -10,11 +10,6 @@ public class UserProfile : Profile
     public UserProfile()
     {
         // Basic mappings
-        CreateMap<NewUserDTO, TaxUser>()
-            .ForMember(d => d.Id, o => o.Ignore())
-            .ForMember(d => d.AddressId, o => o.Ignore())
-            .ForMember(d => d.Address, o => o.Ignore());
-
         CreateMap<UpdateUserDTO, TaxUser>()
             .ForMember(d => d.AddressId, o => o.Ignore())
             .ForMember(d => d.Address, o => o.Ignore());
@@ -44,10 +39,6 @@ public class UserProfile : Profile
                 d => d.RoleNames,
                 o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role.Name))
             );
-
-        // Command mappings
-        CreateMap<NewUserDTO, CreateTaxUserCommands>()
-            .ConstructUsing(src => new CreateTaxUserCommands(src, string.Empty));
 
         CreateMap<UpdateUserDTO, UpdateTaxUserCommands>()
             .ConstructUsing(src => new UpdateTaxUserCommands(src));

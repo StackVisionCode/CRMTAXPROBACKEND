@@ -31,38 +31,52 @@ public class LogoutAllHandler : IRequestHandler<LogoutAllCommands, ApiResponse<b
     {
         try
         {
-            // Buscar todas las sesiones activas del usuario
-            var activeSessions = await _context
+            var totalRevoked = 0;
+
+            // Revocar sesiones de TaxUser
+            var taxUserSessions = await _context
                 .Sessions.Where(s => s.TaxUserId == request.UserId && !s.IsRevoke)
                 .ToListAsync(cancellationToken);
 
-            if (!activeSessions.Any())
+            foreach (var session in taxUserSessions)
+            {
+                session.IsRevoke = true;
+                session.UpdatedAt = DateTime.UtcNow;
+            }
+            totalRevoked += taxUserSessions.Count;
+
+            // Revocar sesiones de UserCompany
+            var userCompanySessions = await _context
+                .UserCompanySessions.Where(s => s.UserCompanyId == request.UserId && !s.IsRevoke)
+                .ToListAsync(cancellationToken);
+
+            foreach (var session in userCompanySessions)
+            {
+                session.IsRevoke = true;
+                session.UpdatedAt = DateTime.UtcNow;
+            }
+            totalRevoked += userCompanySessions.Count;
+
+            if (totalRevoked == 0)
             {
                 _logger.LogInformation(
-                    "No active sessions found for user {UserId} to logout",
+                    "No active sessions found for user {UserId}",
                     request.UserId
                 );
                 return new ApiResponse<bool>(true, "No active sessions found", true);
             }
 
-            // Revocar todas las sesiones
-            foreach (var session in activeSessions)
-            {
-                session.IsRevoke = true;
-                session.UpdatedAt = DateTime.UtcNow;
-            }
-
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "All sessions for user {UserId} have been revoked. Total sessions: {Count}",
+                "All sessions for user {UserId} revoked. Total: {Count}",
                 request.UserId,
-                activeSessions.Count
+                totalRevoked
             );
 
             return new ApiResponse<bool>(
                 true,
-                $"Successfully logged out from {activeSessions.Count} sessions",
+                $"Successfully logged out from {totalRevoked} sessions",
                 true
             );
         }

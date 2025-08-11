@@ -11,8 +11,8 @@ public class Session : BaseEntity
     public string? TokenRefresh { get; set; }
     public string? IpAddress { get; set; }
     public string? Latitude { get; set; }
-    public string? Logintude { get; set; }
+    public string? Longitude { get; set; }
     public string? Device { get; set; }
     public bool IsRevoke { get; set; }
-    public virtual required TaxUser TaxUser { get; set; }
+    public virtual TaxUser TaxUser { get; set; } = null!;
 }

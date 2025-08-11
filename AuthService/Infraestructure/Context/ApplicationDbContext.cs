@@ -1,9 +1,14 @@
+using AuthService.Applications.Common;
 using AuthService.Domains.Addresses;
 using AuthService.Domains.Companies;
+using AuthService.Domains.CustomPlans;
 using AuthService.Domains.Geography;
+using AuthService.Domains.Modules;
 using AuthService.Domains.Permissions;
 using AuthService.Domains.Roles;
+using AuthService.Domains.Services;
 using AuthService.Domains.Sessions;
+using AuthService.Domains.UserCompanies;
 using AuthService.Domains.Users;
 using Common;
 using Microsoft.EntityFrameworkCore;
@@ -27,12 +32,39 @@ public class ApplicationDbContext : DbContext
     public DbSet<Address> Addresses { get; set; }
     public DbSet<Country> Countries { get; set; }
     public DbSet<State> States { get; set; }
+    public DbSet<Service> Services { get; set; }
+    public DbSet<Module> Modules { get; set; }
+    public DbSet<CustomModule> CustomModules { get; set; }
+    public DbSet<CustomPlan> CustomPlans { get; set; }
+    public DbSet<UserCompany> UserCompanies { get; set; }
+    public DbSet<UserCompanyRole> UserCompanyRoles { get; set; }
+    public DbSet<UserCompanySession> UserCompanySessions { get; set; }
+    public DbSet<CompanyPermission> CompanyPermissions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Aplica la convención de RowVersion para **todas** las entidades que hereden de BaseEntity
+        // Configuraciones existentes de BaseEntity
+        ApplyBaseEntityConventions(modelBuilder);
+
+        // Configuraciones existentes de geografía
+        ApplyGeographyConventions(modelBuilder);
+
+        // Configurar tablas existentes
+        ConfigureExistingTables(modelBuilder);
+
+        // NUEVAS CONFIGURACIONES
+        ConfigureNewTables(modelBuilder);
+        ConfigureNewRelationships(modelBuilder);
+        ConfigureNewIndexes(modelBuilder);
+
+        // Seeds existentes + nuevos
+        SeedData(modelBuilder);
+    }
+
+    private void ApplyBaseEntityConventions(ModelBuilder modelBuilder)
+    {
         foreach (
             var entity in modelBuilder
                 .Model.GetEntityTypes()
@@ -40,143 +72,37 @@ public class ApplicationDbContext : DbContext
         )
         {
             modelBuilder.Entity(entity.Name).Property<byte[]>("RowVersion").IsRowVersion();
-        }
-
-        // Aplica la convención de CreatedAt y UpdatedAt para **todas** las entidades que hereden de BaseEntity
-        foreach (
-            var entity in modelBuilder
-                .Model.GetEntityTypes()
-                .Where(t => typeof(BaseEntity).IsAssignableFrom(t.ClrType))
-        )
-        {
             modelBuilder
                 .Entity(entity.Name)
                 .Property<DateTime>("CreatedAt")
                 .HasDefaultValueSql("GETUTCDATE()")
                 .ValueGeneratedOnAdd();
-
             modelBuilder.Entity(entity.Name).Property<DateTime?>("UpdatedAt");
             modelBuilder.Entity(entity.Name).Property<DateTime?>("DeleteAt");
         }
 
-        // Aplicar las mismas configuraciones a entidades específicas que NO heredan de BaseEntity
+        // Para Country y State
         var additionalEntityTypes = new[] { typeof(State), typeof(Country) };
-
         foreach (var entityType in additionalEntityTypes)
         {
             var entityTypeInfo = modelBuilder.Model.FindEntityType(entityType);
             if (entityTypeInfo != null)
             {
-                // RowVersion
                 modelBuilder.Entity(entityType).Property<byte[]>("RowVersion").IsRowVersion();
-
-                // CreatedAt con valor por defecto
                 modelBuilder
                     .Entity(entityType)
                     .Property<DateTime>("CreatedAt")
                     .HasDefaultValueSql("GETUTCDATE()")
                     .ValueGeneratedOnAdd();
-
-                // UpdatedAt y DeleteAt opcionales
                 modelBuilder.Entity(entityType).Property<DateTime?>("UpdatedAt");
                 modelBuilder.Entity(entityType).Property<DateTime?>("DeleteAt");
             }
         }
+    }
 
-        // Configuración de tablas
-        modelBuilder.Entity<TaxUser>().ToTable("TaxUsers");
-        modelBuilder.Entity<Role>().ToTable("Roles");
-        modelBuilder.Entity<RolePermission>().ToTable("RolePermissions");
-        modelBuilder.Entity<UserRole>().ToTable("UserRoles");
-        modelBuilder.Entity<CustomerRole>().ToTable("CustomerRoles");
-        modelBuilder.Entity<Permission>().ToTable("Permissions");
-        modelBuilder.Entity<Session>().ToTable("Sessions");
-        modelBuilder.Entity<CustomerSession>().ToTable("CustomerSessions");
-        modelBuilder.Entity<Company>().ToTable("Companies");
-        modelBuilder.Entity<Address>().ToTable("Addresses");
-        modelBuilder.Entity<Country>().ToTable("Countries");
-        modelBuilder.Entity<State>().ToTable("States");
-
-        // Índices únicos
-        modelBuilder.Entity<Role>().HasIndex(r => r.Name).IsUnique();
-        modelBuilder.Entity<Permission>().HasIndex(p => p.Code).IsUnique();
-        modelBuilder.Entity<TaxUser>().HasIndex(u => u.Email).IsUnique();
-        modelBuilder.Entity<Company>().HasIndex(c => c.Domain).IsUnique();
-
-        // Checks
-        modelBuilder
-            .Entity<Company>()
-            .ToTable(b => b.HasCheckConstraint("CK_Companies_UserLimit", "[UserLimit] >= 0"));
-
-        // RolePermission (Relación Role <-> Permission)
-        modelBuilder
-            .Entity<RolePermission>()
-            .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
-            .IsUnique();
-
-        modelBuilder
-            .Entity<RolePermission>()
-            .HasOne(rp => rp.Role)
-            .WithMany(r => r.RolePermissions)
-            .HasForeignKey(rp => rp.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder
-            .Entity<RolePermission>()
-            .HasOne(rp => rp.Permission)
-            .WithMany(p => p.RolePermissions)
-            .HasForeignKey(rp => rp.PermissionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // UserRole (Relación TaxUser <-> Role)
-        modelBuilder.Entity<UserRole>().HasIndex(ur => new { ur.TaxUserId, ur.RoleId }).IsUnique();
-
-        modelBuilder
-            .Entity<UserRole>()
-            .HasOne(ur => ur.TaxUser)
-            .WithMany(u => u.UserRoles)
-            .HasForeignKey(ur => ur.TaxUserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder
-            .Entity<UserRole>()
-            .HasOne(ur => ur.Role)
-            .WithMany(r => r.UserRoles)
-            .HasForeignKey(ur => ur.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // CustomerRole (Relación Customer <-> Role)
-        modelBuilder
-            .Entity<CustomerRole>()
-            .HasIndex(cr => new { cr.CustomerId, cr.RoleId })
-            .IsUnique();
-
-        modelBuilder
-            .Entity<CustomerRole>()
-            .HasOne(cr => cr.Role)
-            .WithMany()
-            .HasForeignKey(cr => cr.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // TaxUser – Company (N : 1) - CAMBIO: Restrict en lugar de Cascade
-        modelBuilder
-            .Entity<TaxUser>()
-            .HasOne(u => u.Company)
-            .WithMany(c => c.TaxUsers)
-            .HasForeignKey(u => u.CompanyId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Relación TaxUser - Sessions (1:N)
-        modelBuilder
-            .Entity<Session>()
-            .HasOne(s => s.TaxUser)
-            .WithMany(u => u.Sessions)
-            .HasForeignKey(s => s.TaxUserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // >>> Relaciones Address <<<
-
-        // Catálogos: State -> Country (N:1)
+    private void ApplyGeographyConventions(ModelBuilder modelBuilder)
+    {
+        // State -> Country (N:1)
         modelBuilder
             .Entity<State>()
             .HasOne(s => s.Country)
@@ -198,8 +124,103 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(a => a.StateId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
 
-        // Company -> Address (N:1, AddressId nullable, SetNull al borrar Address)
+    private void ConfigureExistingTables(ModelBuilder modelBuilder)
+    {
+        // Configuración de tablas existentes
+        modelBuilder.Entity<TaxUser>().ToTable("TaxUsers");
+        modelBuilder.Entity<Role>().ToTable("Roles");
+        modelBuilder.Entity<RolePermission>().ToTable("RolePermissions");
+        modelBuilder.Entity<UserRole>().ToTable("UserRoles");
+        modelBuilder.Entity<CustomerRole>().ToTable("CustomerRoles");
+        modelBuilder.Entity<Permission>().ToTable("Permissions");
+        modelBuilder.Entity<Session>().ToTable("Sessions");
+        modelBuilder.Entity<CustomerSession>().ToTable("CustomerSessions");
+        modelBuilder.Entity<Company>().ToTable("Companies");
+        modelBuilder.Entity<Address>().ToTable("Addresses");
+        modelBuilder.Entity<Country>().ToTable("Countries");
+        modelBuilder.Entity<State>().ToTable("States");
+
+        // Índices únicos existentes
+        modelBuilder.Entity<Role>().HasIndex(r => r.Name).IsUnique();
+        modelBuilder.Entity<Permission>().HasIndex(p => p.Code).IsUnique();
+        modelBuilder.Entity<TaxUser>().HasIndex(u => u.Email).IsUnique();
+        modelBuilder.Entity<Company>().HasIndex(c => c.Domain).IsUnique();
+
+        // Relaciones existentes
+        ConfigureExistingRelationships(modelBuilder);
+    }
+
+    private void ConfigureExistingRelationships(ModelBuilder modelBuilder)
+    {
+        // RolePermission
+        modelBuilder
+            .Entity<RolePermission>()
+            .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<RolePermission>()
+            .HasOne(rp => rp.Role)
+            .WithMany(r => r.RolePermissions)
+            .HasForeignKey(rp => rp.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<RolePermission>()
+            .HasOne(rp => rp.Permission)
+            .WithMany(p => p.RolePermissions)
+            .HasForeignKey(rp => rp.PermissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // UserRole
+        modelBuilder.Entity<UserRole>().HasIndex(ur => new { ur.TaxUserId, ur.RoleId }).IsUnique();
+
+        modelBuilder
+            .Entity<UserRole>()
+            .HasOne(ur => ur.TaxUser)
+            .WithMany(u => u.UserRoles)
+            .HasForeignKey(ur => ur.TaxUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany(r => r.UserRoles)
+            .HasForeignKey(ur => ur.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // CustomerRole
+        modelBuilder
+            .Entity<CustomerRole>()
+            .HasIndex(cr => new { cr.CustomerId, cr.RoleId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<CustomerRole>()
+            .HasOne(cr => cr.Role)
+            .WithMany()
+            .HasForeignKey(cr => cr.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // TaxUser – Company (N : 1) - CAMBIO: Ahora Company tiene ServiceId requerido
+        modelBuilder
+            .Entity<TaxUser>()
+            .HasOne(u => u.Company)
+            .WithMany(c => c.TaxUsers)
+            .HasForeignKey(u => u.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Session – TaxUser
+        modelBuilder
+            .Entity<Session>()
+            .HasOne(s => s.TaxUser)
+            .WithMany(u => u.Sessions)
+            .HasForeignKey(s => s.TaxUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Address relationships
         modelBuilder
             .Entity<Company>()
             .HasOne(c => c.Address)
@@ -207,37 +228,341 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(c => c.AddressId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // TaxUser -> Address (N:1, AddressId nullable, SetNull al borrar Address)
         modelBuilder
             .Entity<TaxUser>()
             .HasOne(u => u.Address)
             .WithMany()
             .HasForeignKey(u => u.AddressId)
             .OnDelete(DeleteBehavior.SetNull);
-
-        // Seed data
-        SeedPermissions(modelBuilder);
-        SeedRoles(modelBuilder);
-        SeedRolePermissions(modelBuilder);
-        SeedCompanyAndDeveloper(modelBuilder);
-        SeedGeography(modelBuilder);
     }
 
-    // CONSTANTES CORREGIDAS
+    private void ConfigureNewTables(ModelBuilder modelBuilder)
+    {
+        // NUEVAS TABLAS
+        modelBuilder.Entity<Service>().ToTable("Services");
+        modelBuilder.Entity<Module>().ToTable("Modules");
+        modelBuilder.Entity<CustomModule>().ToTable("CustomModules");
+        modelBuilder.Entity<CustomPlan>().ToTable("CustomPlans");
+        modelBuilder.Entity<UserCompany>().ToTable("UserCompanies");
+        modelBuilder.Entity<UserCompanyRole>().ToTable("UserCompanyRoles");
+        modelBuilder.Entity<UserCompanySession>().ToTable("UserCompanySessions");
+        modelBuilder.Entity<CompanyPermission>().ToTable("CompanyPermissions");
+    }
+
+    private void ConfigureNewRelationships(ModelBuilder modelBuilder)
+    {
+        // Service -> Module (1:N) - Service tiene módulos directamente
+        modelBuilder
+            .Entity<Module>()
+            .HasOne(m => m.Service)
+            .WithMany(s => s.Modules)
+            .HasForeignKey(m => m.ServiceId)
+            .OnDelete(DeleteBehavior.SetNull); // Módulo puede existir sin servicio
+
+        // CustomPlan -> Company (1:1) - CustomPlan pertenece a una Company
+        modelBuilder
+            .Entity<CustomPlan>()
+            .HasOne(cp => cp.Company)
+            .WithOne(c => c.CustomPlan)
+            .HasForeignKey<CustomPlan>(cp => cp.CompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Company -> CustomPlan (1:1) - Company tiene exactamente un CustomPlan
+        modelBuilder
+            .Entity<Company>()
+            .HasOne(c => c.CustomPlan)
+            .WithOne(cp => cp.Company)
+            .HasForeignKey<Company>(c => c.CustomPlanId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // CustomModule (CustomPlan ↔ Module muchos a muchos)
+        modelBuilder
+            .Entity<CustomModule>()
+            .HasIndex(cm => new { cm.CustomPlanId, cm.ModuleId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<CustomModule>()
+            .HasOne(cm => cm.CustomPlan)
+            .WithMany(cp => cp.CustomModules)
+            .HasForeignKey(cm => cm.CustomPlanId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<CustomModule>()
+            .HasOne(cm => cm.Module)
+            .WithMany(m => m.CustomModules)
+            .HasForeignKey(cm => cm.ModuleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // UserCompany -> Company (N:1)
+        modelBuilder
+            .Entity<UserCompany>()
+            .HasOne(uc => uc.Company)
+            .WithMany(c => c.UserCompanies)
+            .HasForeignKey(uc => uc.CompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // UserCompany -> Address (N:1)
+        modelBuilder
+            .Entity<UserCompany>()
+            .HasOne(uc => uc.Address)
+            .WithMany()
+            .HasForeignKey(uc => uc.AddressId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // UserCompanyRole (UserCompany ↔ Role muchos a muchos)
+        modelBuilder
+            .Entity<UserCompanyRole>()
+            .HasIndex(ucr => new { ucr.UserCompanyId, ucr.RoleId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<UserCompanyRole>()
+            .HasOne(ucr => ucr.UserCompany)
+            .WithMany(uc => uc.UserCompanyRoles)
+            .HasForeignKey(ucr => ucr.UserCompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<UserCompanyRole>()
+            .HasOne(ucr => ucr.Role)
+            .WithMany(r => r.UserCompanyRoles)
+            .HasForeignKey(ucr => ucr.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // UserCompanySession -> UserCompany (N:1)
+        modelBuilder
+            .Entity<UserCompanySession>()
+            .HasOne(ucs => ucs.UserCompany)
+            .WithMany(uc => uc.UserCompanySessions)
+            .HasForeignKey(ucs => ucs.UserCompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // CompanyPermission relationships
+        modelBuilder
+            .Entity<CompanyPermission>()
+            .HasIndex(cp => new
+            {
+                cp.UserCompanyId,
+                cp.UserCompanyRoleId,
+                cp.Code,
+            })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<CompanyPermission>()
+            .HasOne(cp => cp.UserCompany)
+            .WithMany(uc => uc.CompanyPermissions)
+            .HasForeignKey(cp => cp.UserCompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<CompanyPermission>()
+            .HasOne(cp => cp.UserCompanyRole)
+            .WithMany(ucr => ucr.CompanyPermissions)
+            .HasForeignKey(cp => cp.UserCompanyRoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureNewIndexes(ModelBuilder modelBuilder)
+    {
+        // NUEVOS ÍNDICES
+        modelBuilder.Entity<Service>().HasIndex(s => s.Name).IsUnique();
+        modelBuilder.Entity<Module>().HasIndex(m => m.Name).IsUnique();
+        modelBuilder.Entity<UserCompany>().HasIndex(uc => uc.Email).IsUnique();
+        modelBuilder.Entity<UserCompany>().HasIndex(uc => uc.CompanyId);
+        modelBuilder.Entity<CompanyPermission>().HasIndex(cp => cp.Code);
+
+        // Índices adicionales para performance
+        modelBuilder.Entity<Module>().HasIndex(m => m.ServiceId);
+        modelBuilder.Entity<CustomPlan>().HasIndex(cp => cp.CompanyId).IsUnique();
+        modelBuilder.Entity<CustomPlan>().HasIndex(cp => cp.IsActive);
+        modelBuilder.Entity<CustomModule>().HasIndex(cm => cm.CustomPlanId);
+        modelBuilder.Entity<CustomModule>().HasIndex(cm => cm.ModuleId);
+
+        // Checks
+        modelBuilder
+            .Entity<Service>()
+            .ToTable(b => b.HasCheckConstraint("CK_Services_UserLimit", "[UserLimit] >= 0"));
+        modelBuilder
+            .Entity<Service>()
+            .ToTable(b => b.HasCheckConstraint("CK_Services_Price", "[Price] >= 0"));
+        modelBuilder
+            .Entity<CustomPlan>()
+            .ToTable(b => b.HasCheckConstraint("CK_CustomPlans_Price", "[Price] >= 0"));
+        modelBuilder
+            .Entity<CustomPlan>()
+            .ToTable(b =>
+                b.HasCheckConstraint(
+                    "CK_CustomPlans_Dates",
+                    "[EndDate] IS NULL OR [EndDate] > [StartDate]"
+                )
+            );
+    }
+
+    private void SeedData(ModelBuilder modelBuilder)
+    {
+        // Seeds en orden de dependencias
+        SeedPermissions(modelBuilder);
+        SeedServices(modelBuilder);
+        SeedModules(modelBuilder);
+        SeedRoles(modelBuilder);
+        SeedRolePermissions(modelBuilder);
+        SeedGeography(modelBuilder);
+        SeedCustomPlanAndCompany(modelBuilder); // CORREGIDO: CustomPlan + Company
+    }
+
+    // CONSTANTES ACTUALIZADAS
     static readonly Guid CompanySeedId = Guid.Parse("770e8400-e29b-41d4-a716-556655441000");
     static readonly Guid DevUserSeedId = Guid.Parse("880e8400-e29b-41d4-a716-556655441000");
     static readonly Guid DeveloperRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441001");
-    static readonly Guid AdministratorRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441002");
-    static readonly Guid UserRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441003");
-    static readonly Guid CustomerRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441004");
 
-    // Address seeds (GUID)
+    // NUEVOS ADMINISTRATOR ROLES POR SERVICIO
+    static readonly Guid AdministratorBasicRoleId = Guid.Parse(
+        "550e8400-e29b-41d4-a716-446655441002"
+    );
+    static readonly Guid AdministratorStandardRoleId = Guid.Parse(
+        "550e8400-e29b-41d4-a716-446655441003"
+    );
+    static readonly Guid AdministratorProRoleId = Guid.Parse(
+        "550e8400-e29b-41d4-a716-446655441004"
+    );
+
+    static readonly Guid UserRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441005");
+    static readonly Guid CustomerRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441006");
+
+    // NUEVOS IDs PARA SERVICIOS
+    static readonly Guid BasicServiceId = Guid.Parse("660e8400-e29b-41d4-a716-556655441001");
+    static readonly Guid StandardServiceId = Guid.Parse("660e8400-e29b-41d4-a716-556655441002");
+    static readonly Guid ProServiceId = Guid.Parse("660e8400-e29b-41d4-a716-556655441003");
+
+    // ID para CustomPlan de StackVision
+    static readonly Guid StackVisionCustomPlanId = Guid.Parse(
+        "880e8400-e29b-41d4-a716-556655441001"
+    );
+
+    // Address seeds
     static readonly Guid CompanyAddressSeedId = Guid.Parse("990e8400-e29b-41d4-a716-556655443001");
     static readonly Guid DevUserAddressSeedId = Guid.Parse("990e8400-e29b-41d4-a716-556655443000");
 
     // Geografía fija US
     const int USA = 220; // United States
     const int FL = 9; // Florida
+
+    private static void SeedServices(ModelBuilder modelBuilder)
+    {
+        modelBuilder
+            .Entity<Service>()
+            .HasData(
+                new Service
+                {
+                    Id = BasicServiceId,
+                    Name = "Basic",
+                    Description = "Basic tax preparation service with essential features",
+                    Price = 29.99m,
+                    UserLimit = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                },
+                new Service
+                {
+                    Id = StandardServiceId,
+                    Name = "Standard",
+                    Description = "Standard service with additional modules and more users",
+                    Price = 59.99m,
+                    UserLimit = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                },
+                new Service
+                {
+                    Id = ProServiceId,
+                    Name = "Pro",
+                    Description = "Professional service with all modules and unlimited features",
+                    Price = 99.99m,
+                    UserLimit = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                }
+            );
+    }
+
+    private static void SeedModules(ModelBuilder modelBuilder)
+    {
+        var modules = new[]
+        {
+            (
+                1,
+                "Tax Returns",
+                "Individual and business tax return preparation",
+                "/tax-returns",
+                BasicServiceId
+            ),
+            (2, "Invoicing", "Create and manage invoices", "/invoicing", BasicServiceId),
+            (
+                3,
+                "Document Management",
+                "Upload and organize tax documents",
+                "/documents",
+                BasicServiceId
+            ),
+            // Módulos Standard adicionales
+            (4, "Reports", "Generate financial and tax reports", "/reports", StandardServiceId),
+            (
+                5,
+                "Customer Portal",
+                "Dedicated portal for client communication",
+                "/customer-portal",
+                StandardServiceId
+            ),
+            // Módulos Pro adicionales
+            (
+                6,
+                "Advanced Analytics",
+                "Business insights and analytics",
+                "/analytics",
+                ProServiceId
+            ),
+            (
+                7,
+                "API Integration",
+                "Connect with third-party services",
+                "/api-integration",
+                ProServiceId
+            ),
+            (8, "White Label", "Custom branding options", "/white-label", ProServiceId),
+            // Módulos adicionales sin servicio base (disponibles para CustomPlan)
+            (
+                9,
+                "Multi-Company Management",
+                "Manage multiple companies from one dashboard",
+                "/multi-company",
+                Guid.Parse("00000000-0000-0000-0000-000000000000")
+            ),
+            (
+                10,
+                "Advanced Security",
+                "Enhanced security features and compliance",
+                "/security",
+                Guid.Parse("00000000-0000-0000-0000-000000000000")
+            ),
+        };
+
+        var moduleData = modules.Select(m => new Module
+        {
+            Id = Guid.Parse($"770e8400-e29b-41d4-a716-55665544{m.Item1:0000}"),
+            Name = m.Item2,
+            Description = m.Item3,
+            Url = m.Item4,
+            ServiceId =
+                m.Item5 == Guid.Parse("00000000-0000-0000-0000-000000000000") ? null : m.Item5,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        modelBuilder.Entity<Module>().HasData(moduleData);
+    }
 
     private static Guid NewPerm(int n) => Guid.Parse($"550e8400-e29b-41d4-a716-44665544{n:0000}");
 
@@ -406,7 +731,7 @@ public class ApplicationDbContext : DbContext
                 }
             );
 
-        // Permisos adicionales (27-39)
+        // Permisos adicionales (27-44)
         var extraPerms = new[]
         {
             (27, "Disable customer login", "Customer.DisableLogin"),
@@ -450,14 +775,35 @@ public class ApplicationDbContext : DbContext
                     Description =
                         "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
                     PortalAccess = PortalAccess.Developer,
+                    ServiceLevel = null, // No aplica para Developer
+                    CreatedAt = DateTime.UtcNow,
                 },
                 new Role
                 {
-                    Id = AdministratorRoleId,
-                    Name = "Administrator",
-                    Description =
-                        "Administrator of the company/preparer with total control of their organization.",
+                    Id = AdministratorBasicRoleId,
+                    Name = "Administrator Basic",
+                    Description = "Administrator with Basic service permissions and limitations.",
                     PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = ServiceLevel.Basic,
+                    CreatedAt = DateTime.UtcNow,
+                },
+                new Role
+                {
+                    Id = AdministratorStandardRoleId,
+                    Name = "Administrator Standard",
+                    Description = "Administrator with Standard service permissions and features.",
+                    PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = ServiceLevel.Standard,
+                    CreatedAt = DateTime.UtcNow,
+                },
+                new Role
+                {
+                    Id = AdministratorProRoleId,
+                    Name = "Administrator Pro",
+                    Description = "Administrator with Pro service permissions and full features.",
+                    PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = ServiceLevel.Pro,
+                    CreatedAt = DateTime.UtcNow,
                 },
                 new Role
                 {
@@ -466,6 +812,8 @@ public class ApplicationDbContext : DbContext
                     Description =
                         "User with limited access to specific functionalities of the company.",
                     PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = null, // Heredan permisos según el servicio de la company
+                    CreatedAt = DateTime.UtcNow,
                 },
                 new Role
                 {
@@ -474,6 +822,8 @@ public class ApplicationDbContext : DbContext
                     Description =
                         "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
                     PortalAccess = PortalAccess.Customer,
+                    ServiceLevel = null,
+                    CreatedAt = DateTime.UtcNow,
                 }
             );
     }
@@ -505,74 +855,100 @@ public class ApplicationDbContext : DbContext
     // ADMINISTRATOR - Permisos de gestión de company
     private static void SeedAdministratorRolePermissions(ModelBuilder mb)
     {
-        var adminPermissions = new[]
+        // 🔹 BASIC ADMIN: Permisos básicos
+        var basicAdminPermissions = new[]
         {
-            // Gestión de usuarios de su company
-            "TaxUser.Create",
-            "TaxUser.Read",
-            "TaxUser.View",
-            "TaxUser.Update",
-            "TaxUser.Delete",
-            // Gestión de customers
             "Customer.Create",
             "Customer.Read",
             "Customer.View",
             "Customer.Update",
-            "Customer.DisableLogin",
-            "Customer.EnableLogin",
-            // Gestión de dependientes
             "Dependent.Create",
-            "Dependent.Update",
-            "Dependent.Delete",
             "Dependent.Read",
             "Dependent.Viewer",
-            // Gestión de información fiscal
             "TaxInformation.Create",
-            "TaxInformation.Update",
-            "TaxInformation.Delete",
             "TaxInformation.Read",
             "TaxInformation.Viewer",
-            // Ver roles y permisos
-            "Role.View",
-            "Permission.View",
-            // Gestión de su company
             "Company.Read",
             "Company.View",
-            "Company.Update",
-            // Ver sesiones
             "Sessions.Read",
         };
 
-        var rolePermissions = adminPermissions.Select(
+        // 🔹 STANDARD ADMIN: Basic + permisos adicionales
+        var standardAdminPermissions = basicAdminPermissions
+            .Concat(
+                new[]
+                {
+                    "Customer.DisableLogin",
+                    "Customer.EnableLogin",
+                    "Dependent.Update",
+                    "TaxInformation.Update",
+                    "Role.View",
+                    "Permission.View",
+                }
+            )
+            .ToArray();
+
+        // 🔹 PRO ADMIN: Standard + permisos avanzados
+        var proAdminPermissions = standardAdminPermissions
+            .Concat(
+                new[]
+                {
+                    "TaxUser.Create",
+                    "TaxUser.Read",
+                    "TaxUser.View",
+                    "TaxUser.Update",
+                    "Dependent.Delete",
+                    "TaxInformation.Delete",
+                    "Company.Update",
+                }
+            )
+            .ToArray();
+
+        // Seed Basic Admin
+        var basicRolePermissions = basicAdminPermissions.Select(
             (code, idx) =>
                 new RolePermission
                 {
                     Id = Guid.Parse($"770e8400-e29b-41d4-a716-55665546{idx:0000}"),
-                    RoleId = AdministratorRoleId,
+                    RoleId = AdministratorBasicRoleId,
                     PermissionId = GetPermissionIdByCode(code),
+                    CreatedAt = DateTime.UtcNow,
                 }
         );
 
-        mb.Entity<RolePermission>().HasData(rolePermissions);
+        // Seed Standard Admin
+        var standardRolePermissions = standardAdminPermissions.Select(
+            (code, idx) =>
+                new RolePermission
+                {
+                    Id = Guid.Parse($"780e8400-e29b-41d4-a716-55665546{idx:0000}"),
+                    RoleId = AdministratorStandardRoleId,
+                    PermissionId = GetPermissionIdByCode(code),
+                    CreatedAt = DateTime.UtcNow,
+                }
+        );
+
+        // Seed Pro Admin
+        var proRolePermissions = proAdminPermissions.Select(
+            (code, idx) =>
+                new RolePermission
+                {
+                    Id = Guid.Parse($"790e8400-e29b-41d4-a716-55665546{idx:0000}"),
+                    RoleId = AdministratorProRoleId,
+                    PermissionId = GetPermissionIdByCode(code),
+                    CreatedAt = DateTime.UtcNow,
+                }
+        );
+
+        mb.Entity<RolePermission>().HasData(basicRolePermissions);
+        mb.Entity<RolePermission>().HasData(standardRolePermissions);
+        mb.Entity<RolePermission>().HasData(proRolePermissions);
     }
 
     // USER - Permisos básicos de lectura
     private static void SeedUserRolePermissions(ModelBuilder mb)
     {
-        var userPermissions = new[]
-        {
-            "Customer.View",
-            "Customer.Read",
-            "Dependent.Viewer",
-            "Dependent.Read",
-            "TaxInformation.Viewer",
-            "TaxInformation.Read",
-            "TaxUser.View",
-            "Role.View",
-            "Permission.View",
-            "Sessions.Read",
-            "Customer.SelfRead",
-        };
+        var userPermissions = new[] { "Sessions.Read" };
 
         var rolePermissions = userPermissions.Select(
             (code, idx) =>
@@ -631,25 +1007,24 @@ public class ApplicationDbContext : DbContext
             ["RolePermission.View"] = 23,
             ["RolePermission.Delete"] = 24,
             ["RolePermission.Update"] = 25,
-            ["Customer.SelfRead"] = 26,
-            ["Customer.DisableLogin"] = 27,
-            ["Customer.EnableLogin"] = 28,
-            ["Sessions.Read"] = 29,
-            ["Dependent.Create"] = 30,
-            ["Dependent.Update"] = 31,
-            ["Dependent.Delete"] = 32,
-            ["Dependent.Read"] = 33,
-            ["Dependent.Viewer"] = 34,
-            ["TaxInformation.Create"] = 35,
-            ["TaxInformation.Update"] = 36,
-            ["TaxInformation.Delete"] = 37,
-            ["TaxInformation.Read"] = 38,
-            ["TaxInformation.Viewer"] = 39,
-            ["Company.Create"] = 40,
-            ["Company.Read"] = 41,
-            ["Company.View"] = 42,
-            ["Company.Update"] = 43,
-            ["Company.Delete"] = 44,
+            ["Customer.DisableLogin"] = 26,
+            ["Customer.EnableLogin"] = 27,
+            ["Sessions.Read"] = 28,
+            ["Dependent.Create"] = 29,
+            ["Dependent.Update"] = 30,
+            ["Dependent.Delete"] = 31,
+            ["Dependent.Read"] = 32,
+            ["Dependent.Viewer"] = 33,
+            ["TaxInformation.Create"] = 34,
+            ["TaxInformation.Update"] = 35,
+            ["TaxInformation.Delete"] = 36,
+            ["TaxInformation.Read"] = 37,
+            ["TaxInformation.Viewer"] = 38,
+            ["Company.Create"] = 39,
+            ["Company.Read"] = 40,
+            ["Company.View"] = 41,
+            ["Company.Update"] = 42,
+            ["Company.Delete"] = 43,
         };
 
         if (permissionMapping.TryGetValue(code, out var permNumber))
@@ -1215,7 +1590,7 @@ public class ApplicationDbContext : DbContext
     }
 
     // COMPANY Y DEVELOPER SEED
-    private static void SeedCompanyAndDeveloper(ModelBuilder mb)
+    private static void SeedCustomPlanAndCompany(ModelBuilder mb)
     {
         // 1) Address para la Company (ejemplo en Miami, FL)
         mb.Entity<Address>()
@@ -1247,7 +1622,24 @@ public class ApplicationDbContext : DbContext
                 }
             );
 
-        // 3) Company StackVision
+        // 3) CustomPlan para StackVision
+        mb.Entity<CustomPlan>()
+            .HasData(
+                new CustomPlan
+                {
+                    Id = StackVisionCustomPlanId,
+                    CompanyId = CompanySeedId, // CORREGIDO: CompanyId en lugar de ServiceId
+                    Price = 0.00m, // Gratis para el desarrollador
+                    IsActive = true,
+                    StartDate = DateTime.UtcNow,
+                    EndDate = null, // Sin expiración
+                    isRenewed = false,
+                    RenewDate = DateTime.UtcNow.AddYears(1),
+                    CreatedAt = DateTime.UtcNow,
+                }
+            );
+
+        // 4) Company StackVision con CustomPlan
         mb.Entity<Company>()
             .HasData(
                 new Company
@@ -1259,9 +1651,9 @@ public class ApplicationDbContext : DbContext
                     Phone = "8298981594",
                     Description = "Software Developers Assembly.",
                     Domain = "stackvision",
-                    UserLimit = 25,
                     Brand = "https://images5.example.com/",
                     AddressId = CompanyAddressSeedId,
+                    CustomPlanId = StackVisionCustomPlanId,
                 }
             );
 
