@@ -1,5 +1,5 @@
-using Applications.DTOs.CompanyDTOs;
-using AuthService.DTOs.UserCompanyDTOs;
+using AuthService.DTOs.CompanyDTOs;
+using AuthService.DTOs.UserDTOs;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -9,7 +9,7 @@ using Queries.CompanyQueries;
 namespace Handlers.CompanyHandlers;
 
 public class GetMyCompanyUsersHandler
-    : IRequestHandler<GetMyCompanyUsersQuery, ApiResponse<List<UserCompanyDTO>>>
+    : IRequestHandler<GetMyCompanyUsersQuery, ApiResponse<CompanyUsersCompleteDTO>>
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly ILogger<GetMyCompanyUsersHandler> _logger;
@@ -23,56 +23,41 @@ public class GetMyCompanyUsersHandler
         _logger = logger;
     }
 
-    public async Task<ApiResponse<List<UserCompanyDTO>>> Handle(
+    public async Task<ApiResponse<CompanyUsersCompleteDTO>> Handle(
         GetMyCompanyUsersQuery request,
         CancellationToken cancellationToken
     )
     {
         try
         {
-            // 1. Verificar que la company preparadora existe
+            // 1. Verificar que la company existe y obtener información del plan
             var companyInfoQuery =
                 from c in _dbContext.Companies
                 join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where c.Id == request.CompanyId
-                select new
-                {
-                    Company = c,
-                    CustomPlan = cp,
-                    // Obtener información del servicio base para límites
-                    ServiceInfo = (
-                        from s in _dbContext.Services
-                        from cm in _dbContext.CustomModules
-                        join m in _dbContext.Modules on cm.ModuleId equals m.Id
-                        where cm.CustomPlanId == cp.Id && m.ServiceId == s.Id && cm.IsIncluded
-                        select s
-                    ).FirstOrDefault(),
-                };
+                select new { Company = c, CustomPlan = cp };
 
             var companyInfo = await companyInfoQuery.FirstOrDefaultAsync(cancellationToken);
             if (companyInfo?.Company == null)
             {
                 _logger.LogWarning("Company not found: {CompanyId}", request.CompanyId);
-                return new ApiResponse<List<UserCompanyDTO>>(
+                return new ApiResponse<CompanyUsersCompleteDTO>(
                     false,
                     "Company not found",
-                    new List<UserCompanyDTO>()
+                    new CompanyUsersCompleteDTO()
                 );
             }
 
-            // 2. Obtener UserCompanies (empleados) de la company
-            var employeesQuery =
-                from uc in _dbContext.UserCompanies
-                join c in _dbContext.Companies on uc.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
-                join ua in _dbContext.Addresses on uc.AddressId equals ua.Id into userAddresses
-                from ua in userAddresses.DefaultIfEmpty()
-                join ucountry in _dbContext.Countries
-                    on ua.CountryId equals ucountry.Id
-                    into userCountries
-                from ucountry in userCountries.DefaultIfEmpty()
-                join ustate in _dbContext.States on ua.StateId equals ustate.Id into userStates
-                from ustate in userStates.DefaultIfEmpty()
+            // 2. Obtener todos los TaxUsers de la company (sin cambios en la query principal)
+            var usersQuery =
+                from u in _dbContext.TaxUsers
+                join c in _dbContext.Companies on u.CompanyId equals c.Id
+                join a in _dbContext.Addresses on u.AddressId equals a.Id into addresses
+                from a in addresses.DefaultIfEmpty()
+                join country in _dbContext.Countries on a.CountryId equals country.Id into countries
+                from country in countries.DefaultIfEmpty()
+                join state in _dbContext.States on a.StateId equals state.Id into states
+                from state in states.DefaultIfEmpty()
                 join ca in _dbContext.Addresses on c.AddressId equals ca.Id into companyAddresses
                 from ca in companyAddresses.DefaultIfEmpty()
                 join ccountry in _dbContext.Countries
@@ -81,49 +66,48 @@ public class GetMyCompanyUsersHandler
                 from ccountry in companyCountries.DefaultIfEmpty()
                 join cstate in _dbContext.States on ca.StateId equals cstate.Id into companyStates
                 from cstate in companyStates.DefaultIfEmpty()
-                where uc.CompanyId == request.CompanyId
-                orderby uc.CreatedAt descending
-                select new UserCompanyDTO
+                where u.CompanyId == request.CompanyId
+                orderby u.IsOwner descending, u.CreatedAt descending // Owner primero
+                select new UserGetDTO
                 {
-                    Id = uc.Id,
-                    CompanyId = uc.CompanyId,
-                    Email = uc.Email,
-                    Name = uc.Name,
-                    LastName = uc.LastName,
-                    PhoneNumber = uc.PhoneNumber,
-                    PhotoUrl = uc.PhotoUrl,
-                    IsActive = uc.IsActive,
-                    IsActiveDate = uc.IsActiveDate,
-                    Confirm = uc.Confirm ?? false,
-                    CreatedAt = uc.CreatedAt,
+                    Id = u.Id,
+                    CompanyId = u.CompanyId,
+                    Email = u.Email,
+                    IsOwner = u.IsOwner,
+                    Name = u.Name,
+                    LastName = u.LastName,
+                    PhoneNumber = u.PhoneNumber,
+                    PhotoUrl = u.PhotoUrl,
+                    IsActive = u.IsActive,
+                    Confirm = u.Confirm ?? false,
+                    CreatedAt = u.CreatedAt,
 
-                    // Dirección del empleado
+                    // Direcciones (sin cambios)
                     Address =
-                        ua != null
-                            ? new AddressDTO
+                        a != null
+                            ? new Applications.DTOs.CompanyDTOs.AddressDTO
                             {
-                                CountryId = ua.CountryId,
-                                StateId = ua.StateId,
-                                City = ua.City,
-                                Street = ua.Street,
-                                Line = ua.Line,
-                                ZipCode = ua.ZipCode,
-                                CountryName = ucountry.Name,
-                                StateName = ustate.Name,
+                                CountryId = a.CountryId,
+                                StateId = a.StateId,
+                                City = a.City,
+                                Street = a.Street,
+                                Line = a.Line,
+                                ZipCode = a.ZipCode,
+                                CountryName = country.Name,
+                                StateName = state.Name,
                             }
                             : null,
 
-                    // Información de la company preparadora (su empleador)
+                    // Información de la company (sin cambios)
                     CompanyFullName = c.FullName,
                     CompanyName = c.CompanyName,
                     CompanyBrand = c.Brand,
                     CompanyIsIndividual = !c.IsCompany,
                     CompanyDomain = c.Domain,
 
-                    // Dirección de la company preparadora
                     CompanyAddress =
                         ca != null
-                            ? new AddressDTO
+                            ? new Applications.DTOs.CompanyDTOs.AddressDTO
                             {
                                 CountryId = ca.CountryId,
                                 StateId = ca.StateId,
@@ -140,103 +124,119 @@ public class GetMyCompanyUsersHandler
                     CustomPermissions = new List<string>(),
                 };
 
-            var employees = await employeesQuery.ToListAsync(cancellationToken);
+            var users = await usersQuery.ToListAsync(cancellationToken);
 
-            if (!employees.Any())
+            if (!users.Any())
             {
                 _logger.LogInformation(
-                    "No employees found for company: {CompanyId}",
+                    "No users found for company: {CompanyId}",
                     request.CompanyId
                 );
-                return new ApiResponse<List<UserCompanyDTO>>(
+                return new ApiResponse<CompanyUsersCompleteDTO>(
                     true,
-                    "No employees found for this company",
-                    new List<UserCompanyDTO>()
+                    "No users found for this company",
+                    new CompanyUsersCompleteDTO
+                    {
+                        CompanyId = request.CompanyId,
+                        CompanyName = companyInfo.Company.CompanyName,
+                        IsCompany = companyInfo.Company.IsCompany,
+                        ServiceUserLimit = companyInfo.CustomPlan.UserLimit,
+                        Users = new List<UserGetDTO>(),
+                    }
                 );
             }
 
-            // 3. Obtener roles y permisos personalizados de los empleados
-            await PopulateUserCompanyRolesAndPermissionsAsync(employees, cancellationToken);
+            // 3. Obtener roles y permisos (sin cambios)
+            await PopulateTaxUserRolesAndPermissionsAsync(users, cancellationToken);
 
-            // 4. Información adicional del plan para context
-            var planInfo =
-                companyInfo.ServiceInfo != null
-                    ? $"Plan allows up to {companyInfo.ServiceInfo.UserLimit} users"
-                    : "Custom plan";
+            // 🔧 4. CAMBIO: Usar CustomPlan.UserLimit
+            var result = new CompanyUsersCompleteDTO
+            {
+                CompanyId = request.CompanyId,
+                CompanyName = companyInfo.Company.IsCompany
+                    ? companyInfo.Company.CompanyName
+                    : companyInfo.Company.FullName,
+                IsCompany = companyInfo.Company.IsCompany,
+                ServiceUserLimit = companyInfo.CustomPlan.UserLimit,
+                Users = users,
+            };
 
             _logger.LogInformation(
-                "Retrieved {Count} employees (UserCompanies) for company {CompanyId}. {PlanInfo}",
-                employees.Count,
+                "Retrieved {Count} TaxUsers for company {CompanyId} (Owner: {Owner}, Regular: {Regular}). CustomPlan limit: {Limit}",
+                result.TotalUsers,
                 request.CompanyId,
-                planInfo
+                result.OwnerCount,
+                result.RegularUsersCount,
+                companyInfo.CustomPlan.UserLimit
             );
 
-            return new ApiResponse<List<UserCompanyDTO>>(
+            return new ApiResponse<CompanyUsersCompleteDTO>(
                 true,
-                $"Company employees retrieved successfully. {planInfo}",
-                employees
+                $"Company users retrieved successfully. {result.TotalUsers} users found.",
+                result
             );
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "Error retrieving employees for company {CompanyId}: {Message}",
+                "Error retrieving users for company {CompanyId}: {Message}",
                 request.CompanyId,
                 ex.Message
             );
-            return new ApiResponse<List<UserCompanyDTO>>(
+            return new ApiResponse<CompanyUsersCompleteDTO>(
                 false,
-                "Error retrieving company employees",
-                new List<UserCompanyDTO>()
+                "Error retrieving company users",
+                new CompanyUsersCompleteDTO()
             );
         }
     }
 
     /// <summary>
-    /// Popula roles y permisos personalizados para los empleados (UserCompanies)
+    /// Popula roles y permisos personalizados para TaxUsers
     /// </summary>
-    private async Task PopulateUserCompanyRolesAndPermissionsAsync(
-        List<UserCompanyDTO> employees,
+    private async Task PopulateTaxUserRolesAndPermissionsAsync(
+        List<UserGetDTO> users,
         CancellationToken ct
     )
     {
-        var employeeIds = employees.Select(uc => uc.Id).ToList();
+        var userIds = users.Select(u => u.Id).ToList();
 
-        // Obtener roles de los empleados
+        // Obtener roles de los TaxUsers
         var rolesQuery =
-            from ucr in _dbContext.UserCompanyRoles
-            join r in _dbContext.Roles on ucr.RoleId equals r.Id
-            where employeeIds.Contains(ucr.UserCompanyId)
-            select new { ucr.UserCompanyId, r.Name };
+            from ur in _dbContext.UserRoles
+            join r in _dbContext.Roles on ur.RoleId equals r.Id
+            where userIds.Contains(ur.TaxUserId)
+            select new { ur.TaxUserId, r.Name };
 
-        var employeeRoles = await rolesQuery.ToListAsync(ct);
-        var rolesByEmployee = employeeRoles
-            .GroupBy(x => x.UserCompanyId)
+        var userRoles = await rolesQuery.ToListAsync(ct);
+        var rolesByUser = userRoles
+            .GroupBy(x => x.TaxUserId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
 
-        // Obtener permisos personalizados de los empleados
+        // CompanyPermissions ahora apunta directamente a TaxUser
         var permissionsQuery =
             from cp in _dbContext.CompanyPermissions
-            where employeeIds.Contains(cp.UserCompanyId) && cp.IsGranted
-            select new { cp.UserCompanyId, cp.Code };
+            join p in _dbContext.Permissions on cp.PermissionId equals p.Id
+            where userIds.Contains(cp.TaxUserId) && cp.IsGranted
+            select new { cp.TaxUserId, p.Code };
 
-        var employeePermissions = await permissionsQuery.ToListAsync(ct);
-        var permissionsByEmployee = employeePermissions
-            .GroupBy(x => x.UserCompanyId)
+        var userPermissions = await permissionsQuery.ToListAsync(ct);
+        var permissionsByUser = userPermissions
+            .GroupBy(x => x.TaxUserId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
 
-        // Asignar roles y permisos a cada empleado
-        foreach (var employee in employees)
+        // Asignar roles y permisos a cada usuario
+        foreach (var user in users)
         {
-            if (rolesByEmployee.TryGetValue(employee.Id, out var roles))
+            if (rolesByUser.TryGetValue(user.Id, out var roles))
             {
-                employee.RoleNames = roles;
+                user.RoleNames = roles;
             }
 
-            if (permissionsByEmployee.TryGetValue(employee.Id, out var permissions))
+            if (permissionsByUser.TryGetValue(user.Id, out var permissions))
             {
-                employee.CustomPermissions = permissions;
+                user.CustomPermissions = permissions;
             }
         }
     }

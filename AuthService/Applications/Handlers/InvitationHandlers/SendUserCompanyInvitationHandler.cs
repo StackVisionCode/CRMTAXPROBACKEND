@@ -7,20 +7,20 @@ using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.InvitationEvents;
 
-namespace AuthService.Handlers.InvitationHandlers;
+namespace Handlers.UserHandlers;
 
-public class SendUserCompanyInvitationHandler
-    : IRequestHandler<SendUserCompanyInvitationCommand, ApiResponse<bool>>
+public class SendUserInvitationHandler
+    : IRequestHandler<SendUserInvitationCommand, ApiResponse<bool>>
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly ILogger<SendUserCompanyInvitationHandler> _logger;
+    private readonly ILogger<SendUserInvitationHandler> _logger;
     private readonly IInvitationTokenService _invitationTokenService;
     private readonly IEventBus _eventBus;
     private readonly LinkBuilder _linkBuilder;
 
-    public SendUserCompanyInvitationHandler(
+    public SendUserInvitationHandler(
         ApplicationDbContext dbContext,
-        ILogger<SendUserCompanyInvitationHandler> logger,
+        ILogger<SendUserInvitationHandler> logger,
         IInvitationTokenService invitationTokenService,
         IEventBus eventBus,
         LinkBuilder linkBuilder
@@ -34,7 +34,7 @@ public class SendUserCompanyInvitationHandler
     }
 
     public async Task<ApiResponse<bool>> Handle(
-        SendUserCompanyInvitationCommand request,
+        SendUserInvitationCommand request,
         CancellationToken cancellationToken
     )
     {
@@ -45,6 +45,7 @@ public class SendUserCompanyInvitationHandler
             // 1. Verificar que la company existe y obtener información
             var companyQuery =
                 from c in _dbContext.Companies
+                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where c.Id == invitation.CompanyId
                 select new
                 {
@@ -53,8 +54,12 @@ public class SendUserCompanyInvitationHandler
                     c.FullName,
                     c.Domain,
                     c.IsCompany,
-                    c.CustomPlan,
-                    CurrentUserCompanyCount = c.UserCompanies.Count(),
+                    CustomPlanId = cp.Id,
+                    CustomPlanIsActive = cp.IsActive,
+                    UserLimit = cp.UserLimit,
+                    CurrentActiveUserCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == invitation.CompanyId && u.IsActive
+                    ),
                 };
 
             var company = await companyQuery.FirstOrDefaultAsync(cancellationToken);
@@ -64,58 +69,63 @@ public class SendUserCompanyInvitationHandler
                 return new ApiResponse<bool>(false, "Company not found", false);
             }
 
-            // 2. Verificar límites de usuarios basado en CustomPlan
-            var serviceQuery =
-                from cm in _dbContext.CustomModules
-                join m in _dbContext.Modules on cm.ModuleId equals m.Id
-                join s in _dbContext.Services on m.ServiceId equals s.Id
-                where cm.CustomPlanId == company.CustomPlan.Id && cm.IsIncluded
-                select s.UserLimit;
-
-            var userLimit = await serviceQuery.FirstOrDefaultAsync(cancellationToken);
-            if (userLimit > 0 && company.CurrentUserCompanyCount >= userLimit)
+            if (!company.CustomPlanIsActive)
             {
-                _logger.LogWarning(
-                    "User limit exceeded for company: {CompanyId}. Current: {Current}, Limit: {Limit}",
-                    invitation.CompanyId,
-                    company.CurrentUserCompanyCount,
-                    userLimit
-                );
-                return new ApiResponse<bool>(false, "User limit exceeded for this company", false);
+                _logger.LogWarning("Company plan is inactive: {CompanyId}", invitation.CompanyId);
+                return new ApiResponse<bool>(false, "Company plan is inactive", false);
             }
 
-            // 3. Verificar que el email no esté ya registrado en TaxUsers o UserCompanies
-            var emailExistsInTaxUsers = await _dbContext.TaxUsers.AnyAsync(
+            // 2. Verificar límites de usuarios basado en CustomPlan
+            if (company.CurrentActiveUserCount >= company.UserLimit)
+            {
+                _logger.LogWarning(
+                    "User limit exceeded for company: {CompanyId}. "
+                        + "Current active users: {Current}, CustomPlan limit: {Limit}",
+                    invitation.CompanyId,
+                    company.CurrentActiveUserCount,
+                    company.UserLimit
+                );
+                return new ApiResponse<bool>(
+                    false,
+                    $"User limit exceeded. Current: {company.CurrentActiveUserCount}, Limit: {company.UserLimit}",
+                    false
+                );
+            }
+
+            // 3. Verificar que el email no esté ya registrado
+            var emailExists = await _dbContext.TaxUsers.AnyAsync(
                 u => u.Email == invitation.Email,
                 cancellationToken
             );
 
-            var emailExistsInUserCompanies = await _dbContext.UserCompanies.AnyAsync(
-                uc => uc.Email == invitation.Email,
-                cancellationToken
-            );
-
-            if (emailExistsInTaxUsers || emailExistsInUserCompanies)
+            if (emailExists)
             {
                 _logger.LogWarning("Email already exists in the system: {Email}", invitation.Email);
                 return new ApiResponse<bool>(false, "Email already exists in the system", false);
             }
 
-            // 4. Validar roles si se especifican
+            // 4. Validar roles si se especifican (no permitir roles de Administrator/Developer)
             if (invitation.RoleIds?.Any() == true)
             {
                 var validRoleCount = await _dbContext.Roles.CountAsync(
-                    r => invitation.RoleIds.Contains(r.Id),
+                    r =>
+                        invitation.RoleIds.Contains(r.Id)
+                        && !r.Name.Contains("Administrator")
+                        && !r.Name.Contains("Developer"),
                     cancellationToken
                 );
 
                 if (validRoleCount != invitation.RoleIds.Count)
                 {
                     _logger.LogWarning(
-                        "Some role IDs are invalid for invitation to {Email}",
+                        "Some role IDs are invalid or not allowed for invitation to {Email}",
                         invitation.Email
                     );
-                    return new ApiResponse<bool>(false, "Some specified roles are invalid", false);
+                    return new ApiResponse<bool>(
+                        false,
+                        "Some specified roles are invalid or not allowed",
+                        false
+                    );
                 }
             }
 
@@ -137,7 +147,7 @@ public class SendUserCompanyInvitationHandler
 
             // 7. Publicar evento para envío de email
             _eventBus.Publish(
-                new UserCompanyInvitationSentEvent(
+                new UserInvitationSentEvent(
                     Id: Guid.NewGuid(),
                     OccurredOn: DateTime.UtcNow,
                     CompanyId: invitation.CompanyId,

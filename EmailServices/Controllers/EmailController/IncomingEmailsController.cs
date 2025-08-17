@@ -18,13 +18,16 @@ public class IncomingEmailsController : ControllerBase
     // Listar emails entrantes
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<IncomingEmailDTO>>>> List(
-        [FromQuery] Guid? userId = null,
+        [FromQuery] Guid companyId,
+        [FromQuery] Guid? taxUserId = null,
         [FromQuery] bool? isRead = null
     )
     {
         try
         {
-            var result = await _mediator.Send(new GetIncomingEmailsQuery(userId, isRead));
+            var result = await _mediator.Send(
+                new GetIncomingEmailsQuery(companyId, taxUserId, isRead)
+            );
             var response = new ApiResponse<IEnumerable<IncomingEmailDTO>>(
                 true,
                 "Incoming emails retrieved successfully",
@@ -41,11 +44,14 @@ public class IncomingEmailsController : ControllerBase
 
     // Obtener email entrante por ID
     [HttpGet("{id:Guid}")]
-    public async Task<ActionResult<ApiResponse<IncomingEmailDTO>>> Get(Guid id)
+    public async Task<ActionResult<ApiResponse<IncomingEmailDTO>>> Get(
+        Guid id,
+        [FromQuery] Guid companyId
+    )
     {
         try
         {
-            var email = await _mediator.Send(new GetIncomingEmailByIdQuery(id));
+            var email = await _mediator.Send(new GetIncomingEmailByIdQuery(id, companyId));
             if (email is null)
             {
                 var notFoundResponse = new ApiResponse<IncomingEmailDTO>(
@@ -72,11 +78,17 @@ public class IncomingEmailsController : ControllerBase
 
     // Marcar como leído
     [HttpPatch("{id:Guid}/mark-read")]
-    public async Task<ActionResult<ApiResponse<object>>> MarkAsRead(Guid id)
+    public async Task<ActionResult<ApiResponse<object>>> MarkAsRead(
+        Guid id,
+        [FromQuery] Guid companyId,
+        [FromQuery] Guid modifiedByTaxUserId
+    )
     {
         try
         {
-            await _mediator.Send(new MarkIncomingEmailAsReadCommand(id));
+            await _mediator.Send(
+                new MarkIncomingEmailAsReadCommand(id, companyId, modifiedByTaxUserId)
+            );
             var response = new ApiResponse<object>(true, "Email marked as read", null);
             return Ok(response);
         }

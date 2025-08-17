@@ -164,13 +164,10 @@ builder.Services.AddScoped<
     AccountConfirmationLinkHandler
 >();
 builder.Services.AddScoped<
-    IIntegrationEventHandler<UserCompanyInvitationSentEvent>,
-    UserCompanyInvitationSentHandler
+    IIntegrationEventHandler<UserInvitationSentEvent>,
+    UserInvitationSentHandler
 >();
-builder.Services.AddScoped<
-    IIntegrationEventHandler<UserCompanyRegisteredEvent>,
-    UserCompanyRegisteredHandler
->();
+builder.Services.AddScoped<IIntegrationEventHandler<UserRegisteredEvent>, UserRegisteredHandler>();
 builder.Services.AddScoped<
     IIntegrationEventHandler<AccountConfirmedEvent>,
     AccountActivatedHandler
@@ -205,8 +202,8 @@ builder.Services.AddScoped<PasswordResetEventHandler>();
 builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
 builder.Services.AddScoped<PasswordChangedEventHandler>();
 builder.Services.AddScoped<AccountConfirmationLinkHandler>();
-builder.Services.AddScoped<UserCompanyInvitationSentHandler>();
-builder.Services.AddScoped<UserCompanyRegisteredHandler>();
+builder.Services.AddScoped<UserInvitationSentHandler>();
+builder.Services.AddScoped<UserRegisteredHandler>();
 builder.Services.AddScoped<AccountActivatedHandler>();
 builder.Services.AddScoped<SignatureInvitationHandler>();
 builder.Services.AddScoped<PartiallySignedHandler>();
@@ -226,7 +223,7 @@ using (var scope = app.Services.CreateScope())
     if (hybridCache != null)
     {
         logger.LogInformation(
-            "✅ Email Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+            "Email Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
             hybridCache.CurrentCacheMode,
             hybridCache.IsRedisAvailable
         );
@@ -241,8 +238,8 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<PasswordResetOtpEvent, PasswordResetOtpEventsHandler>();
     bus.Subscribe<PasswordChangedEvent, PasswordChangedEventHandler>();
     bus.Subscribe<AccountConfirmationLinkEvent, AccountConfirmationLinkHandler>();
-    bus.Subscribe<UserCompanyInvitationSentEvent, UserCompanyInvitationSentHandler>();
-    bus.Subscribe<UserCompanyRegisteredEvent, UserCompanyRegisteredHandler>();
+    bus.Subscribe<UserInvitationSentEvent, UserInvitationSentHandler>();
+    bus.Subscribe<UserRegisteredEvent, UserRegisteredHandler>();
     bus.Subscribe<AccountConfirmedEvent, AccountActivatedHandler>();
     bus.Subscribe<SignatureInvitationEvent, SignatureInvitationHandler>();
     bus.Subscribe<SignatureRequestRejectedEvent, SignatureRequestRejectedHandler>();

@@ -16,7 +16,6 @@ public class RoleProfile : Profile
 
         CreateMap<RoleDTO, Role>()
             .ForMember(d => d.RolePermissions, o => o.Ignore())
-            .ForMember(d => d.UserRoles, o => o.Ignore())
-            .ForMember(d => d.UserCompanyRoles, o => o.Ignore());
+            .ForMember(d => d.UserRoles, o => o.Ignore());
     }
 }

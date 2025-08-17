@@ -16,8 +16,7 @@ public sealed class PasswordHash : IPasswordHash
 
         byte[] salt = RandomNumberGenerator.GetBytes(SaltSize);
 
-        var pbkdf2 = new Rfc2898DeriveBytes(
-            password, salt, Iterations, HashAlgorithmName.SHA512);
+        var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA512);
 
         byte[] hash = pbkdf2.GetBytes(HashSize);
 
@@ -39,8 +38,7 @@ public sealed class PasswordHash : IPasswordHash
         byte[] salt = new byte[SaltSize];
         Buffer.BlockCopy(hashBytes, 0, salt, 0, SaltSize);
 
-        var pbkdf2 = new Rfc2898DeriveBytes(
-            password, salt, Iterations, HashAlgorithmName.SHA512);
+        var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA512);
 
         byte[] hashToCompare = pbkdf2.GetBytes(HashSize);
 

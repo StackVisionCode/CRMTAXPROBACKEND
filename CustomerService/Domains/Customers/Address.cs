@@ -11,5 +11,7 @@ public class Address : BaseEntity
     public string? ZipCode { get; set; }
     public string Country { get; set; } = "USA";
     public required Guid CustomerId { get; set; }
+    public Guid CreatedByTaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
     public virtual Customer? Customer { get; set; }
 }

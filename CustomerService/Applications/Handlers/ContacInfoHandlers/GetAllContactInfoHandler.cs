@@ -41,38 +41,50 @@ public class GetAllContactInfoHandler
                 select new ReadContactInfoDTO
                 {
                     Id = contactInfo.Id,
+                    CustomerId = contactInfo.CustomerId,
                     Email = contactInfo.Email,
                     IsLoggin = contactInfo.IsLoggin,
                     PhoneNumber = contactInfo.PhoneNumber,
+                    PreferredContactId = contactInfo.PreferredContactId,
+                    PasswordClient = contactInfo.PasswordClient,
                     Customer = customer.FirstName + " " + customer.LastName,
                     PreferredContact = preferredContact.Name,
+                    // Auditoría
+                    CreatedAt = contactInfo.CreatedAt,
+                    CreatedByTaxUserId = contactInfo.CreatedByTaxUserId,
+                    UpdatedAt = contactInfo.UpdatedAt,
+                    LastModifiedByTaxUserId = contactInfo.LastModifiedByTaxUserId,
                 }
-            ).ToListAsync();
+            ).ToListAsync(cancellationToken);
+
             if (result is null || !result.Any())
             {
                 _logger.LogInformation("No ContactInfo found.");
                 return new ApiResponse<List<ReadContactInfoDTO>>(
                     false,
                     "No ContactInfo found",
-                    null!
+                    new List<ReadContactInfoDTO>()
                 );
             }
 
-            var contactInfoDtos = _mapper.Map<List<ReadContactInfoDTO>>(result);
             _logger.LogInformation(
-                "ContactInfo retrieved successfully: {ContactInfo}",
-                contactInfoDtos
+                "ContactInfo retrieved successfully: {Count} records",
+                result.Count
             );
             return new ApiResponse<List<ReadContactInfoDTO>>(
                 true,
                 "ContactInfo retrieved successfully",
-                contactInfoDtos
+                result
             );
         }
         catch (Exception ex)
         {
             _logger.LogError("Error retrieving ContactInfo: {Message}", ex.Message);
-            return new ApiResponse<List<ReadContactInfoDTO>>(false, ex.Message, null!);
+            return new ApiResponse<List<ReadContactInfoDTO>>(
+                false,
+                ex.Message,
+                new List<ReadContactInfoDTO>()
+            );
         }
     }
 }

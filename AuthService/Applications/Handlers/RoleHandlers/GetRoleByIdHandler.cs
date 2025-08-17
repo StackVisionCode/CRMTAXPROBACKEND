@@ -1,5 +1,4 @@
 using AuthService.DTOs.RoleDTOs;
-using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -11,17 +10,11 @@ namespace Handlers.RoleHandlers;
 public class GetRoleByIdHandler : IRequestHandler<GetRoleByIdQuery, ApiResponse<RoleDTO>>
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetRoleByIdHandler> _logger;
 
-    public GetRoleByIdHandler(
-        ApplicationDbContext dbContext,
-        IMapper mapper,
-        ILogger<GetRoleByIdHandler> logger
-    )
+    public GetRoleByIdHandler(ApplicationDbContext dbContext, ILogger<GetRoleByIdHandler> logger)
     {
         _dbContext = dbContext;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -32,6 +25,7 @@ public class GetRoleByIdHandler : IRequestHandler<GetRoleByIdQuery, ApiResponse<
     {
         try
         {
+            // Query con ServiceLevel y CreatedAt
             var role = await (
                 from r in _dbContext.Roles
                 where r.Id == request.RoleId
@@ -46,6 +40,8 @@ public class GetRoleByIdHandler : IRequestHandler<GetRoleByIdQuery, ApiResponse<
                     r.Name,
                     r.Description,
                     r.PortalAccess,
+                    r.ServiceLevel,
+                    r.CreatedAt,
                 } into g
                 select new RoleDTO
                 {
@@ -53,6 +49,8 @@ public class GetRoleByIdHandler : IRequestHandler<GetRoleByIdQuery, ApiResponse<
                     Name = g.Key.Name,
                     Description = g.Key.Description,
                     PortalAccess = g.Key.PortalAccess,
+                    ServiceLevel = g.Key.ServiceLevel,
+                    CreatedAt = g.Key.CreatedAt,
                     PermissionCodes = g.Where(p => p != null)
                         .Select(p => p!.Code)
                         .Distinct()
@@ -61,16 +59,18 @@ public class GetRoleByIdHandler : IRequestHandler<GetRoleByIdQuery, ApiResponse<
             ).FirstOrDefaultAsync(cancellationToken);
 
             if (role is null)
-                return new ApiResponse<RoleDTO>(false, "Role not found");
+            {
+                _logger.LogWarning("Role not found: {RoleId}", request.RoleId);
+                return new ApiResponse<RoleDTO>(false, "Role not found", null!);
+            }
 
-            var roleDto = _mapper.Map<RoleDTO>(role);
-
-            return new ApiResponse<RoleDTO>(true, "Ok", roleDto);
+            _logger.LogInformation("Role retrieved successfully: {RoleId}", request.RoleId);
+            return new ApiResponse<RoleDTO>(true, "Role retrieved successfully", role);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching role {Id}", request.RoleId);
-            return new(false, ex.Message);
+            _logger.LogError(ex, "Error fetching role {Id}: {Message}", request.RoleId, ex.Message);
+            return new ApiResponse<RoleDTO>(false, ex.Message, null!);
         }
     }
 }

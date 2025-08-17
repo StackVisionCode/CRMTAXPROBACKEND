@@ -53,40 +53,53 @@ public class GmailWebhookController : ControllerBase
                         gmailNotification.EmailAddress
                     );
 
-                    // Buscar configuración correspondiente y sincronizar
+                    // ACTUALIZADO: Buscar configuración con validación de IsActive
                     using var scope = HttpContext.RequestServices.CreateScope();
                     var context =
                         scope.ServiceProvider.GetRequiredService<Infrastructure.Context.EmailContext>();
 
-                    var config = await context.EmailConfigs.FirstOrDefaultAsync(c =>
-                        c.GmailEmailAddress == gmailNotification.EmailAddress
-                    );
+                    var config = await context
+                        .EmailConfigs.Where(c =>
+                            c.GmailEmailAddress == gmailNotification.EmailAddress && c.IsActive
+                        )
+                        .FirstOrDefaultAsync();
 
                     if (config != null)
                     {
-                        // Sincronizar emails de forma asíncrona
+                        // ACTUALIZADO: Sincronizar emails con CompanyId
                         _ = Task.Run(async () =>
                         {
                             try
                             {
+                                // Usar el servicio actualizado que requiere CompanyId
                                 await _reactiveService.SyncAllEmailsAsync(
                                     config.Id,
+                                    config.CompanyId, // NUEVO: CompanyId requerido
                                     DateTime.UtcNow.AddMinutes(-5)
                                 );
                                 _logger.LogInformation(
-                                    "✅ Synced emails for {Email} due to push notification",
-                                    gmailNotification.EmailAddress
+                                    "✅ Synced emails for {Email} (Company: {CompanyId}) due to push notification",
+                                    gmailNotification.EmailAddress,
+                                    config.CompanyId
                                 );
                             }
                             catch (Exception syncEx)
                             {
                                 _logger.LogError(
                                     syncEx,
-                                    "❌ Error syncing emails after push notification for {Email}",
-                                    gmailNotification.EmailAddress
+                                    "❌ Error syncing emails after push notification for {Email} (Company: {CompanyId})",
+                                    gmailNotification.EmailAddress,
+                                    config.CompanyId
                                 );
                             }
                         });
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "⚠️ No active configuration found for Gmail address: {Email}",
+                            gmailNotification.EmailAddress
+                        );
                     }
                 }
             }
@@ -99,22 +112,4 @@ public class GmailWebhookController : ControllerBase
             return StatusCode(500);
         }
     }
-}
-
-// Clases para deserializar notificaciones de Pub/Sub
-public class PubSubMessage
-{
-    public Message? Message { get; set; }
-}
-
-public class Message
-{
-    public string? Data { get; set; }
-    public Dictionary<string, string>? Attributes { get; set; }
-}
-
-public class GmailNotification
-{
-    public string? EmailAddress { get; set; }
-    public long? HistoryId { get; set; }
 }

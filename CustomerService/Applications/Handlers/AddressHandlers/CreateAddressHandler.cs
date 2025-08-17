@@ -31,28 +31,44 @@ public class CreateAddressHandler : IRequestHandler<CreateAddressCommands, ApiRe
     {
         try
         {
+            // Verificar duplicado para el mismo customer
             var exists = await _dbContext.Addresses.AnyAsync(
-                c => c.StreetAddress == request.addressDTO.StreetAddress,
+                c =>
+                    c.StreetAddress == request.addressDTO.StreetAddress
+                    && c.CustomerId == request.addressDTO.CustomerId,
                 cancellationToken
             );
 
             if (exists)
             {
                 _logger.LogWarning(
-                    "Address already exists with StreetAddress: {StreetAddress}",
-                    request.addressDTO.StreetAddress
+                    "Address already exists with StreetAddress: {StreetAddress} for Customer: {CustomerId}",
+                    request.addressDTO.StreetAddress,
+                    request.addressDTO.CustomerId
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "Address with this StreetAddress already exists.",
+                    "Address with this StreetAddress already exists for this customer.",
                     false
                 );
             }
+
             var address = _mapper.Map<Domains.Customers.Address>(request.addressDTO);
             address.CreatedAt = DateTime.UtcNow;
+
             await _dbContext.Addresses.AddAsync(address, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
-            _logger.LogInformation("Address created successfully: {Address}", address);
+
+            if (result)
+            {
+                _logger.LogInformation(
+                    "Address created successfully: {AddressId} for Customer: {CustomerId} by TaxUser: {CreatedBy}",
+                    address.Id,
+                    address.CustomerId,
+                    address.CreatedByTaxUserId
+                );
+            }
+
             return new ApiResponse<bool>(
                 result,
                 result ? "Address created successfully" : "Failed to create address",

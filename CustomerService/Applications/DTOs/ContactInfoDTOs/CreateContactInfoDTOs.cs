@@ -10,4 +10,5 @@ public class CreateContactInfoDTOs
     [EmailAddress]
     public required string Email { get; set; }
     public Guid PreferredContactId { get; set; }
+    public required Guid CreatedByTaxUserId { get; set; }
 }

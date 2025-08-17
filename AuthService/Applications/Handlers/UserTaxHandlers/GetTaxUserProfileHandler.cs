@@ -1,7 +1,5 @@
 using Applications.DTOs.CompanyDTOs;
-using AuthService.DTOs.UserCompanyDTOs;
 using AuthService.DTOs.UserDTOs;
-using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -14,17 +12,14 @@ public class GetTaxUserProfileHandler
     : IRequestHandler<GetTaxUserProfileQuery, ApiResponse<UserProfileDTO>>
 {
     private readonly ApplicationDbContext _db;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetTaxUserProfileHandler> _logger;
 
     public GetTaxUserProfileHandler(
         ApplicationDbContext db,
-        IMapper mapper,
         ILogger<GetTaxUserProfileHandler> logger
     )
     {
         _db = db;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -35,29 +30,19 @@ public class GetTaxUserProfileHandler
     {
         try
         {
-            // 🔍 PASO 1: Determinar si es TaxUser o UserCompany
-            var userType = await DetermineUserTypeAsync(request.UserId, cancellationToken);
+            // 🔍 PASO 1: Buscar TaxUser con información completa
+            var profile = await GetTaxUserProfileAsync(request.UserId, cancellationToken);
 
-            if (userType == null)
+            if (profile == null)
             {
+                _logger.LogWarning("TaxUser not found: {UserId}", request.UserId);
                 return new ApiResponse<UserProfileDTO>(false, "User not found", null!);
             }
 
-            UserProfileDTO profile;
-
-            if (userType == "TaxUser")
-            {
-                profile = await GetTaxUserProfileAsync(request.UserId, cancellationToken);
-            }
-            else // UserCompany
-            {
-                profile = await GetUserCompanyAsProfileAsync(request.UserId, cancellationToken);
-            }
-
             _logger.LogInformation(
-                "User profile retrieved successfully: {UserId} ({UserType})",
+                "User profile retrieved successfully: {UserId} (IsOwner: {IsOwner})",
                 request.UserId,
-                userType
+                profile.IsOwner
             );
 
             return new ApiResponse<UserProfileDTO>(
@@ -79,30 +64,15 @@ public class GetTaxUserProfileHandler
     }
 
     /// <summary>
-    /// 🔍 Determina si el UserId pertenece a TaxUser o UserCompany
+    /// Obtiene perfil completo de TaxUser con información de Company y permisos efectivos
     /// </summary>
-    private async Task<string?> DetermineUserTypeAsync(Guid userId, CancellationToken ct)
+    private async Task<UserProfileDTO?> GetTaxUserProfileAsync(Guid userId, CancellationToken ct)
     {
-        var isTaxUser = await _db.TaxUsers.AnyAsync(u => u.Id == userId, ct);
-        if (isTaxUser)
-            return "TaxUser";
-
-        var isUserCompany = await _db.UserCompanies.AnyAsync(uc => uc.Id == userId, ct);
-        if (isUserCompany)
-            return "UserCompany";
-
-        return null;
-    }
-
-    /// <summary>
-    /// 👤 Obtiene perfil de TaxUser (Administrador)
-    /// </summary>
-    private async Task<UserProfileDTO> GetTaxUserProfileAsync(Guid userId, CancellationToken ct)
-    {
+        // Query principal para obtener información del TaxUser y Company
         var userQuery =
             from u in _db.TaxUsers
-            join c in _db.Companies on u.CompanyId equals c.Id into companies
-            from c in companies.DefaultIfEmpty()
+            join c in _db.Companies on u.CompanyId equals c.Id
+            join cp in _db.CustomPlans on c.CustomPlanId equals cp.Id
             join a in _db.Addresses on u.AddressId equals a.Id into addresses
             from a in addresses.DefaultIfEmpty()
             join country in _db.Countries on a.CountryId equals country.Id into countries
@@ -121,10 +91,13 @@ public class GetTaxUserProfileHandler
                 Id = u.Id,
                 CompanyId = u.CompanyId,
                 Email = u.Email,
+                IsOwner = u.IsOwner, // NUEVO: Campo IsOwner
                 Name = u.Name,
                 LastName = u.LastName,
                 PhoneNumber = u.PhoneNumber,
                 PhotoUrl = u.PhotoUrl,
+
+                // Dirección del usuario
                 Address =
                     a != null
                         ? new AddressDTO
@@ -139,11 +112,15 @@ public class GetTaxUserProfileHandler
                             StateName = state.Name,
                         }
                         : null,
-                CompanyFullName = c != null ? c.FullName : null,
-                CompanyName = c != null ? c.CompanyName : null,
-                CompanyBrand = c != null ? c.Brand : null,
-                CompanyIsIndividual = c != null ? !c.IsCompany : false,
-                CompanyDomain = c != null ? c.Domain : null,
+
+                // Información de la Company
+                CompanyFullName = c.FullName,
+                CompanyName = c.CompanyName,
+                CompanyBrand = c.Brand,
+                CompanyIsIndividual = !c.IsCompany,
+                CompanyDomain = c.Domain,
+
+                // Dirección de la Company
                 CompanyAddress =
                     ca != null
                         ? new AddressDTO
@@ -158,14 +135,23 @@ public class GetTaxUserProfileHandler
                             StateName = cstate.Name,
                         }
                         : null,
+
+                // NUEVO: Información del CustomPlan
+                CustomPlanId = cp.Id,
+                CustomPlanPrice = cp.Price,
+                CustomPlanIsActive = cp.IsActive,
+
+                // Inicializar colecciones
                 RoleNames = new List<string>(),
+                AdditionalModules = new List<string>(),
+                EffectivePermissions = new List<string>(),
             };
 
         var user = await userQuery.FirstOrDefaultAsync(ct);
         if (user == null)
-            throw new InvalidOperationException("TaxUser not found");
+            return null;
 
-        // Obtener roles
+        // PASO 2: Obtener roles del TaxUser
         var rolesQuery =
             from ur in _db.UserRoles
             join r in _db.Roles on ur.RoleId equals r.Id
@@ -173,91 +159,68 @@ public class GetTaxUserProfileHandler
             select r.Name;
 
         user.RoleNames = await rolesQuery.ToListAsync(ct);
+
+        // PASO 3: Obtener módulos adicionales del CustomPlan
+        var additionalModulesQuery =
+            from cp in _db.CustomPlans
+            join cm in _db.CustomModules on cp.Id equals cm.CustomPlanId
+            join m in _db.Modules on cm.ModuleId equals m.Id
+            where cp.CompanyId == user.CompanyId && cm.IsIncluded && m.ServiceId == null // Solo módulos adicionales
+            select m.Name;
+
+        user.AdditionalModules = await additionalModulesQuery.ToListAsync(ct);
+
+        // PASO 4: Calcular permisos efectivos
+        user.EffectivePermissions = await GetEffectivePermissionsAsync(userId, ct);
+
         return user;
     }
 
     /// <summary>
-    /// 🏢 Obtiene UserCompany como UserProfileDTO (adaptado)
+    /// Calcula los permisos efectivos del TaxUser:
+    /// (Permisos de roles + Permisos custom granted) - Permisos custom revoked
     /// </summary>
-    private async Task<UserProfileDTO> GetUserCompanyAsProfileAsync(
-        Guid userId,
-        CancellationToken ct
-    )
+    private async Task<List<string>> GetEffectivePermissionsAsync(Guid userId, CancellationToken ct)
     {
-        var userQuery =
-            from uc in _db.UserCompanies
-            join c in _db.Companies on uc.CompanyId equals c.Id into companies
-            from c in companies.DefaultIfEmpty()
-            join a in _db.Addresses on uc.AddressId equals a.Id into addresses
-            from a in addresses.DefaultIfEmpty()
-            join country in _db.Countries on a.CountryId equals country.Id into countries
-            from country in countries.DefaultIfEmpty()
-            join state in _db.States on a.StateId equals state.Id into states
-            from state in states.DefaultIfEmpty()
-            join ca in _db.Addresses on c.AddressId equals ca.Id into companyAddresses
-            from ca in companyAddresses.DefaultIfEmpty()
-            join ccountry in _db.Countries on ca.CountryId equals ccountry.Id into companyCountries
-            from ccountry in companyCountries.DefaultIfEmpty()
-            join cstate in _db.States on ca.StateId equals cstate.Id into companyStates
-            from cstate in companyStates.DefaultIfEmpty()
-            where uc.Id == userId
-            select new UserProfileDTO
-            {
-                Id = uc.Id,
-                CompanyId = uc.CompanyId,
-                Email = uc.Email,
-                Name = uc.Name,
-                LastName = uc.LastName,
-                PhoneNumber = uc.PhoneNumber,
-                PhotoUrl = uc.PhotoUrl,
-                Address =
-                    a != null
-                        ? new AddressDTO
-                        {
-                            CountryId = a.CountryId,
-                            StateId = a.StateId,
-                            City = a.City,
-                            Street = a.Street,
-                            Line = a.Line,
-                            ZipCode = a.ZipCode,
-                            CountryName = country.Name,
-                            StateName = state.Name,
-                        }
-                        : null,
-                CompanyFullName = c != null ? c.FullName : null,
-                CompanyName = c != null ? c.CompanyName : null,
-                CompanyBrand = c != null ? c.Brand : null,
-                CompanyIsIndividual = c != null ? !c.IsCompany : false,
-                CompanyDomain = c != null ? c.Domain : null,
-                CompanyAddress =
-                    ca != null
-                        ? new AddressDTO
-                        {
-                            CountryId = ca.CountryId,
-                            StateId = ca.StateId,
-                            City = ca.City,
-                            Street = ca.Street,
-                            Line = ca.Line,
-                            ZipCode = ca.ZipCode,
-                            CountryName = ccountry.Name,
-                            StateName = cstate.Name,
-                        }
-                        : null,
-                RoleNames = new List<string>(),
-            };
+        // Permisos base de los roles del usuario
+        var rolePermissions = await (
+            from ur in _db.UserRoles
+            join rp in _db.RolePermissions on ur.RoleId equals rp.RoleId
+            join p in _db.Permissions on rp.PermissionId equals p.Id
+            where ur.TaxUserId == userId && p.IsGranted // Solo permisos activos globalmente
+            select p.Code
+        ).ToListAsync(ct);
 
-        var user = await userQuery.FirstOrDefaultAsync(ct);
-        if (user == null)
-            throw new InvalidOperationException("UserCompany not found");
+        // Permisos personalizados granted
+        var customPermissionsGranted = await (
+            from cp in _db.CompanyPermissions
+            join p in _db.Permissions on cp.PermissionId equals p.Id
+            where cp.TaxUserId == userId && cp.IsGranted && p.IsGranted
+            select p.Code
+        ).ToListAsync(ct);
 
-        // Obtener roles de UserCompany
-        var rolesQuery =
-            from ucr in _db.UserCompanyRoles
-            join r in _db.Roles on ucr.RoleId equals r.Id
-            where ucr.UserCompanyId == userId
-            select r.Name;
+        // Permisos personalizados revoked
+        var customPermissionsRevoked = await (
+            from cp in _db.CompanyPermissions
+            join p in _db.Permissions on cp.PermissionId equals p.Id
+            where cp.TaxUserId == userId && !cp.IsGranted
+            select p.Code
+        ).ToListAsync(ct);
 
-        user.RoleNames = await rolesQuery.ToListAsync(ct);
-        return user;
+        // Combinar permisos: (roles + custom granted) - revoked
+        var effectivePermissions = rolePermissions
+            .Concat(customPermissionsGranted)
+            .Where(code => !customPermissionsRevoked.Contains(code))
+            .Distinct()
+            .OrderBy(code => code)
+            .ToList();
+
+        _logger.LogDebug(
+            "Calculated effective permissions for TaxUser {UserId}: {PermissionCount} permissions",
+            userId,
+            effectivePermissions.Count
+        );
+
+        return effectivePermissions;
     }
 }

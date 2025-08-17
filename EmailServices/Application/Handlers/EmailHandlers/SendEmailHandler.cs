@@ -30,22 +30,41 @@ public class SendEmailHandler : IRequestHandler<SendEmailCommand, EmailDTO>
 
     public async Task<EmailDTO> Handle(SendEmailCommand request, CancellationToken ct)
     {
-        var email = await _ctx.Emails.FirstOrDefaultAsync(e => e.Id == request.EmailId, ct);
-        if (email is null)
-            throw new KeyNotFoundException("Email not found");
+        // Join eficiente para obtener email y config validando CompanyId
+        var emailWithConfig = await (
+            from e in _ctx.Emails
+            join c in _ctx.EmailConfigs on e.ConfigId equals c.Id
+            where
+                e.Id == request.EmailId
+                && e.CompanyId == request.CompanyId
+                && c.CompanyId == request.CompanyId
+                && c.IsActive
+            select new { Email = e, Config = c }
+        ).FirstOrDefaultAsync(ct);
+
+        if (emailWithConfig is null)
+            throw new KeyNotFoundException("Email or configuration not found or access denied");
+
+        var email = emailWithConfig.Email;
+        var config = emailWithConfig.Config;
 
         if (email.Status == EmailServices.Domain.EmailStatus.Sent)
             throw new InvalidOperationException("Email already sent");
 
-        var cfg = await _ctx.EmailConfigs.FindAsync(new object[] { email.ConfigId }, ct);
-        if (cfg is null)
-            throw new InvalidOperationException("Configuration missing");
+        // Actualizar auditoría antes del envío
+        email.SentByTaxUserId = request.SentByTaxUserId;
+        email.LastModifiedByTaxUserId = request.SentByTaxUserId;
+        email.UpdatedOn = DateTime.UtcNow;
 
-        // envío
-        await _svc.SendEmailAsync(email, cfg);
+        // Envío
+        await _svc.SendEmailAsync(email, config);
 
-        // recargamos para reflejar cambios realizados por el servicio
+        // Recargar para reflejar cambios realizados por el servicio
         await _ctx.Entry(email).ReloadAsync(ct);
+
+        _log.LogInformation(
+            $"Email {request.EmailId} sent by user {request.SentByTaxUserId} from company {request.CompanyId}"
+        );
 
         return _map.Map<EmailDTO>(email);
     }

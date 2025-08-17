@@ -32,7 +32,7 @@ public sealed class InvitationTokenService : IInvitationTokenService
             new(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
             new("company_id", companyId.ToString()),
             new("email", email),
-            new("purpose", "user_company_invitation"),
+            new("purpose", "taxuser_invitation"),
             new(
                 JwtRegisteredClaimNames.Iat,
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
@@ -90,7 +90,7 @@ public sealed class InvitationTokenService : IInvitationTokenService
             );
 
             var purposeClaim = principal.FindFirst("purpose")?.Value;
-            if (purposeClaim != "user_company_invitation")
+            if (purposeClaim != "taxuser_invitation")
             {
                 return (false, Guid.Empty, string.Empty, null, "Invalid invitation token purpose");
             }
@@ -118,7 +118,6 @@ public sealed class InvitationTokenService : IInvitationTokenService
                 }
                 catch
                 {
-                    // Si falla la deserialización, continuamos sin roles
                     roleIds = null;
                 }
             }

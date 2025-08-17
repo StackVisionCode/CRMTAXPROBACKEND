@@ -14,7 +14,7 @@ public class NewUserDTO
     [MinLength(8)]
     public required string Password { get; set; } = default!;
 
-    // Información personal
+    public bool IsOwner { get; set; } = false;
     public string? Name { get; set; }
     public string? LastName { get; set; }
     public string? PhoneNumber { get; set; }

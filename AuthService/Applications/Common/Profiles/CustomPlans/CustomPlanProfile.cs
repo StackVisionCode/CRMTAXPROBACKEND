@@ -35,6 +35,28 @@ public class CustomPlanProfile : Profile
                     )
             );
 
+        CreateMap<CustomPlan, CustomPlanWithStatsDTO>()
+            .IncludeBase<CustomPlan, CustomPlanDTO>()
+            // Los campos estadísticos se calculan en el handler
+            .ForMember(d => d.TotalUsers, o => o.Ignore())
+            .ForMember(d => d.ActiveUsers, o => o.Ignore())
+            .ForMember(d => d.OwnerCount, o => o.Ignore())
+            .ForMember(d => d.RegularUsersCount, o => o.Ignore())
+            .ForMember(d => d.BaseServiceName, o => o.Ignore())
+            .ForMember(d => d.BaseServiceTitle, o => o.Ignore())
+            .ForMember(d => d.BaseServiceFeatures, o => o.Ignore())
+            .ForMember(d => d.ServiceUserLimit, o => o.Ignore())
+            .ForMember(d => d.IsWithinLimits, o => o.Ignore())
+            .ForMember(d => d.BaseModuleNames, o => o.Ignore())
+            .ForMember(d => d.ExtraModuleNames, o => o.Ignore())
+            .ForMember(d => d.RevenuePerUser, o => o.Ignore())
+            .ForMember(d => d.ModuleUtilization, o => o.Ignore())
+            .ForMember(d => d.TotalModules, o => o.Ignore())
+            .ForMember(d => d.ActiveModules, o => o.Ignore())
+            .ForMember(d => d.IsExpired, o => o.Ignore())
+            .ForMember(d => d.DaysUntilExpiry, o => o.Ignore())
+            .ForMember(d => d.MonthlyRevenue, o => o.Ignore());
+
         // Command mappings
         CreateMap<NewCustomPlanDTO, CreateCustomPlanCommand>()
             .ConstructUsing(src => new CreateCustomPlanCommand(src));

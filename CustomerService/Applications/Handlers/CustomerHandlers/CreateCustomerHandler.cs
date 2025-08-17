@@ -37,24 +37,29 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommands, Api
         try
         {
             var exists = await _dbContext.Customers.AnyAsync(
-                c => c.SsnOrItin == request.customer.SsnOrItin,
+                c =>
+                    c.SsnOrItin == request.customer.SsnOrItin
+                    && c.CompanyId == request.customer.CompanyId,
                 cancellationToken
             );
 
             if (exists)
             {
                 _logger.LogWarning(
-                    "Customer already exists with SSN/ITIN: {SsnOrItin}",
-                    request.customer.SsnOrItin
+                    "Customer already exists with SSN/ITIN: {SsnOrItin} in Company: {CompanyId}",
+                    request.customer.SsnOrItin,
+                    request.customer.CompanyId
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "Customer with this SSN or ITIN already exists.",
+                    "Customer with this SSN or ITIN already exists in your company.",
                     false
                 );
             }
+
             var customer = _mapper.Map<Domains.Customers.Customer>(request.customer);
             customer.CreatedAt = DateTime.UtcNow;
+
             await _dbContext.Customers.AddAsync(customer, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
@@ -65,7 +70,7 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommands, Api
                     Id: Guid.NewGuid(),
                     OccurredOn: DateTime.UtcNow,
                     CustomerId: customer.Id,
-                    TaxUserId: customer.TaxUserId,
+                    TaxUserId: customer.CompanyId,
                     FirstName: customer.FirstName,
                     MiddleName: customer.MiddleName,
                     LastName: customer.LastName,
@@ -74,7 +79,13 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommands, Api
 
                 _eventBus.Publish(customerCreatedEvent);
             }
-            _logger.LogInformation("Customer created successfully: {Customer}", customer);
+            _logger.LogInformation(
+                "Customer created successfully: {CustomerId} by TaxUser: {CreatedBy} in Company: {CompanyId}",
+                customer.Id,
+                customer.CreatedByTaxUserId,
+                customer.CompanyId
+            );
+
             return new ApiResponse<bool>(
                 result,
                 result ? "Customer created successfully" : "Failed to create customer",

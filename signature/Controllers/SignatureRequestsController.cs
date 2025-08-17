@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Application.DTOs;
 using Infrastruture.Queries;
 using MediatR;
@@ -20,12 +22,32 @@ public class SignatureRequestsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var result = await _mediator.Send(new CreateSignatureRequestCommand(dto));
+        try
+        {
+            var companyId = GetCompanyIdFromClaims();
+            var taxUserId = GetTaxUserIdFromClaims();
 
-        if (result.Success == true)
-            return CreatedAtAction(nameof(ValidateToken), new { token = "placeholder" }, result);
+            if (companyId == Guid.Empty || taxUserId == Guid.Empty)
+            {
+                return Unauthorized("Invalid user context");
+            }
 
-        return BadRequest(result);
+            var command = new CreateSignatureRequestCommand(dto, companyId, taxUserId);
+            var result = await _mediator.Send(command);
+
+            if (result.Success == true)
+                return CreatedAtAction(
+                    nameof(ValidateToken),
+                    new { token = "placeholder" },
+                    result
+                );
+
+            return BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
     }
 
     [HttpGet("{token}")] // validar
@@ -96,5 +118,20 @@ public class SignatureRequestsController : ControllerBase
             return BadRequest(ModelState);
         var result = await _mediator.Send(new RejectSignatureCommand(dto));
         return Ok(result);
+    }
+
+    // Métodos auxiliares para extraer información de los claims
+    private Guid GetCompanyIdFromClaims()
+    {
+        var companyIdClaim = User.FindFirst("companyId")?.Value;
+        return Guid.TryParse(companyIdClaim, out var companyId) ? companyId : Guid.Empty;
+    }
+
+    private Guid GetTaxUserIdFromClaims()
+    {
+        var userIdClaim =
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        return Guid.TryParse(userIdClaim, out var userId) ? userId : Guid.Empty;
     }
 }

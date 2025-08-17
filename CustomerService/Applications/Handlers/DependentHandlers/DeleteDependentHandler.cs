@@ -44,11 +44,7 @@ public class DeleteDependentHandler : IRequestHandler<DeleteDependentCommands, A
             if (result)
             {
                 _logger.LogInformation("Dependent with ID {Id} deleted successfully", request.Id);
-                return new ApiResponse<bool>(
-                    true,
-                    "Dependent deleted successfully: {Dependent}",
-                    true
-                );
+                return new ApiResponse<bool>(true, "Dependent deleted successfully", true);
             }
             else
             {

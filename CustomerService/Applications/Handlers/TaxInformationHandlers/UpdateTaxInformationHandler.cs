@@ -46,25 +46,28 @@ public class UpdateTaxInformationHandler
                 return new ApiResponse<bool>(false, "TaxInformation not found", false);
             }
 
-            var duplicateExists = await _dbContext.TaxInformations.AnyAsync(
-                c =>
-                    c.CustomerId == request.taxInformation.CustomerId
-                    && c.BankAccountNumber == request.taxInformation.BankAccountNumber
-                    && c.Id != request.taxInformation.Id,
-                cancellationToken
-            );
-
-            if (duplicateExists)
+            // Verificar duplicado de cuenta bancaria si se proporciona
+            if (!string.IsNullOrEmpty(request.taxInformation.BankAccountNumber))
             {
-                _logger.LogWarning(
-                    "TaxInformation with TaxIdentificationNumber {BankAccountNumber} already exists",
-                    request.taxInformation.BankAccountNumber
+                var duplicateExists = await _dbContext.TaxInformations.AnyAsync(
+                    c =>
+                        c.BankAccountNumber == request.taxInformation.BankAccountNumber
+                        && c.Id != request.taxInformation.Id,
+                    cancellationToken
                 );
-                return new ApiResponse<bool>(
-                    false,
-                    "TaxInformation with this BankAccountNumber already exists",
-                    false
-                );
+
+                if (duplicateExists)
+                {
+                    _logger.LogWarning(
+                        "TaxInformation with BankAccountNumber {BankAccountNumber} already exists",
+                        request.taxInformation.BankAccountNumber
+                    );
+                    return new ApiResponse<bool>(
+                        false,
+                        "TaxInformation with this BankAccountNumber already exists",
+                        false
+                    );
+                }
             }
 
             _mapper.Map(request.taxInformation, existingTaxInformation);
@@ -76,8 +79,9 @@ public class UpdateTaxInformationHandler
             if (result)
             {
                 _logger.LogInformation(
-                    "TaxInformation updated successfully: {TaxInformation}",
-                    existingTaxInformation
+                    "TaxInformation updated successfully: {TaxInformationId} by TaxUser: {LastModifiedBy}",
+                    existingTaxInformation.Id,
+                    existingTaxInformation.LastModifiedByTaxUserId
                 );
                 return new ApiResponse<bool>(true, "TaxInformation updated successfully", true);
             }

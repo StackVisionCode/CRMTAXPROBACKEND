@@ -62,33 +62,58 @@ namespace CustomerService.Controllers.Customer
             return Ok(result);
         }
 
+        // Ahora requiere CompanyId del token
         // [HasPermission("Customer.Read")]
         [HttpGet("GetAll")]
         public async Task<ActionResult> GetAll()
         {
-            var command = new GetAllCustomerQueries();
+            // Extraer CompanyId del token
+            var companyIdClaim = User.FindFirstValue("companyId");
+            if (!Guid.TryParse(companyIdClaim, out var companyId))
+            {
+                return Unauthorized(
+                    new ApiResponse<List<ReadCustomerDTO>>(false, "Invalid company session")
+                );
+            }
+
+            var command = new GetCustomersByCompanyQueries(companyId);
             var result = await _mediator.Send(command);
+
             if (result.Success == false)
                 return BadRequest(new { result });
 
             return Ok(result);
         }
 
+        // Usa CompanyId del token
         // [HasPermission("Customer.Read")]
         [HttpGet("GetOwnCustomers")]
-        public async Task<ActionResult> GetOwnCustomers()
+        public async Task<ActionResult> GetOwnCustomers([FromQuery] bool? onlyMine = null)
         {
-            // 1) extraer el Id de usuario (claim "sub" ó NameIdentifier)
-            var rawId =
-                User.FindFirstValue(JwtRegisteredClaimNames.Sub)
-                ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (!Guid.TryParse(rawId, out var userId))
+            // Extraer CompanyId del token
+            var companyIdClaim = User.FindFirstValue("companyId");
+            if (!Guid.TryParse(companyIdClaim, out var companyId))
+            {
                 return Unauthorized(
-                    new ApiResponse<List<ReadCustomerDTO>>(false, "Invalid session")
+                    new ApiResponse<List<ReadCustomerDTO>>(false, "Invalid company session")
                 );
+            }
 
-            var command = new GetOwnCustomersQueries(userId);
+            // Si onlyMine=true, filtrar por el TaxUserId actual
+            Guid? createdByFilter = null;
+            if (onlyMine == true)
+            {
+                var userIdClaim =
+                    User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                    ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (Guid.TryParse(userIdClaim, out var userId))
+                {
+                    createdByFilter = userId;
+                }
+            }
+
+            var command = new GetOwnCustomersQueries(companyId, createdByFilter);
             var result = await _mediator.Send(command);
 
             if (result.Success == false)

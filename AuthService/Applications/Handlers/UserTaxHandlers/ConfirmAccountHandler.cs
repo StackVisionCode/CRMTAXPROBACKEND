@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
-using SharedLibrary.DTOs.AuthEvents;
 
 namespace AuthService.Handlers.UserTaxHandlers;
 

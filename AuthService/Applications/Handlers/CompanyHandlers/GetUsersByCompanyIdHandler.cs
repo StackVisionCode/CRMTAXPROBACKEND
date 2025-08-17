@@ -47,8 +47,8 @@ public class GetUsersByCompanyIdHandler
                 );
             }
 
-            // Obtener TaxUsers (preparadores) de la company
-            var preparersQuery =
+            // Obtener TaxUsers con IsOwner y ordenados (Owner primero)
+            var usersQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
                 join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
@@ -67,11 +67,13 @@ public class GetUsersByCompanyIdHandler
                 join cstate in _dbContext.States on ca.StateId equals cstate.Id into companyStates
                 from cstate in companyStates.DefaultIfEmpty()
                 where u.CompanyId == request.CompanyId
+                orderby u.IsOwner descending, u.CreatedAt descending
                 select new UserGetDTO
                 {
                     Id = u.Id,
                     CompanyId = u.CompanyId,
                     Email = u.Email,
+                    IsOwner = u.IsOwner,
                     Name = u.Name,
                     LastName = u.LastName,
                     PhoneNumber = u.PhoneNumber,
@@ -80,7 +82,7 @@ public class GetUsersByCompanyIdHandler
                     Confirm = u.Confirm ?? false,
                     CreatedAt = u.CreatedAt,
 
-                    // Dirección del preparador
+                    // Dirección del usuario
                     Address =
                         a != null
                             ? new AddressDTO
@@ -96,14 +98,14 @@ public class GetUsersByCompanyIdHandler
                             }
                             : null,
 
-                    // Información de la company preparadora
+                    // Información de la company
                     CompanyFullName = c.FullName,
                     CompanyName = c.CompanyName,
                     CompanyBrand = c.Brand,
                     CompanyIsIndividual = !c.IsCompany,
                     CompanyDomain = c.Domain,
 
-                    // Dirección de la company preparadora
+                    // Dirección de la company
                     CompanyAddress =
                         ca != null
                             ? new AddressDTO
@@ -119,56 +121,89 @@ public class GetUsersByCompanyIdHandler
                             }
                             : null,
 
-                    RoleNames = new List<string>(), // Se llenará después
+                    RoleNames = new List<string>(),
+                    CustomPermissions = new List<string>(),
                 };
 
-            var preparers = await preparersQuery.ToListAsync(cancellationToken);
+            var users = await usersQuery.ToListAsync(cancellationToken);
 
-            if (preparers.Any())
+            if (users.Any())
             {
-                // Obtener roles de los preparadores
-                var userIds = preparers.Select(u => u.Id).ToList();
-                var rolesQuery =
-                    from ur in _dbContext.UserRoles
-                    join r in _dbContext.Roles on ur.RoleId equals r.Id
-                    where userIds.Contains(ur.TaxUserId)
-                    select new { ur.TaxUserId, r.Name };
-
-                var userRoles = await rolesQuery.ToListAsync(cancellationToken);
-                var rolesByUser = userRoles
-                    .GroupBy(x => x.TaxUserId)
-                    .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
-
-                // Asignar roles a preparadores
-                foreach (var preparer in preparers)
-                {
-                    if (rolesByUser.TryGetValue(preparer.Id, out var roles))
-                    {
-                        preparer.RoleNames = roles;
-                    }
-                }
+                // Obtener roles y permisos personalizados
+                await PopulateUserRolesAndPermissionsAsync(users, cancellationToken);
             }
 
             _logger.LogInformation(
-                "Retrieved {Count} preparers (TaxUsers) for company {CompanyId}",
-                preparers.Count,
-                request.CompanyId
+                "Retrieved {Count} TaxUsers for company {CompanyId} (Owner: {OwnerCount}, Regular: {RegularCount})",
+                users.Count,
+                request.CompanyId,
+                users.Count(u => u.IsOwner),
+                users.Count(u => !u.IsOwner)
             );
+
             return new ApiResponse<List<UserGetDTO>>(
                 true,
-                "Company preparers retrieved successfully",
-                preparers
+                "Company users retrieved successfully",
+                users
             );
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "Error retrieving preparers for company {CompanyId}: {Message}",
+                "Error retrieving users for company {CompanyId}: {Message}",
                 request.CompanyId,
                 ex.Message
             );
             return new ApiResponse<List<UserGetDTO>>(false, ex.Message, new List<UserGetDTO>());
+        }
+    }
+
+    /// <summary>
+    /// Método para poblar roles y permisos personalizados
+    /// </summary>
+    private async Task PopulateUserRolesAndPermissionsAsync(
+        List<UserGetDTO> users,
+        CancellationToken cancellationToken
+    )
+    {
+        var userIds = users.Select(u => u.Id).ToList();
+
+        // Obtener roles de los TaxUsers
+        var rolesQuery =
+            from ur in _dbContext.UserRoles
+            join r in _dbContext.Roles on ur.RoleId equals r.Id
+            where userIds.Contains(ur.TaxUserId)
+            select new { ur.TaxUserId, r.Name };
+
+        var userRoles = await rolesQuery.ToListAsync(cancellationToken);
+        var rolesByUser = userRoles
+            .GroupBy(x => x.TaxUserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
+
+        var permissionsQuery =
+            from cp in _dbContext.CompanyPermissions
+            join p in _dbContext.Permissions on cp.PermissionId equals p.Id
+            where userIds.Contains(cp.TaxUserId) && cp.IsGranted
+            select new { cp.TaxUserId, p.Code };
+
+        var userPermissions = await permissionsQuery.ToListAsync(cancellationToken);
+        var permissionsByUser = userPermissions
+            .GroupBy(x => x.TaxUserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
+
+        // Asignar roles y permisos a cada usuario
+        foreach (var user in users)
+        {
+            if (rolesByUser.TryGetValue(user.Id, out var roles))
+            {
+                user.RoleNames = roles;
+            }
+
+            if (permissionsByUser.TryGetValue(user.Id, out var permissions))
+            {
+                user.CustomPermissions = permissions;
+            }
         }
     }
 }

@@ -29,7 +29,7 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
 
         try
         {
-            // Buscar company con información completa de dependencias
+            // Solo TaxUsers ahora, no UserCompanies
             var companyAnalysisQuery =
                 from c in _dbContext.Companies
                 where c.Id == request.Id
@@ -38,30 +38,24 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
                     Company = c,
                     CustomPlanId = c.CustomPlanId,
                     AddressId = c.AddressId,
-                    // Conteo de dependencias críticas
+                    // Solo conteo de TaxUsers
                     TaxUsersCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
-                    UserCompaniesCount = _dbContext.UserCompanies.Count(uc => uc.CompanyId == c.Id),
-                    // Sesiones activas
-                    TaxUserSessionsCount = (
+                    OwnerCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id && u.IsOwner),
+                    RegularUsersCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && !u.IsOwner
+                    ),
+                    // Solo sesiones de TaxUsers
+                    ActiveSessionsCount = (
                         from s in _dbContext.Sessions
                         join u in _dbContext.TaxUsers on s.TaxUserId equals u.Id
                         where u.CompanyId == c.Id && !s.IsRevoke
                         select s.Id
                     ).Count(),
-                    UserCompanySessionsCount = (
-                        from ucs in _dbContext.UserCompanySessions
-                        join uc in _dbContext.UserCompanies on ucs.UserCompanyId equals uc.Id
-                        where uc.CompanyId == c.Id && !ucs.IsRevoke
-                        select ucs.Id
-                    ).Count(),
-                    // Permisos personalizados
-                    CompanyPermissionsCount = (
-                        from cp in _dbContext.CompanyPermissions
-                        join uc in _dbContext.UserCompanies on cp.UserCompanyId equals uc.Id
-                        where uc.CompanyId == c.Id
-                        select cp.Id
-                    ).Count(),
-                    // Módulos personalizados
+                    // CompanyPermissions ahora apunta directamente a TaxUser
+                    CompanyPermissionsCount = _dbContext.CompanyPermissions.Count(cp =>
+                        _dbContext.TaxUsers.Any(u => u.Id == cp.TaxUserId && u.CompanyId == c.Id)
+                    ),
+                    // CustomModules del CustomPlan
                     CustomModulesCount = (
                         from cm in _dbContext.CustomModules
                         join cplan in _dbContext.CustomPlans on cm.CustomPlanId equals cplan.Id
@@ -80,18 +74,18 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             var company = analysis.Company;
 
             _logger.LogInformation(
-                "Analyzing company for deletion: {CompanyId}, TaxUsers: {TaxUsers}, UserCompanies: {UserCompanies}, "
-                    + "ActiveSessions: {TaxSessions}+{UserSessions}, Permissions: {Permissions}, Modules: {Modules}",
+                "Analyzing company for deletion: {CompanyId}, TaxUsers: {TaxUsers} (Owner: {Owner}, Regular: {Regular}), "
+                    + "ActiveSessions: {Sessions}, Permissions: {Permissions}, Modules: {Modules}",
                 request.Id,
                 analysis.TaxUsersCount,
-                analysis.UserCompaniesCount,
-                analysis.TaxUserSessionsCount,
-                analysis.UserCompanySessionsCount,
+                analysis.OwnerCount,
+                analysis.RegularUsersCount,
+                analysis.ActiveSessionsCount,
                 analysis.CompanyPermissionsCount,
                 analysis.CustomModulesCount
             );
 
-            // Validaciones exhaustivas de dependencias
+            // Validaciones actualizadas para nueva estructura
             var validationResult = ValidateCompanyDeletion(analysis);
             if (!validationResult.CanDelete)
             {
@@ -103,60 +97,45 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
                 return new ApiResponse<bool>(false, validationResult.Reason, false);
             }
 
-            // Eliminar en orden correcto para evitar violaciones de FK
+            // Eliminar en orden correcto para nueva estructura
 
-            // 1. Eliminar CompanyPermissions (dependen de UserCompanies)
+            // 1. Eliminar CompanyPermissions (ahora directamente de TaxUsers)
             if (analysis.CompanyPermissionsCount > 0)
             {
                 await DeleteCompanyPermissionsAsync(request.Id, cancellationToken);
             }
 
-            // 2. Eliminar UserCompanySessions (dependen de UserCompanies)
-            if (analysis.UserCompanySessionsCount > 0)
-            {
-                await DeleteUserCompanySessionsAsync(request.Id, cancellationToken);
-            }
-
-            // 3. Eliminar UserCompanyRoles (dependen de UserCompanies)
-            await DeleteUserCompanyRolesAsync(request.Id, cancellationToken);
-
-            // 4. Eliminar UserCompanies
-            if (analysis.UserCompaniesCount > 0)
-            {
-                await DeleteUserCompaniesAsync(request.Id, cancellationToken);
-            }
-
-            // 5. Eliminar Sessions de TaxUsers (dependen de TaxUsers)
-            if (analysis.TaxUserSessionsCount > 0)
+            // 2. Eliminar Sessions de TaxUsers
+            if (analysis.ActiveSessionsCount > 0)
             {
                 await DeleteTaxUserSessionsAsync(request.Id, cancellationToken);
             }
 
-            // 6. Eliminar UserRoles (dependen de TaxUsers)
+            // 3. Eliminar UserRoles (dependen de TaxUsers)
             await DeleteUserRolesAsync(request.Id, cancellationToken);
 
-            // 7. Eliminar TaxUsers
+            // 4. Eliminar TaxUsers
             if (analysis.TaxUsersCount > 0)
             {
                 await DeleteTaxUsersAsync(request.Id, cancellationToken);
             }
 
-            // 8. Eliminar CustomModules (dependen de CustomPlan)
+            // 5. Eliminar CustomModules (dependen de CustomPlan)
             if (analysis.CustomModulesCount > 0)
             {
                 await DeleteCustomModulesAsync(analysis.CustomPlanId, cancellationToken);
             }
 
-            // 9. Eliminar CustomPlan
+            // 6. Eliminar CustomPlan
             await DeleteCustomPlanAsync(analysis.CustomPlanId, cancellationToken);
 
-            // 10. Eliminar Address si existe
+            // 7. Eliminar Address si existe
             if (analysis.AddressId.HasValue)
             {
                 await DeleteAddressAsync(analysis.AddressId.Value, cancellationToken);
             }
 
-            // 11. Finalmente eliminar la Company
+            // 8. Finalmente eliminar la Company
             _dbContext.Companies.Remove(company);
 
             // Guardar todos los cambios
@@ -167,10 +146,9 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
                 await transaction.CommitAsync(cancellationToken);
                 _logger.LogInformation(
                     "Company deleted successfully: {CompanyId} with all dependencies "
-                        + "(Users: {TaxUsers}+{UserCompanies}, Modules: {Modules}, Address: {HasAddress})",
+                        + "(TaxUsers: {TaxUsers}, Modules: {Modules}, Address: {HasAddress})",
                     request.Id,
                     analysis.TaxUsersCount,
-                    analysis.UserCompaniesCount,
                     analysis.CustomModulesCount,
                     analysis.AddressId.HasValue
                 );
@@ -210,9 +188,9 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
     /// </summary>
     private (bool CanDelete, string Reason) ValidateCompanyDeletion(dynamic analysis)
     {
-        // Verificar usuarios activos
-        var totalUsers = analysis.TaxUsersCount + analysis.UserCompaniesCount;
-        if (totalUsers > 1) // Más que solo el admin
+        // Solo verificar TaxUsers ahora
+        var totalUsers = analysis.TaxUsersCount;
+        if (totalUsers > 1) // Más que solo el Owner
         {
             return (
                 false,
@@ -221,7 +199,7 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
         }
 
         // Verificar sesiones activas
-        var activeSessions = analysis.TaxUserSessionsCount + analysis.UserCompanySessionsCount;
+        var activeSessions = analysis.ActiveSessionsCount;
         if (activeSessions > 0)
         {
             return (
@@ -230,21 +208,27 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             );
         }
 
-        // TODO: Agregar más validaciones según reglas de negocio
-        // Ejemplo: verificar si hay facturas pendientes, reportes en proceso, etc.
+        // Verificar si es una empresa con datos críticos
+        if (analysis.CustomModulesCount > 10) // Ejemplo: muchos módulos personalizados
+        {
+            return (
+                false,
+                "Cannot delete company with extensive customization. Please contact support."
+            );
+        }
 
         return (true, "Company can be safely deleted");
     }
 
     /// <summary>
-    /// Elimina permisos personalizados de la company
+    /// Elimina permisos personalizados (ahora directamente de TaxUsers)
     /// </summary>
     private async Task DeleteCompanyPermissionsAsync(Guid companyId, CancellationToken ct)
     {
         var permissionsQuery =
             from cp in _dbContext.CompanyPermissions
-            join uc in _dbContext.UserCompanies on cp.UserCompanyId equals uc.Id
-            where uc.CompanyId == companyId
+            join u in _dbContext.TaxUsers on cp.TaxUserId equals u.Id
+            where u.CompanyId == companyId
             select cp;
 
         var permissions = await permissionsQuery.ToListAsync(ct);
@@ -252,62 +236,6 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
         {
             _dbContext.CompanyPermissions.RemoveRange(permissions);
             _logger.LogDebug("Marked {Count} company permissions for deletion", permissions.Count);
-        }
-    }
-
-    /// <summary>
-    /// Elimina sesiones de UserCompanies
-    /// </summary>
-    private async Task DeleteUserCompanySessionsAsync(Guid companyId, CancellationToken ct)
-    {
-        var sessionsQuery =
-            from ucs in _dbContext.UserCompanySessions
-            join uc in _dbContext.UserCompanies on ucs.UserCompanyId equals uc.Id
-            where uc.CompanyId == companyId
-            select ucs;
-
-        var sessions = await sessionsQuery.ToListAsync(ct);
-        if (sessions.Any())
-        {
-            _dbContext.UserCompanySessions.RemoveRange(sessions);
-            _logger.LogDebug("Marked {Count} user company sessions for deletion", sessions.Count);
-        }
-    }
-
-    /// <summary>
-    /// Elimina roles de UserCompanies
-    /// </summary>
-    private async Task DeleteUserCompanyRolesAsync(Guid companyId, CancellationToken ct)
-    {
-        var rolesQuery =
-            from ucr in _dbContext.UserCompanyRoles
-            join uc in _dbContext.UserCompanies on ucr.UserCompanyId equals uc.Id
-            where uc.CompanyId == companyId
-            select ucr;
-
-        var roles = await rolesQuery.ToListAsync(ct);
-        if (roles.Any())
-        {
-            _dbContext.UserCompanyRoles.RemoveRange(roles);
-            _logger.LogDebug("Marked {Count} user company roles for deletion", roles.Count);
-        }
-    }
-
-    /// <summary>
-    /// Elimina UserCompanies
-    /// </summary>
-    private async Task DeleteUserCompaniesAsync(Guid companyId, CancellationToken ct)
-    {
-        var userCompaniesQuery =
-            from uc in _dbContext.UserCompanies
-            where uc.CompanyId == companyId
-            select uc;
-
-        var userCompanies = await userCompaniesQuery.ToListAsync(ct);
-        if (userCompanies.Any())
-        {
-            _dbContext.UserCompanies.RemoveRange(userCompanies);
-            _logger.LogDebug("Marked {Count} user companies for deletion", userCompanies.Count);
         }
     }
 

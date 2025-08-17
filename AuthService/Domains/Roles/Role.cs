@@ -12,6 +12,4 @@ public class Role : BaseEntity
     public ServiceLevel? ServiceLevel { get; set; }
     public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public ICollection<UserCompanyRole> UserCompanyRoles { get; set; } =
-        new List<UserCompanyRole>();
 }

@@ -3,6 +3,7 @@ using Commands.PermissionCommands;
 using Common;
 using Infraestructure.Context;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Handlers.PermissionHandlers;
 
@@ -36,19 +37,46 @@ public class UpdatePermissionHandler : IRequestHandler<UpdatePermissionCommands,
             );
             if (permission == null)
             {
+                _logger.LogWarning("Permission not found: {PermissionId}", request.Permission.Id);
                 return new ApiResponse<bool>(false, "Permission not found", false);
+            }
+
+            // Verificar si el código ya existe en otro permiso (si se está cambiando)
+            if (request.Permission.Code != permission.Code)
+            {
+                var codeExistsQuery =
+                    from p in _dbContext.Permissions
+                    where p.Code == request.Permission.Code && p.Id != request.Permission.Id
+                    select p.Id;
+
+                if (await codeExistsQuery.AnyAsync(cancellationToken))
+                {
+                    _logger.LogWarning(
+                        "Permission code already exists: {Code}",
+                        request.Permission.Code
+                    );
+                    return new ApiResponse<bool>(false, "Permission code already exists", false);
+                }
             }
 
             _mapper.Map(request.Permission, permission);
             permission.UpdatedAt = DateTime.UtcNow;
-            _dbContext.Permissions.Update(permission);
-            var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0 ? true : false;
-            _logger.LogInformation("Permission updated successfully: {Permission}", permission);
-            return new ApiResponse<bool>(
-                result,
-                result ? "Permission updated successfully" : "Failed to update permission",
-                result
-            );
+
+            var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+
+            if (result)
+            {
+                _logger.LogInformation("Permission updated successfully: {Code}", permission.Code);
+                return new ApiResponse<bool>(true, "Permission updated successfully", true);
+            }
+            else
+            {
+                _logger.LogError(
+                    "Failed to update permission: {PermissionId}",
+                    request.Permission.Id
+                );
+                return new ApiResponse<bool>(false, "Failed to update permission", false);
+            }
         }
         catch (Exception ex)
         {

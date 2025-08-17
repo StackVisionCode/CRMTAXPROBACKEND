@@ -40,10 +40,13 @@ public sealed class CreateSignatureRequestHandler
         CancellationToken ct
     )
     {
-        /* ╭──────────────────────────────────────────────────────────────╮
-        │ 1 ▸ nueva solicitud de firma                                │
-           ╰──────────────────────────────────────────────────────────────╯ */
-        var req = new SignatureRequest(cmd.Payload.DocumentId, Guid.NewGuid());
+        // 1 ▸ nueva solicitud de firma
+        var req = new SignatureRequest(
+            cmd.Payload.DocumentId,
+            Guid.NewGuid(),
+            cmd.CompanyId,
+            cmd.CreatedByTaxUserId
+        );
 
         // 1.1 resuelve UNA sola vez la URL base para toda la solicitud
         var baseUrl = _getOriginURL.GetOrigin(); // ej. https://app.company.com
@@ -51,9 +54,8 @@ public sealed class CreateSignatureRequestHandler
         // guardamos los eventos para publicarlos DESPUÉS del commit
         var pendingEvents = new List<SignatureInvitationEvent>();
 
-        /* ╭──────────────────────────────────────────────────────────────╮
-        │ 2 ▸ iteramos firmantes, generamos token y los agregamos      │
-           ╰──────────────────────────────────────────────────────────────╯ */
+        // 2 ▸ iteramos firmantes, generamos token y los agregamos
+
         foreach (var sDto in cmd.Payload.Signers)
         {
             Guid signerId = Guid.NewGuid(); // ► PK real de la fila 'Signer'
@@ -100,8 +102,10 @@ public sealed class CreateSignatureRequestHandler
 
             // log para depuración
             _log.LogInformation(
-                "Creando signer {SignerId} con {BoxCount} cajas",
+                "Creando signer {SignerId} para Company {CompanyId} por TaxUser {TaxUserId} con {BoxCount} cajas",
                 signerId,
+                cmd.CompanyId,
+                cmd.CreatedByTaxUserId,
                 boxes.Count
             );
 
@@ -117,10 +121,7 @@ public sealed class CreateSignatureRequestHandler
                 )
             );
         }
-
-        /* ╭──────────────────────────────────────────────────────────────╮
-        │ 3 ▸ persistir dentro de una transacción                     │
-           ╰──────────────────────────────────────────────────────────────╯ */
+        // 3 persistir dentro de una transacción
         await using var trx = await _db.Database.BeginTransactionAsync(ct);
         try
         {
@@ -131,19 +132,19 @@ public sealed class CreateSignatureRequestHandler
         catch (Exception ex)
         {
             await trx.RollbackAsync(ct);
-            _log.LogError(ex, "❌ Error al guardar la SignatureRequest");
+            _log.LogError(ex, "Error al guardar la SignatureRequest");
             return new ApiResponse<bool>(false, "No se pudo crear la solicitud");
         }
 
-        /* ╭──────────────────────────────────────────────────────────────╮
-        │ 4 ▸ ahora sí: publicar invitaciones por RabbitMQ            │
-           ╰──────────────────────────────────────────────────────────────╯ */
+        // 4 ▸ ahora sí: publicar invitaciones por RabbitMQ
         foreach (var ev in pendingEvents)
             _bus.Publish(ev);
 
         _log.LogInformation(
-            "✅ SignatureRequest {Id} creada con {Cnt} firmantes",
+            "SignatureRequest {Id} creada para Company {CompanyId} por TaxUser {TaxUserId} con {Cnt} firmantes",
             req.Id,
+            cmd.CompanyId,
+            cmd.CreatedByTaxUserId,
             req.Signers.Count
         );
 

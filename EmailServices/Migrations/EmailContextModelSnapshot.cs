@@ -29,16 +29,24 @@ namespace EmailServices.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("BccAddresses")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CcAddresses")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ConfigId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedByTaxUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedOn")
@@ -52,7 +60,10 @@ namespace EmailServices.Migrations
                     b.Property<string>("FromAddress")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("SentByUserId")
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SentByTaxUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("SentOn")
@@ -73,13 +84,31 @@ namespace EmailServices.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_Emails_CompanyId");
 
                     b.HasIndex("ConfigId");
 
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_Emails_CreatedByTaxUserId");
+
+                    b.HasIndex("SentByTaxUserId")
+                        .HasDatabaseName("IX_Emails_SentByTaxUserId");
+
                     b.HasIndex("SentOn");
 
+                    b.HasIndex("CompanyId", "ConfigId")
+                        .HasDatabaseName("IX_Emails_CompanyId_ConfigId");
+
                     b.HasIndex("Status", "CreatedOn");
+
+                    b.HasIndex("CompanyId", "Status", "CreatedOn")
+                        .HasDatabaseName("IX_Emails_CompanyId_Status_CreatedOn");
 
                     b.ToTable("Emails", (string)null);
                 });
@@ -88,6 +117,9 @@ namespace EmailServices.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<byte[]>("Content")
@@ -123,9 +155,15 @@ namespace EmailServices.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_EmailAttachments_CompanyId");
+
                     b.HasIndex("EmailId");
 
                     b.HasIndex("IncomingEmailId");
+
+                    b.HasIndex("CompanyId", "EmailId")
+                        .HasDatabaseName("IX_EmailAttachments_CompanyId_EmailId");
 
                     b.ToTable("EmailAttachments", (string)null);
                 });
@@ -136,8 +174,16 @@ namespace EmailServices.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("DailyLimit")
                         .ValueGeneratedOnAdd()
@@ -167,6 +213,12 @@ namespace EmailServices.Migrations
                     b.Property<DateTime?>("GmailTokenExpiry")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -195,14 +247,26 @@ namespace EmailServices.Migrations
                     b.Property<DateTime?>("UpdatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_EmailConfigs_CompanyId");
 
-                    b.ToTable("EmailConfigs", (string)null);
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_EmailConfigs_CreatedByTaxUserId");
+
+                    b.HasIndex("CompanyId", "IsActive")
+                        .HasDatabaseName("IX_EmailConfigs_CompanyId_IsActive")
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("EmailConfigs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_EmailConfigs_DailyLimit", "[DailyLimit] > 0");
+
+                            t.HasCheckConstraint("CK_EmailConfigs_GmailConfig", "([ProviderType] != 'Gmail') OR ([GmailClientId] IS NOT NULL AND [GmailEmailAddress] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_EmailConfigs_SmtpConfig", "([ProviderType] != 'Smtp') OR ([SmtpServer] IS NOT NULL AND [SmtpPort] IS NOT NULL AND [SmtpUsername] IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Domain.EmailTemplate", b =>
@@ -215,6 +279,12 @@ namespace EmailServices.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedOn")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -226,6 +296,9 @@ namespace EmailServices.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -245,14 +318,23 @@ namespace EmailServices.Migrations
                     b.Property<DateTime?>("UpdatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_EmailTemplates_CompanyId");
+
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_EmailTemplates_CreatedByTaxUserId");
 
                     b.HasIndex("IsActive");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CompanyId", "IsActive")
+                        .HasDatabaseName("IX_EmailTemplates_CompanyId_IsActive")
+                        .HasFilter("[IsActive] = 1");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_EmailTemplates_CompanyId_Name_Unique");
 
                     b.ToTable("EmailTemplates", (string)null);
                 });
@@ -271,7 +353,13 @@ namespace EmailServices.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ConfigId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedByTaxUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("FromAddress")
@@ -309,10 +397,10 @@ namespace EmailServices.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_IncomingEmails_CompanyId");
 
                     b.HasIndex("ConfigId");
 
@@ -323,9 +411,15 @@ namespace EmailServices.Migrations
 
                     b.HasIndex("ReceivedOn");
 
-                    b.HasIndex("MessageId", "ConfigId")
+                    b.HasIndex("CompanyId", "IsRead")
+                        .HasDatabaseName("IX_IncomingEmails_CompanyId_IsRead");
+
+                    b.HasIndex("CompanyId", "ReceivedOn")
+                        .HasDatabaseName("IX_IncomingEmails_CompanyId_ReceivedOn");
+
+                    b.HasIndex("MessageId", "ConfigId", "CompanyId")
                         .IsUnique()
-                        .HasDatabaseName("IX_IncomingEmails_MessageId_ConfigId_Unique")
+                        .HasDatabaseName("IX_IncomingEmails_MessageId_ConfigId_CompanyId_Unique")
                         .HasFilter("[MessageId] IS NOT NULL");
 
                     b.ToTable("IncomingEmails", (string)null);

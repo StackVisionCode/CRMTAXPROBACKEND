@@ -42,21 +42,37 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
         try
         {
-            // Buscar el usuario con info de company para validaciones
+            // Buscar el usuario con info de company y custom plan para validaciones
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
+                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
+                join s in _dbContext.Services on cp.Id equals s.Id into services
+                from s in services.DefaultIfEmpty()
                 where u.Id == request.UserTax.Id
-                select new { User = u, Company = c };
+                select new
+                {
+                    User = u,
+                    Company = c,
+                    CustomPlan = cp,
+                    Service = s,
+                };
 
             var userData = await userQuery.FirstOrDefaultAsync(cancellationToken);
             if (userData?.User == null)
             {
-                _logger.LogWarning("Tax preparer not found: {UserId}", request.UserTax.Id);
-                return new ApiResponse<bool>(false, "Tax preparer not found", false);
+                _logger.LogWarning("Tax user not found: {UserId}", request.UserTax.Id);
+                return new ApiResponse<bool>(false, "Tax user not found", false);
             }
 
             var user = userData.User;
+
+            // Verificar si se está intentando desactivar al Owner
+            if (user.IsOwner && request.UserTax.IsActive == false)
+            {
+                _logger.LogWarning("Cannot deactivate company owner: {UserId}", request.UserTax.Id);
+                return new ApiResponse<bool>(false, "Cannot deactivate the company owner", false);
+            }
 
             // Verificar si el email ya existe en otro usuario (si se está cambiando)
             if (!string.IsNullOrEmpty(request.UserTax.Email) && request.UserTax.Email != user.Email)
@@ -73,21 +89,49 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 }
             }
 
+            // Si se activa un usuario regular, verificar límites del plan
+            if (!user.IsOwner && request.UserTax.IsActive == true && !user.IsActive)
+            {
+                var currentActiveUsersCount = await _dbContext.TaxUsers.CountAsync(
+                    u => u.CompanyId == user.CompanyId && u.IsActive && u.Id != user.Id,
+                    cancellationToken
+                );
+
+                if (currentActiveUsersCount >= userData.CustomPlan.UserLimit)
+                {
+                    _logger.LogWarning(
+                        "Cannot activate user - plan limit exceeded: ActiveUsers={ActiveUsers}, Limit={Limit}, Company={CompanyId}",
+                        currentActiveUsersCount,
+                        userData.CustomPlan.UserLimit,
+                        user.CompanyId
+                    );
+                    return new ApiResponse<bool>(
+                        false,
+                        $"Cannot activate user. Plan limit reached ({currentActiveUsersCount}/{userData.CustomPlan.UserLimit} users).",
+                        false
+                    );
+                }
+            }
+
             // Guardar valores actuales
             var currentAddressId = user.AddressId;
             var currentPassword = user.Password;
+            var currentIsOwner = user.IsOwner;
+            var currentCompanyId = user.CompanyId;
 
             // Actualizar campos del usuario
             _mapper.Map(request.UserTax, user);
 
-            // Restaurar campos que manejaremos manualmente
+            // Restaurar campos que NO se pueden cambiar via DTO
             user.AddressId = currentAddressId;
+            user.IsOwner = currentIsOwner; // No se puede cambiar via UpdateUserDTO
+            user.CompanyId = currentCompanyId; // No se puede cambiar via UpdateUserDTO
 
             // Manejar contraseña
             if (!string.IsNullOrWhiteSpace(request.UserTax.Password))
             {
                 user.Password = _passwordHash.HashPassword(request.UserTax.Password);
-                _logger.LogDebug("Password updated for tax preparer: {UserId}", user.Id);
+                _logger.LogDebug("Password updated for tax user: {UserId}", user.Id);
             }
             else
             {
@@ -96,7 +140,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
             user.UpdatedAt = DateTime.UtcNow;
 
-            // Manejar dirección (código existente está bien)
+            // Manejar dirección
             if (request.UserTax.Address is not null)
             {
                 var addrDto = request.UserTax.Address;
@@ -127,7 +171,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                         existingAddress.UpdatedAt = DateTime.UtcNow;
 
                         _logger.LogDebug(
-                            "Updated existing address: {AddressId} for tax preparer: {UserId}",
+                            "Updated existing address: {AddressId} for tax user: {UserId}",
                             existingAddress.Id,
                             user.Id
                         );
@@ -156,7 +200,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 {
                     _dbContext.Addresses.Remove(addressToDelete);
                     _logger.LogDebug(
-                        "Removed address: {AddressId} for tax preparer: {UserId}",
+                        "Removed address: {AddressId} for tax user: {UserId}",
                         addressToDelete.Id,
                         user.Id
                     );
@@ -164,9 +208,38 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 user.AddressId = null;
             }
 
-            // Actualizar roles si se especifican
+            // Actualizar roles con validaciones especiales para Owner
             if (request.UserTax.RoleIds?.Any() == true)
             {
+                // Validación especial para Owner
+                if (user.IsOwner)
+                {
+                    // Verificar que el Owner mantenga al menos un rol Administrator
+                    var newRoleNamesQuery =
+                        from r in _dbContext.Roles
+                        where request.UserTax.RoleIds.Contains(r.Id)
+                        select r.Name;
+
+                    var newRoleNames = await newRoleNamesQuery.ToListAsync(cancellationToken);
+                    var hasAdminRole = newRoleNames.Any(name =>
+                        name.Contains("Administrator") || name == "Developer"
+                    );
+
+                    if (!hasAdminRole)
+                    {
+                        _logger.LogWarning(
+                            "Owner must have at least one Administrator role: {UserId}",
+                            user.Id
+                        );
+                        return new ApiResponse<bool>(
+                            false,
+                            "Company owner must maintain at least one Administrator role",
+                            false
+                        );
+                    }
+                }
+
+                // Actualizar roles
                 var existingRolesQuery =
                     from ur in _dbContext.UserRoles
                     where ur.TaxUserId == user.Id
@@ -190,7 +263,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 }
 
                 _logger.LogDebug(
-                    "Updated roles for tax preparer: {UserId}, RoleCount: {RoleCount}",
+                    "Updated roles for tax user: {UserId}, RoleCount: {RoleCount}",
                     user.Id,
                     request.UserTax.RoleIds.Count()
                 );
@@ -202,25 +275,26 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             {
                 await transaction.CommitAsync(cancellationToken);
                 _logger.LogInformation(
-                    "Tax preparer updated successfully: UserId={UserId}, Company={CompanyName}",
+                    "Tax user updated successfully: UserId={UserId}, Company={CompanyName}, IsOwner={IsOwner}",
                     user.Id,
                     userData.Company.IsCompany
                         ? userData.Company.CompanyName
-                        : userData.Company.FullName
+                        : userData.Company.FullName,
+                    user.IsOwner
                 );
-                return new ApiResponse<bool>(true, "Tax preparer updated successfully", true);
+                return new ApiResponse<bool>(true, "Tax user updated successfully", true);
             }
             else
             {
                 await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError("Failed to update tax preparer: {UserId}", request.UserTax.Id);
-                return new ApiResponse<bool>(false, "Failed to update tax preparer", false);
+                _logger.LogError("Failed to update tax user: {UserId}", request.UserTax.Id);
+                return new ApiResponse<bool>(false, "Failed to update tax user", false);
             }
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Error updating tax preparer: {Message}", ex.Message);
+            _logger.LogError(ex, "Error updating tax user: {Message}", ex.Message);
             return new ApiResponse<bool>(false, ex.Message, false);
         }
     }
@@ -250,7 +324,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
         user.AddressId = newAddress.Id;
 
         _logger.LogDebug(
-            "Created new address: {AddressId} for tax preparer: {UserId}",
+            "Created new address: {AddressId} for tax user: {UserId}",
             newAddress.Id,
             user.Id
         );

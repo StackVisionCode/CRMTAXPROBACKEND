@@ -57,12 +57,13 @@ public class UpdateContactInfoHandler
             if (duplicateExists)
             {
                 _logger.LogWarning(
-                    "ContactInfo with Email {Email} already exists",
-                    request.contactInfo.Email
+                    "ContactInfo with Email {Email} already exists for Customer {CustomerId}",
+                    request.contactInfo.Email,
+                    request.contactInfo.CustomerId
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "ContactInfo with this Email already exists",
+                    "ContactInfo with this Email already exists for this customer",
                     false
                 );
             }
@@ -74,10 +75,15 @@ public class UpdateContactInfoHandler
             _dbContext.ContactInfos.Update(existingContactInfo);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
-            _logger.LogInformation(
-                "ContactInfo updated successfully: {ContactInfo}",
-                existingContactInfo
-            );
+            if (result)
+            {
+                _logger.LogInformation(
+                    "ContactInfo updated successfully: {ContactInfoId} by TaxUser: {LastModifiedBy}",
+                    existingContactInfo.Id,
+                    existingContactInfo.LastModifiedByTaxUserId
+                );
+            }
+
             return new ApiResponse<bool>(result, "ContactInfo updated successfully", result);
         }
         catch (Exception ex)

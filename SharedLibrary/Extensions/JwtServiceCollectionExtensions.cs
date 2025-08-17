@@ -1,4 +1,3 @@
-using System.Runtime.Intrinsics.Arm;
 using Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +6,7 @@ using SharedLibrary.Contracts;
 using SharedLibrary.Contracts.Security;
 using SharedLibrary.Services;
 using SharedLibrary.Services.ConfirmAccountService;
+using SharedLibrary.Services.InvitationService;
 using SharedLibrary.Services.Security;
 using SharedLibrary.Services.SignatureToken;
 
@@ -26,6 +26,7 @@ public static class JwtServiceCollectionExtensions
         services.AddScoped<IConfirmTokenService, ConfirmTokenService>();
         services.AddScoped<ISignatureValidToken, SignatureValidToken>();
         services.AddScoped<IPasswordHash, PasswordHash>();
+        services.AddScoped<IInvitationTokenService, InvitationTokenService>();
         services.AddSingleton<IEncryptionService, AesEncryptionService>();
 
         return services;

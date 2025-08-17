@@ -1,4 +1,4 @@
-using AuthService.DTOs.UserCompanyDTOs;
+using AuthService.DTOs.UserDTOs;
 using Common;
 using MediatR;
 

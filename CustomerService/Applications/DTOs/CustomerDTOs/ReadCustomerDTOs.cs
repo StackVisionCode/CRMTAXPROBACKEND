@@ -6,6 +6,7 @@ public class ReadCustomerDTO
 {
     [Key]
     public required Guid Id { get; set; }
+    public required Guid CompanyId { get; set; }
     public string? CustomerType { get; set; }
     public string? CustomerTypeDescription { get; set; }
     public string? Occupation { get; set; }
@@ -17,4 +18,8 @@ public class ReadCustomerDTO
     public required string SsnOrItin { get; set; }
     public required bool IsActive { get; set; }
     public required bool IsLogin { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public Guid CreatedByTaxUserId { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
 }

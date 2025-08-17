@@ -13,11 +13,17 @@ public class GetEmailsWithPaginationHandler
 {
     private readonly EmailContext _ctx;
     private readonly IMapper _map;
+    private readonly ILogger<GetEmailsWithPaginationHandler> _log;
 
-    public GetEmailsWithPaginationHandler(EmailContext ctx, IMapper map)
+    public GetEmailsWithPaginationHandler(
+        EmailContext ctx,
+        IMapper map,
+        ILogger<GetEmailsWithPaginationHandler> log
+    )
     {
         _ctx = ctx;
         _map = map;
+        _log = log;
     }
 
     public async Task<PagedResult<EmailDTO>> Handle(
@@ -25,11 +31,13 @@ public class GetEmailsWithPaginationHandler
         CancellationToken ct
     )
     {
-        var dbQuery = _ctx.Emails.AsQueryable();
+        var dbQuery = _ctx.Emails.Where(e => e.CompanyId == query.CompanyId);
 
-        // Filtros
-        if (query.UserId.HasValue)
-            dbQuery = dbQuery.Where(e => e.SentByUserId == query.UserId);
+        // Filtros adicionales
+        if (query.TaxUserId.HasValue)
+            dbQuery = dbQuery.Where(e =>
+                e.SentByTaxUserId == query.TaxUserId || e.CreatedByTaxUserId == query.TaxUserId
+            );
 
         if (
             !string.IsNullOrEmpty(query.Status)
@@ -53,6 +61,10 @@ public class GetEmailsWithPaginationHandler
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToListAsync(ct);
+
+        _log.LogInformation(
+            $"Retrieved page {query.Page} with {emails.Count} emails for company {query.CompanyId}"
+        );
 
         return new PagedResult<EmailDTO>
         {

@@ -29,97 +29,93 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
 
         try
         {
-            //  Buscar usuario con información completa de company y plan
+            // Buscar usuario con información completa de company
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
-                where u.Id == request.Id
+                where u.Id == request.UserId
                 select new
                 {
                     User = u,
                     Company = c,
-                    CustomPlan = cp,
                     HasAddress = u.AddressId.HasValue,
                     AddressId = u.AddressId,
-                    UserRoles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
                 };
 
             var userData = await userQuery.FirstOrDefaultAsync(cancellationToken);
             if (userData?.User == null)
             {
-                _logger.LogWarning("Tax preparer not found: {UserId}", request.Id);
-                return new ApiResponse<bool>(false, "Tax preparer not found", false);
+                _logger.LogWarning("Tax user not found: {UserId}", request.UserId);
+                return new ApiResponse<bool>(false, "Tax user not found", false);
             }
 
             var user = userData.User;
 
-            //  Verificar si es el último administrador
-            var isAdmin = userData.UserRoles.Any(role =>
-                role.Contains("Administrator") || role.Equals("Developer")
-            );
-
-            if (isAdmin)
+            // Verificar si es Owner
+            if (user.IsOwner)
             {
-                var otherAdminsCountQuery =
-                    from u in _dbContext.TaxUsers
-                    join ur in _dbContext.UserRoles on u.Id equals ur.TaxUserId
-                    join r in _dbContext.Roles on ur.RoleId equals r.Id
-                    where
-                        u.CompanyId == userData.Company.Id
-                        && u.Id != request.Id
-                        && (r.Name.Contains("Administrator") || r.Name == "Developer")
-                    select u.Id;
+                _logger.LogWarning(
+                    "Cannot delete company owner: UserId={UserId}, Company={CompanyName}",
+                    request.UserId,
+                    userData.Company.IsCompany
+                        ? userData.Company.CompanyName
+                        : userData.Company.FullName
+                );
 
-                var otherAdminsCount = await otherAdminsCountQuery.CountAsync(cancellationToken);
+                return new ApiResponse<bool>(
+                    false,
+                    "Cannot delete the company owner. Transfer ownership first or delete the entire company.",
+                    false
+                );
+            }
 
-                if (otherAdminsCount == 0)
-                {
-                    _logger.LogWarning(
-                        "Cannot delete last administrator: UserId={UserId}, Company={CompanyName}",
-                        request.Id,
-                        userData.Company.IsCompany
-                            ? userData.Company.CompanyName
-                            : userData.Company.FullName
-                    );
+            // Los Users regulares se pueden eliminar sin restricciones adicionales
 
-                    return new ApiResponse<bool>(
-                        false,
-                        "Cannot delete the last administrator of the company. Assign another administrator first.",
-                        false
-                    );
-                }
+            // Eliminar CompanyPermissions del usuario
+            var companyPermissionsQuery =
+                from cp in _dbContext.CompanyPermissions
+                where cp.TaxUserId == request.UserId
+                select cp;
+            var companyPermissions = await companyPermissionsQuery.ToListAsync(cancellationToken);
+            if (companyPermissions.Any())
+            {
+                _dbContext.CompanyPermissions.RemoveRange(companyPermissions);
+                _logger.LogDebug(
+                    "Marked {PermissionCount} company permissions for deletion for tax user: {UserId}",
+                    companyPermissions.Count,
+                    request.UserId
+                );
             }
 
             // Eliminar sesiones del usuario
             var sessionsQuery =
                 from s in _dbContext.Sessions
-                where s.TaxUserId == request.Id
+                where s.TaxUserId == request.UserId
                 select s;
             var sessions = await sessionsQuery.ToListAsync(cancellationToken);
             if (sessions.Any())
             {
                 _dbContext.Sessions.RemoveRange(sessions);
                 _logger.LogDebug(
-                    "Marked {SessionCount} sessions for deletion for tax preparer: {UserId}",
+                    "Marked {SessionCount} sessions for deletion for tax user: {UserId}",
                     sessions.Count,
-                    request.Id
+                    request.UserId
                 );
             }
 
             // Eliminar roles del usuario
             var userRolesQuery =
                 from ur in _dbContext.UserRoles
-                where ur.TaxUserId == request.Id
+                where ur.TaxUserId == request.UserId
                 select ur;
             var userRoles = await userRolesQuery.ToListAsync(cancellationToken);
             if (userRoles.Any())
             {
                 _dbContext.UserRoles.RemoveRange(userRoles);
                 _logger.LogDebug(
-                    "Marked {RoleCount} user roles for deletion for tax preparer: {UserId}",
+                    "Marked {RoleCount} user roles for deletion for tax user: {UserId}",
                     userRoles.Count,
-                    request.Id
+                    request.UserId
                 );
             }
 
@@ -135,7 +131,7 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
                 {
                     _dbContext.Addresses.Remove(address);
                     _logger.LogDebug(
-                        "Marked tax preparer address for deletion: {AddressId}",
+                        "Marked tax user address for deletion: {AddressId}",
                         address.Id
                     );
                 }
@@ -150,33 +146,34 @@ public class DeleteUserTaxHandler : IRequestHandler<DeleteTaxUserCommands, ApiRe
             {
                 await transaction.CommitAsync(cancellationToken);
                 _logger.LogInformation(
-                    "Tax preparer deleted successfully: UserId={UserId}, Company={CompanyName}, "
-                        + "SessionsDeleted={SessionCount}, RolesDeleted={RoleCount}, AddressDeleted={AddressDeleted}",
-                    request.Id,
+                    "Tax user deleted successfully: UserId={UserId}, Company={CompanyName}, "
+                        + "SessionsDeleted={SessionCount}, RolesDeleted={RoleCount}, PermissionsDeleted={PermissionCount}, AddressDeleted={AddressDeleted}",
+                    request.UserId,
                     userData.Company.IsCompany
                         ? userData.Company.CompanyName
                         : userData.Company.FullName,
                     sessions.Count,
                     userRoles.Count,
+                    companyPermissions.Count,
                     userData.HasAddress
                 );
 
-                return new ApiResponse<bool>(true, "Tax preparer deleted successfully", true);
+                return new ApiResponse<bool>(true, "Tax user deleted successfully", true);
             }
             else
             {
                 await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError("Failed to delete tax preparer: {UserId}", request.Id);
-                return new ApiResponse<bool>(false, "Failed to delete tax preparer", false);
+                _logger.LogError("Failed to delete tax user: {UserId}", request.UserId);
+                return new ApiResponse<bool>(false, "Failed to delete tax user", false);
             }
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Error deleting tax preparer: {UserId}", request.Id);
+            _logger.LogError(ex, "Error deleting tax user: {UserId}", request.UserId);
             return new ApiResponse<bool>(
                 false,
-                "An error occurred while deleting the tax preparer",
+                "An error occurred while deleting the tax user",
                 false
             );
         }

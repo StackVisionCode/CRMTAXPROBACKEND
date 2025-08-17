@@ -40,6 +40,9 @@ public class GetSignatureRequestDetailHandler
                 r.RejectedAtUtc,
                 r.RejectReason,
                 r.RejectedBySignerId,
+                r.CompanyId,
+                r.CreatedByTaxUserId,
+                r.LastModifiedByTaxUserId,
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -65,12 +68,15 @@ public class GetSignatureRequestDetailHandler
                 SignedAtUtc = s.SignedAtUtc,
                 RejectedReason = s.RejectReason ?? string.Empty,
                 RejectedAtUtc = s.RejectedAtUtc,
+                FullName = s.FullName,
             })
             .ToListAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Signature request with RequestId: {RequestId} found with {SignerCount} signers",
+            "Signature request {RequestId} found for Company {CompanyId} created by TaxUser {TaxUserId} with {SignerCount} signers",
             request.RequestId,
+            header.CompanyId,
+            header.CreatedByTaxUserId,
             signers.Count
         );
 
@@ -81,16 +87,15 @@ public class GetSignatureRequestDetailHandler
             Status = header.Status,
             CreatedAt = header.CreatedAt,
             UpdatedAt = header.UpdatedAt,
+            CompanyId = header.CompanyId,
+            CreatedByTaxUserId = header.CreatedByTaxUserId,
+            LastModifiedByTaxUserId = header.LastModifiedByTaxUserId,
             Signers = signers,
             RejectedAtUtc = header.RejectedAtUtc,
             RejectReason = header.RejectReason,
             RejectedBySignerId = header.RejectedBySignerId,
         };
 
-        _logger.LogInformation(
-            "Signature request detail for RequestId: {RequestId} retrieved successfully",
-            request.RequestId
-        );
         return new ApiResponse<SignatureRequestDetailDto>(true, "Solicitud encontrada", dto);
     }
 }

@@ -1,6 +1,5 @@
 using Applications.DTOs.CompanyDTOs;
 using AuthService.DTOs.UserDTOs;
-using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -30,7 +29,7 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
     {
         try
         {
-            // Query mejorado con CustomPlan info
+            // Query mejorado con IsOwner y CustomPlan info
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
@@ -55,6 +54,7 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
                     Id = u.Id,
                     CompanyId = u.CompanyId,
                     Email = u.Email,
+                    IsOwner = u.IsOwner,
                     Name = u.Name,
                     LastName = u.LastName,
                     PhoneNumber = u.PhoneNumber,
@@ -63,7 +63,7 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
                     Confirm = u.Confirm ?? false,
                     CreatedAt = u.CreatedAt,
 
-                    // Dirección del preparador
+                    // Dirección del usuario
                     Address =
                         a != null
                             ? new AddressDTO
@@ -103,12 +103,13 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
                             : null,
 
                     RoleNames = new List<string>(),
+                    CustomPermissions = new List<string>(),
                 };
 
             var user = await userQuery.FirstOrDefaultAsync(cancellationToken);
             if (user == null)
             {
-                return new ApiResponse<UserGetDTO>(false, "Tax preparer not found", null!);
+                return new ApiResponse<UserGetDTO>(false, "Tax user not found", null!);
             }
 
             // Obtener roles del usuario
@@ -121,17 +122,29 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
             var roles = await rolesQuery.ToListAsync(cancellationToken);
             user.RoleNames = roles;
 
-            _logger.LogInformation("Tax preparer retrieved successfully: {UserId}", request.Id);
-            return new ApiResponse<UserGetDTO>(true, "Tax preparer retrieved successfully", user);
+            // Obtener permisos personalizados (CompanyPermissions)
+            var customPermissionsQuery =
+                from cp in _dbContext.CompanyPermissions
+                join p in _dbContext.Permissions on cp.PermissionId equals p.Id
+                where cp.TaxUserId == request.Id && cp.IsGranted
+                select p.Code;
+
+            var customPermissions = await customPermissionsQuery.ToListAsync(cancellationToken);
+            user.CustomPermissions = customPermissions;
+
+            _logger.LogInformation(
+                "Tax user retrieved successfully: UserId={UserId}, IsOwner={IsOwner}, RoleCount={RoleCount}, CustomPermissionCount={PermissionCount}",
+                request.Id,
+                user.IsOwner,
+                roles.Count,
+                customPermissions.Count
+            );
+
+            return new ApiResponse<UserGetDTO>(true, "Tax user retrieved successfully", user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Error fetching tax preparer {Id}: {Message}",
-                request.Id,
-                ex.Message
-            );
+            _logger.LogError(ex, "Error fetching tax user {Id}: {Message}", request.Id, ex.Message);
             return new ApiResponse<UserGetDTO>(false, ex.Message, null!);
         }
     }

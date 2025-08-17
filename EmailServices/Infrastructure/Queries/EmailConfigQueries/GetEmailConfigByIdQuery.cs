@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Infrastructure.Queries;
 
-public record GetEmailConfigByIdQuery(Guid Id) : IRequest<EmailConfigDTO?>;
+public record GetEmailConfigByIdQuery(Guid Id, Guid CompanyId) : IRequest<EmailConfigDTO?>;

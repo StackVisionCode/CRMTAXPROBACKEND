@@ -43,11 +43,17 @@ namespace CustomerService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("State")
                         .HasColumnType("nvarchar(max)");
@@ -62,6 +68,9 @@ namespace CustomerService.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_Addresses_CreatedBy");
 
                     b.HasIndex("CustomerId")
                         .IsUnique();
@@ -80,6 +89,9 @@ namespace CustomerService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
@@ -92,6 +104,9 @@ namespace CustomerService.Migrations
 
                     b.Property<bool>("IsLoggin")
                         .HasColumnType("bit");
+
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("PasswordClient")
                         .HasColumnType("nvarchar(max)");
@@ -108,6 +123,9 @@ namespace CustomerService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_ContactInfos_CreatedBy");
+
                     b.HasIndex("CustomerId")
                         .IsUnique();
 
@@ -122,10 +140,16 @@ namespace CustomerService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("CustomerTypeId")
                         .HasColumnType("uniqueidentifier");
@@ -143,6 +167,9 @@ namespace CustomerService.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
 
@@ -159,13 +186,16 @@ namespace CustomerService.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("TaxUserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_Customers_CompanyId");
+
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_Customers_CreatedBy");
 
                     b.HasIndex("CustomerTypeId");
 
@@ -239,6 +269,9 @@ namespace CustomerService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
@@ -252,6 +285,9 @@ namespace CustomerService.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("RelationshipId")
                         .HasColumnType("uniqueidentifier");
 
@@ -259,6 +295,9 @@ namespace CustomerService.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_Dependents_CreatedBy");
 
                     b.HasIndex("CustomerId");
 
@@ -772,6 +811,9 @@ namespace CustomerService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
@@ -784,6 +826,9 @@ namespace CustomerService.Migrations
                     b.Property<bool>("IsReturningCustomer")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("LastYearAGI")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -792,6 +837,9 @@ namespace CustomerService.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_TaxInformations_CreatedBy");
 
                     b.HasIndex("CustomerId")
                         .IsUnique();
@@ -823,7 +871,7 @@ namespace CustomerService.Migrations
                     b.HasOne("CustomerService.Domains.Customers.PreferredContact", "PreferredContact")
                         .WithMany("Contacts")
                         .HasForeignKey("PreferredContactId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Customer");

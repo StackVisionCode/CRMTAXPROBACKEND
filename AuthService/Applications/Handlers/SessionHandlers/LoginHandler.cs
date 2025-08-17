@@ -41,8 +41,11 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     {
         try
         {
-            // 🔍 PASO 1: Buscar usuario en ambas tablas simultáneamente
-            var userResult = await FindUserByEmailAsync(request.Petition.Email, cancellationToken);
+            // PASO 1: Buscar TaxUser por email
+            var userResult = await FindTaxUserByEmailAsync(
+                request.Petition.Email,
+                cancellationToken
+            );
 
             if (userResult == null)
             {
@@ -53,7 +56,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
             }
 
-            // 🔒 PASO 2: Verificar contraseña
+            // PASO 2: Verificar contraseña
             if (!_passwordHasher.Verify(request.Petition.Password, userResult.HashedPassword))
             {
                 _logger.LogWarning(
@@ -63,7 +66,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
             }
 
-            // ✅ PASO 3: Verificar estado del usuario
+            // PASO 3: Verificar estado del usuario
             if (!userResult.IsActive)
             {
                 _logger.LogWarning(
@@ -85,29 +88,41 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 );
             }
 
-            // 🎭 PASO 4: Obtener roles y permisos según el tipo de usuario
-            var rolesAndPermissions = await GetUserRolesAndPermissionsAsync(
+            // PASO 4: Verificar estado de la Company
+            if (!userResult.CompanyIsActive)
+            {
+                _logger.LogWarning(
+                    "Login failed for {Email}: Company plan is inactive",
+                    request.Petition.Email
+                );
+                return new ApiResponse<LoginResponseDTO>(
+                    false,
+                    "Company subscription is inactive. Please contact your administrator."
+                );
+            }
+
+            // PASO 5: Obtener roles y permisos del TaxUser
+            var rolesAndPermissions = await GetTaxUserRolesAndPermissionsAsync(
                 userResult.UserId,
-                userResult.UserType,
                 cancellationToken
             );
 
-            // 🚪 PASO 5: Verificar autorización para Staff portal
+            // 🚪 PASO 6: Verificar autorización para Staff portal
             var allowedPortals = rolesAndPermissions
                 .Roles.Select(r => r.PortalAccess)
                 .Distinct()
                 .ToList();
-            bool allowed =
-                allowedPortals.Contains(PortalAccess.Staff)
-                || allowedPortals.Contains(PortalAccess.Developer)
-                || allowedPortals.Contains(PortalAccess.Both);
+
+            bool allowed = allowedPortals.Any(p =>
+                p == PortalAccess.Staff || p == PortalAccess.Developer || p == PortalAccess.Both
+            );
 
             if (!allowed)
             {
                 _logger.LogWarning(
-                    "Login failed for {Email}: Not authorized for Staff portal. Type: {UserType}, Roles: {Roles}",
+                    "Login failed for {Email}: Not authorized for Staff portal. IsOwner: {IsOwner}, Roles: {Roles}",
                     request.Petition.Email,
-                    userResult.UserType,
+                    userResult.IsOwner,
                     string.Join(",", rolesAndPermissions.Roles.Select(r => r.Name))
                 );
                 return new ApiResponse<LoginResponseDTO>(
@@ -119,7 +134,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 };
             }
 
-            // 🎫 PASO 6: Crear información para el token
+            // PASO 7: Crear información para el token
             var userInfo = new UserInfo(
                 UserId: userResult.UserId,
                 Email: userResult.Email,
@@ -129,12 +144,13 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 CompanyName: userResult.CompanyName,
                 CompanyDomain: userResult.CompanyDomain,
                 IsCompany: userResult.IsCompany,
+                IsOwner: userResult.IsOwner,
                 Roles: rolesAndPermissions.Roles.Select(r => r.Name),
                 Permissions: rolesAndPermissions.Permissions.Select(p => p.Code),
                 Portals: allowedPortals.Select(p => p.ToString()).ToList()
             );
 
-            // 🎟️ PASO 7: Generar tokens
+            // PASO 8: Generar tokens
             var sessionId = Guid.NewGuid();
             var sessionInfo = new SessionInfo(sessionId);
 
@@ -152,9 +168,9 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 new TokenGenerationRequest(userInfo, sessionInfo, refreshTokenLifetime)
             );
 
-            // 💾 PASO 8: Crear sesión en la tabla correspondiente
-            await CreateUserSessionAsync(
-                userResult,
+            //  PASO 9: Crear sesión
+            await CreateTaxUserSessionAsync(
+                userResult.UserId,
                 sessionId,
                 accessToken,
                 refreshToken,
@@ -162,7 +178,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 cancellationToken
             );
 
-            // 📧 PASO 9: Publicar evento de login
+            // PASO 10: Publicar evento de login
             var displayName = DetermineDisplayName(userResult);
             var loginEvent = new UserLoginEvent(
                 Guid.NewGuid(),
@@ -184,7 +200,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
 
             _eventBus.Publish(loginEvent);
 
-            // 📋 PASO 10: Preparar respuesta
+            // PASO 11: Preparar respuesta
             var response = new LoginResponseDTO
             {
                 TokenRequest = accessToken.AccessToken,
@@ -193,9 +209,9 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             };
 
             _logger.LogInformation(
-                "User {UserId} ({UserType}) logged in successfully. Session {SessionId} created",
+                "TaxUser {UserId} (IsOwner: {IsOwner}) logged in successfully. Session {SessionId} created",
                 userResult.UserId,
-                userResult.UserType,
+                userResult.IsOwner,
                 sessionId
             );
 
@@ -209,16 +225,19 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     }
 
     /// <summary>
-    /// 🔍 Busca usuario en ambas tablas (TaxUsers y UserCompanies)
+    /// Busca TaxUser por email con información de Company
     /// </summary>
-    private async Task<UserLoginResult?> FindUserByEmailAsync(string email, CancellationToken ct)
+    private async Task<TaxUserLoginResult?> FindTaxUserByEmailAsync(
+        string email,
+        CancellationToken ct
+    )
     {
-        // Buscar en TaxUsers primero
-        var taxUserQuery =
+        var query =
             from u in _context.TaxUsers
             join c in _context.Companies on u.CompanyId equals c.Id
+            join cp in _context.CustomPlans on c.CustomPlanId equals cp.Id
             where u.Email == email
-            select new UserLoginResult
+            select new TaxUserLoginResult
             {
                 UserId = u.Id,
                 Email = u.Email,
@@ -227,146 +246,89 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 LastName = u.LastName,
                 IsActive = u.IsActive,
                 IsConfirmed = u.Confirm ?? false,
+                IsOwner = u.IsOwner,
                 CompanyId = c.Id,
                 CompanyName = c.CompanyName,
                 CompanyFullName = c.FullName,
                 CompanyDomain = c.Domain,
                 IsCompany = c.IsCompany,
-                UserType = "TaxUser",
+                CompanyIsActive = cp.IsActive, // Verificar si el plan está activo
             };
 
-        var taxUser = await taxUserQuery.FirstOrDefaultAsync(ct);
-        if (taxUser != null)
-            return taxUser;
-
-        // Si no se encuentra en TaxUsers, buscar en UserCompanies
-        var userCompanyQuery =
-            from uc in _context.UserCompanies
-            join c in _context.Companies on uc.CompanyId equals c.Id
-            where uc.Email == email
-            select new UserLoginResult
-            {
-                UserId = uc.Id,
-                Email = uc.Email,
-                HashedPassword = uc.Password,
-                Name = uc.Name,
-                LastName = uc.LastName,
-                IsActive = uc.IsActive,
-                IsConfirmed = uc.Confirm ?? false,
-                CompanyId = c.Id,
-                CompanyName = c.CompanyName,
-                CompanyFullName = c.FullName,
-                CompanyDomain = c.Domain,
-                IsCompany = c.IsCompany,
-                UserType = "UserCompany",
-            };
-
-        return await userCompanyQuery.FirstOrDefaultAsync(ct);
+        return await query.FirstOrDefaultAsync(ct);
     }
 
     /// <summary>
-    /// 🎭 Obtiene roles y permisos según el tipo de usuario
+    /// Obtiene roles y permisos del TaxUser, incluyendo permisos personalizados
     /// </summary>
     private async Task<(
         List<RoleResult> Roles,
         List<PermissionResult> Permissions
-    )> GetUserRolesAndPermissionsAsync(Guid userId, string userType, CancellationToken ct)
+    )> GetTaxUserRolesAndPermissionsAsync(Guid userId, CancellationToken ct)
     {
-        if (userType == "TaxUser")
-        {
-            // Roles de TaxUser
-            var taxUserRoles = await (
-                from ur in _context.UserRoles
-                join r in _context.Roles on ur.RoleId equals r.Id
-                where ur.TaxUserId == userId
-                select new RoleResult
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    PortalAccess = r.PortalAccess,
-                }
-            ).ToListAsync(ct);
+        // Obtener roles del TaxUser
+        var roles = await (
+            from ur in _context.UserRoles
+            join r in _context.Roles on ur.RoleId equals r.Id
+            where ur.TaxUserId == userId
+            select new RoleResult
+            {
+                Id = r.Id,
+                Name = r.Name,
+                PortalAccess = r.PortalAccess,
+            }
+        ).ToListAsync(ct);
 
-            // Permisos de TaxUser
-            var taxUserPermissions = await (
-                from ur in _context.UserRoles
-                join rp in _context.RolePermissions on ur.RoleId equals rp.RoleId
-                join p in _context.Permissions on rp.PermissionId equals p.Id
-                where ur.TaxUserId == userId
-                select new PermissionResult
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Code = p.Code,
-                }
-            ).Distinct().ToListAsync(ct);
+        // Obtener permisos base de los roles
+        var rolePermissions = await (
+            from ur in _context.UserRoles
+            join rp in _context.RolePermissions on ur.RoleId equals rp.RoleId
+            join p in _context.Permissions on rp.PermissionId equals p.Id
+            where ur.TaxUserId == userId && p.IsGranted // Solo permisos activos globalmente
+            select new PermissionResult
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Code = p.Code,
+            }
+        ).ToListAsync(ct);
 
-            return (taxUserRoles, taxUserPermissions);
-        }
-        else // UserCompany
-        {
-            // Roles de UserCompany
-            var userCompanyRoles = await (
-                from ucr in _context.UserCompanyRoles
-                join r in _context.Roles on ucr.RoleId equals r.Id
-                where ucr.UserCompanyId == userId
-                select new RoleResult
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    PortalAccess = r.PortalAccess,
-                }
-            ).ToListAsync(ct);
+        // Obtener permisos personalizados granted
+        var customPermissionsGranted = await (
+            from cp in _context.CompanyPermissions
+            join p in _context.Permissions on cp.PermissionId equals p.Id
+            where cp.TaxUserId == userId && cp.IsGranted && p.IsGranted
+            select new PermissionResult
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Code = p.Code,
+            }
+        ).ToListAsync(ct);
 
-            // Permisos de roles
-            var rolePermissions = await (
-                from ucr in _context.UserCompanyRoles
-                join rp in _context.RolePermissions on ucr.RoleId equals rp.RoleId
-                join p in _context.Permissions on rp.PermissionId equals p.Id
-                where ucr.UserCompanyId == userId
-                select new PermissionResult
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Code = p.Code,
-                }
-            ).ToListAsync(ct);
+        // Obtener códigos de permisos revocados
+        var revokedPermissionCodes = await (
+            from cp in _context.CompanyPermissions
+            join p in _context.Permissions on cp.PermissionId equals p.Id
+            where cp.TaxUserId == userId && !cp.IsGranted
+            select p.Code
+        ).ToListAsync(ct);
 
-            // Permisos personalizados granted
-            var customPermissions = await (
-                from cp in _context.CompanyPermissions
-                where cp.UserCompanyId == userId && cp.IsGranted
-                select new PermissionResult
-                {
-                    Id = Guid.NewGuid(),
-                    Name = cp.Name,
-                    Code = cp.Code,
-                }
-            ).ToListAsync(ct);
+        // Combinar permisos: (roles + custom granted) - revoked
+        var allPermissions = rolePermissions
+            .Concat(customPermissionsGranted)
+            .Where(p => !revokedPermissionCodes.Contains(p.Code))
+            .DistinctBy(p => p.Code)
+            .ToList();
 
-            // Permisos revocados
-            var revokedPermissions = await (
-                from cp in _context.CompanyPermissions
-                where cp.UserCompanyId == userId && !cp.IsGranted
-                select cp.Code
-            ).ToListAsync(ct);
-
-            // Combinar permisos: (roles + custom) - revocados
-            var allPermissions = rolePermissions
-                .Concat(customPermissions)
-                .Where(p => !revokedPermissions.Contains(p.Code))
-                .DistinctBy(p => p.Code)
-                .ToList();
-
-            return (userCompanyRoles, allPermissions);
-        }
+        return (roles, allPermissions);
     }
 
     /// <summary>
-    /// 💾 Crea sesión en la tabla correspondiente según el tipo de usuario
+    /// Crea sesión para TaxUser
     /// </summary>
-    private async Task CreateUserSessionAsync(
-        UserLoginResult user,
+    private async Task CreateTaxUserSessionAsync(
+        Guid userId,
         Guid sessionId,
         TokenResult accessToken,
         TokenResult refreshToken,
@@ -374,45 +336,27 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         CancellationToken ct
     )
     {
-        if (user.UserType == "TaxUser")
+        var session = new Session
         {
-            var session = new Session
-            {
-                Id = sessionId,
-                TaxUserId = user.UserId,
-                TokenRequest = accessToken.AccessToken,
-                ExpireTokenRequest = accessToken.ExpireAt,
-                TokenRefresh = refreshToken.AccessToken,
-                IpAddress = request.IpAddress,
-                Device = request.Device,
-                IsRevoke = false,
-                CreatedAt = DateTime.UtcNow,
-            };
+            Id = sessionId,
+            TaxUserId = userId,
+            TokenRequest = accessToken.AccessToken,
+            ExpireTokenRequest = accessToken.ExpireAt,
+            TokenRefresh = refreshToken.AccessToken,
+            IpAddress = request.IpAddress,
+            Device = request.Device,
+            IsRevoke = false,
+            CreatedAt = DateTime.UtcNow,
+        };
 
-            _context.Sessions.Add(session);
-        }
-        else // UserCompany
-        {
-            var session = new UserCompanySession
-            {
-                Id = sessionId,
-                UserCompanyId = user.UserId,
-                TokenRequest = accessToken.AccessToken,
-                ExpireTokenRequest = accessToken.ExpireAt,
-                TokenRefresh = refreshToken.AccessToken,
-                IpAddress = request.IpAddress,
-                Device = request.Device,
-                IsRevoke = false,
-                CreatedAt = DateTime.UtcNow,
-            };
-
-            _context.UserCompanySessions.Add(session);
-        }
-
+        _context.Sessions.Add(session);
         await _context.SaveChangesAsync(ct);
     }
 
-    private string DetermineDisplayName(UserLoginResult user)
+    /// <summary>
+    /// Determina el nombre para mostrar
+    /// </summary>
+    private static string DetermineDisplayName(TaxUserLoginResult user)
     {
         if (user.IsCompany && !string.IsNullOrWhiteSpace(user.CompanyName))
         {
@@ -431,36 +375,4 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
 
         return user.Email;
     }
-}
-
-// 📊 Clases auxiliares
-public class UserLoginResult
-{
-    public Guid UserId { get; set; }
-    public required string Email { get; set; }
-    public required string HashedPassword { get; set; }
-    public string? Name { get; set; }
-    public string? LastName { get; set; }
-    public bool IsActive { get; set; }
-    public bool IsConfirmed { get; set; }
-    public Guid CompanyId { get; set; }
-    public string? CompanyName { get; set; }
-    public string? CompanyFullName { get; set; }
-    public string? CompanyDomain { get; set; }
-    public bool IsCompany { get; set; }
-    public required string UserType { get; set; }
-}
-
-public class RoleResult
-{
-    public Guid Id { get; set; }
-    public required string Name { get; set; }
-    public PortalAccess PortalAccess { get; set; }
-}
-
-public class PermissionResult
-{
-    public Guid Id { get; set; }
-    public required string Name { get; set; }
-    public required string Code { get; set; }
 }

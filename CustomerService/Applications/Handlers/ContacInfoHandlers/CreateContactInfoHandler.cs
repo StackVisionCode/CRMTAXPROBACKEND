@@ -47,12 +47,13 @@ public class CreateContactInfoHandler
             if (exists)
             {
                 _logger.LogWarning(
-                    "ContactInfo already exists with Email: {Email}",
-                    request.contactInfo.Email
+                    "ContactInfo already exists with Email: {Email} for Customer: {CustomerId}",
+                    request.contactInfo.Email,
+                    request.contactInfo.CustomerId
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "ContactInfo with this Email already exists.",
+                    "ContactInfo with this Email already exists for this customer.",
                     false
                 );
             }
@@ -61,6 +62,7 @@ public class CreateContactInfoHandler
             contactInfo.IsLoggin = false;
             contactInfo.PasswordClient = null;
             contactInfo.CreatedAt = DateTime.UtcNow;
+
             await _dbContext.ContactInfos.AddAsync(contactInfo, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 

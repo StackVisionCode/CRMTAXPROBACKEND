@@ -5,6 +5,10 @@ namespace Domain;
 public class EmailConfig
 {
     public Guid Id { get; set; }
+    public required Guid CompanyId { get; set; }
+    public required Guid CreatedByTaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
+
     public string Name { get; set; } = string.Empty;
     public string? ProviderType { get; set; } // "Smtp" or "Gmail"
 
@@ -19,11 +23,12 @@ public class EmailConfig
     public string? GmailClientId { get; set; }
     public string? GmailClientSecret { get; set; }
     public string? GmailRefreshToken { get; set; }
-    public string? GmailAccessToken { get; set; } // store last access token (optional)
-    public DateTime? GmailTokenExpiry { get; set; } // when the access token expires
-    public string? GmailEmailAddress { get; set; } // Gmail account email (the user)
+    public string? GmailAccessToken { get; set; }
+    public DateTime? GmailTokenExpiry { get; set; }
+    public string? GmailEmailAddress { get; set; }
+
     public int DailyLimit { get; set; } = 100;
-    public Guid UserId { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTime CreatedOn { get; set; }
     public DateTime? UpdatedOn { get; set; }
 }

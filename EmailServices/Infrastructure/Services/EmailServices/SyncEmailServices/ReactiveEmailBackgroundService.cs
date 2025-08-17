@@ -68,12 +68,13 @@ public class ReactiveEmailBackgroundService : BackgroundService
 
         try
         {
+            // ACTUALIZADO: Filtrar solo configuraciones activas
             var activeConfigs = await context
-                .EmailConfigs.Where(c => !string.IsNullOrEmpty(c.ProviderType))
+                .EmailConfigs.Where(c => !string.IsNullOrEmpty(c.ProviderType) && c.IsActive)
                 .ToListAsync(cancellationToken);
 
             _logger.LogInformation(
-                "⚡ Starting reactive watching for {Count} email configurations",
+                "⚡ Starting reactive watching for {Count} active email configurations",
                 activeConfigs.Count
             );
 
@@ -82,16 +83,21 @@ public class ReactiveEmailBackgroundService : BackgroundService
                 try
                 {
                     _logger.LogInformation(
-                        "👀 Starting watch for {ConfigName} ({ProviderType})",
+                        "👀 Starting watch for {ConfigName} ({ProviderType}) - Company: {CompanyId}",
                         config.Name,
-                        config.ProviderType
+                        config.ProviderType,
+                        config.CompanyId
                     );
 
-                    // Hacer sync inicial para obtener emails recientes
-                    var syncResult = await reactiveService.SyncAllEmailsAsync(config.Id);
+                    // Hacer sync inicial con CompanyId
+                    var syncResult = await reactiveService.SyncAllEmailsAsync(
+                        config.Id,
+                        config.CompanyId
+                    );
                     _logger.LogInformation(
-                        "📊 Initial sync for {ConfigName}: {Message}",
+                        "📊 Initial sync for {ConfigName} (Company: {CompanyId}): {Message}",
                         config.Name,
+                        config.CompanyId,
                         syncResult.Message
                     );
 
@@ -99,16 +105,18 @@ public class ReactiveEmailBackgroundService : BackgroundService
                     await reactiveService.StartWatchingAsync(config);
 
                     _logger.LogInformation(
-                        "✅ Started reactive watching for {ConfigName}",
-                        config.Name
+                        "✅ Started reactive watching for {ConfigName} (Company: {CompanyId})",
+                        config.Name,
+                        config.CompanyId
                     );
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(
                         ex,
-                        "❌ Failed to start watching for config {ConfigName}",
-                        config.Name
+                        "❌ Failed to start watching for config {ConfigName} (Company: {CompanyId})",
+                        config.Name,
+                        config.CompanyId
                     );
                 }
 
@@ -119,7 +127,7 @@ public class ReactiveEmailBackgroundService : BackgroundService
             if (!activeConfigs.Any())
             {
                 _logger.LogWarning(
-                    "⚠️ No email configurations found. Please create at least one EmailConfig."
+                    "⚠️ No active email configurations found. Please create at least one active EmailConfig."
                 );
             }
         }
@@ -138,9 +146,9 @@ public class ReactiveEmailBackgroundService : BackgroundService
 
         try
         {
-            // Verificar si hay nuevas configuraciones que no estamos observando
+            // ACTUALIZADO: Verificar si hay nuevas configuraciones activas que no estamos observando
             var allConfigs = await context
-                .EmailConfigs.Where(c => !string.IsNullOrEmpty(c.ProviderType))
+                .EmailConfigs.Where(c => !string.IsNullOrEmpty(c.ProviderType) && c.IsActive)
                 .ToListAsync(cancellationToken);
 
             foreach (var config in allConfigs)
@@ -148,6 +156,11 @@ public class ReactiveEmailBackgroundService : BackgroundService
                 // StartWatchingAsync verifica internamente si ya está siendo observado
                 await reactiveService.StartWatchingAsync(config);
             }
+
+            _logger.LogDebug(
+                "🔍 Checked for new configurations: {Count} active configs found",
+                allConfigs.Count
+            );
         }
         catch (Exception ex)
         {
@@ -166,13 +179,32 @@ public class ReactiveEmailBackgroundService : BackgroundService
 
         try
         {
-            var activeConfigs = await context
-                .EmailConfigs.Select(c => c.Id)
+            // ACTUALIZADO: Obtener solo IDs de configuraciones activas
+            var activeConfigIds = await context
+                .EmailConfigs.Where(c => c.IsActive)
+                .Select(c => c.Id)
                 .ToListAsync(cancellationToken);
 
-            foreach (var configId in activeConfigs)
+            _logger.LogInformation(
+                "🛑 Stopping watching for {Count} configurations",
+                activeConfigIds.Count
+            );
+
+            foreach (var configId in activeConfigIds)
             {
-                await reactiveService.StopWatchingAsync(configId);
+                try
+                {
+                    await reactiveService.StopWatchingAsync(configId);
+                    _logger.LogDebug("🛑 Stopped watching config {ConfigId}", configId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "⚠️ Error stopping watch for config {ConfigId}",
+                        configId
+                    );
+                }
             }
         }
         catch (Exception ex)

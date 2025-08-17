@@ -9,6 +9,7 @@ public class UserGetDTO
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
     public string Email { get; set; } = string.Empty;
+    public bool IsOwner { get; set; } = false;
     public string? Name { get; set; }
     public string? LastName { get; set; }
     public string? PhoneNumber { get; set; }
@@ -17,8 +18,7 @@ public class UserGetDTO
     public bool IsActive { get; set; }
     public bool Confirm { get; set; }
     public ICollection<string> RoleNames { get; set; } = new List<string>();
-
-    // Información de la company
+    public ICollection<string> CustomPermissions { get; set; } = new List<string>();
     public string? CompanyFullName { get; set; }
     public string? CompanyName { get; set; }
     public string? CompanyBrand { get; set; }

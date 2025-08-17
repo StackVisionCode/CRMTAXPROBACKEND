@@ -29,7 +29,6 @@ public class GetCompanyStatsHandler
     {
         try
         {
-            // Query para estadísticas completas
             var statsQuery =
                 from c in _dbContext.Companies
                 join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
@@ -38,28 +37,22 @@ public class GetCompanyStatsHandler
                 {
                     Company = c,
                     CustomPlan = cp,
-                    // Conteos de usuarios
+                    // Conteos de TaxUsers
                     TaxUsersTotal = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
                     TaxUsersActive = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == c.Id && u.IsActive
                     ),
-                    EmployeesTotal = _dbContext.UserCompanies.Count(uc => uc.CompanyId == c.Id),
-                    EmployeesActive = _dbContext.UserCompanies.Count(uc =>
-                        uc.CompanyId == c.Id && uc.IsActive
+                    OwnerCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id && u.IsOwner),
+                    RegularUsersCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && !u.IsOwner
                     ),
-                    // Sesiones activas
+                    // Sesiones de TaxUsers
                     ActiveSessions = (
                         from s in _dbContext.Sessions
                         join u in _dbContext.TaxUsers on s.TaxUserId equals u.Id
                         where u.CompanyId == c.Id && !s.IsRevoke
                         select s.Id
-                    ).Count()
-                        + (
-                            from ucs in _dbContext.UserCompanySessions
-                            join uc in _dbContext.UserCompanies on ucs.UserCompanyId equals uc.Id
-                            where uc.CompanyId == c.Id && !ucs.IsRevoke
-                            select ucs.Id
-                        ).Count(),
+                    ).Count(),
                 };
 
             var stats = await statsQuery.FirstOrDefaultAsync(cancellationToken);
@@ -68,17 +61,7 @@ public class GetCompanyStatsHandler
                 return new ApiResponse<CompanyStatsDTO>(false, "Company not found", null!);
             }
 
-            // Obtener límite del servicio
-            var serviceLimitQuery =
-                from s in _dbContext.Services
-                from cm in _dbContext.CustomModules
-                join m in _dbContext.Modules on cm.ModuleId equals m.Id
-                where cm.CustomPlanId == stats.CustomPlan.Id && m.ServiceId == s.Id && cm.IsIncluded
-                select s.UserLimit;
-
-            var serviceLimit = await serviceLimitQuery.FirstOrDefaultAsync(cancellationToken);
-
-            // Crear respuesta
+            // Usar CustomPlan.UserLimit directamente
             var result = new CompanyStatsDTO
             {
                 CompanyId = stats.Company.Id,
@@ -88,19 +71,17 @@ public class GetCompanyStatsHandler
                 Domain = stats.Company.Domain,
                 IsCompany = stats.Company.IsCompany,
 
-                // Estadísticas de preparadores (TaxUsers)
-                TotalPreparers = stats.TaxUsersTotal,
-                ActivePreparers = stats.TaxUsersActive,
+                // TaxUsers
+                TotalUsers = stats.TaxUsersTotal,
+                ActiveUsers = stats.TaxUsersActive,
+                OwnerCount = stats.OwnerCount,
+                RegularUsers = stats.RegularUsersCount,
 
-                // Estadísticas de empleados (UserCompanies)
-                TotalEmployees = stats.EmployeesTotal,
-                ActiveEmployees = stats.EmployeesActive,
-
-                // Plan información
+                // Plan información - ACTUALIZADO
                 CustomPlanPrice = stats.CustomPlan.Price,
                 CustomPlanIsActive = stats.CustomPlan.IsActive,
-                ServiceUserLimit = serviceLimit,
-                IsWithinLimits = (stats.EmployeesTotal <= serviceLimit),
+                ServiceUserLimit = stats.CustomPlan.UserLimit,
+                IsWithinLimits = (stats.TaxUsersActive <= stats.CustomPlan.UserLimit),
 
                 // Actividad
                 ActiveSessions = stats.ActiveSessions,
@@ -109,10 +90,12 @@ public class GetCompanyStatsHandler
             };
 
             _logger.LogInformation(
-                "Retrieved stats for company {CompanyId}: {Preparers} preparers, {Employees} employees",
+                "Retrieved stats for company {CompanyId}: {Total} TaxUsers ({Owner} Owner, {Regular} Regular), Limit: {Limit}",
                 request.CompanyId,
-                result.TotalPreparers,
-                result.TotalEmployees
+                result.TotalUsers,
+                result.OwnerCount,
+                result.RegularUsers,
+                stats.CustomPlan.UserLimit
             );
 
             return new ApiResponse<CompanyStatsDTO>(

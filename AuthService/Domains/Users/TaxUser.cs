@@ -1,5 +1,6 @@
 using AuthService.Domains.Addresses;
 using AuthService.Domains.Companies;
+using AuthService.Domains.Permissions;
 using AuthService.Domains.Sessions;
 using Common;
 
@@ -12,6 +13,7 @@ public class TaxUser : BaseEntity
     public required string Email { get; set; }
     public required string Password { get; set; }
     public required bool IsActive { get; set; }
+    public bool IsOwner { get; set; } = false;
     public string? Name { get; set; }
     public string? LastName { get; set; }
     public string? PhoneNumber { get; set; }
@@ -30,4 +32,6 @@ public class TaxUser : BaseEntity
     public virtual Address? Address { get; set; }
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public virtual ICollection<CompanyPermission> CompanyPermissions { get; set; } =
+        new List<CompanyPermission>();
 }

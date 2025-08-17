@@ -1,12 +1,12 @@
 using AuthService.Commands.InvitationCommands;
-using AuthService.DTOs.UserCompanyDTOs;
+using AuthService.DTOs.UserDTOs;
 using Common;
 using Infraestructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Contracts;
 
-namespace AuthService.Handlers.InvitationHandlers;
+namespace Handlers.UserHandlers;
 
 public class ValidateInvitationHandler
     : IRequestHandler<ValidateInvitationCommand, ApiResponse<InvitationValidationDTO>>
@@ -46,9 +46,10 @@ public class ValidateInvitationHandler
                 );
             }
 
-            // 2. Verificar que la company aún existe
+            // 2. Verificar que la company aún existe y está activa
             var companyQuery =
                 from c in _dbContext.Companies
+                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where c.Id == companyId
                 select new
                 {
@@ -57,6 +58,7 @@ public class ValidateInvitationHandler
                     c.FullName,
                     c.Domain,
                     c.IsCompany,
+                    CustomPlanIsActive = cp.IsActive,
                 };
 
             var company = await companyQuery.FirstOrDefaultAsync(cancellationToken);
@@ -73,10 +75,24 @@ public class ValidateInvitationHandler
                 );
             }
 
+            if (!company.CustomPlanIsActive)
+            {
+                return new ApiResponse<InvitationValidationDTO>(
+                    false,
+                    "Company plan is inactive",
+                    new InvitationValidationDTO
+                    {
+                        IsValid = false,
+                        ErrorMessage = "Company plan is inactive",
+                    }
+                );
+            }
+
             // 3. Verificar que el email no se haya registrado
-            var emailExists =
-                await _dbContext.UserCompanies.AnyAsync(uc => uc.Email == email, cancellationToken)
-                || await _dbContext.TaxUsers.AnyAsync(u => u.Email == email, cancellationToken);
+            var emailExists = await _dbContext.TaxUsers.AnyAsync(
+                u => u.Email == email,
+                cancellationToken
+            );
 
             if (emailExists)
             {

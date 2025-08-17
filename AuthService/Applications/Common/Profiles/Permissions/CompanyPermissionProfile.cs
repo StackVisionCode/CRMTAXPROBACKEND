@@ -11,20 +11,22 @@ public class CompanyPermissionProfile : Profile
     {
         CreateMap<AssignCompanyPermissionDTO, CompanyPermission>()
             .ForMember(d => d.Id, o => o.Ignore())
-            .ForMember(d => d.UserCompany, o => o.Ignore())
-            .ForMember(d => d.UserCompanyRole, o => o.Ignore());
+            .ForMember(d => d.TaxUser, o => o.Ignore())
+            .ForMember(d => d.Permission, o => o.Ignore());
 
         CreateMap<UpdateCompanyPermissionDTO, CompanyPermission>()
-            .ForMember(d => d.UserCompanyId, o => o.Ignore())
-            .ForMember(d => d.UserCompanyRoleId, o => o.Ignore())
-            .ForMember(d => d.UserCompany, o => o.Ignore())
-            .ForMember(d => d.UserCompanyRole, o => o.Ignore());
+            .ForMember(d => d.TaxUserId, o => o.Ignore())
+            .ForMember(d => d.PermissionId, o => o.Ignore())
+            .ForMember(d => d.TaxUser, o => o.Ignore())
+            .ForMember(d => d.Permission, o => o.Ignore());
 
         CreateMap<CompanyPermission, CompanyPermissionDTO>()
-            .ForMember(d => d.UserCompanyEmail, o => o.MapFrom(s => s.UserCompany.Email))
-            .ForMember(d => d.RoleName, o => o.MapFrom(s => s.UserCompanyRole.Role.Name));
+            .ForMember(d => d.UserEmail, o => o.MapFrom(s => s.TaxUser.Email))
+            .ForMember(d => d.UserName, o => o.MapFrom(s => s.TaxUser.Name))
+            .ForMember(d => d.UserLastName, o => o.MapFrom(s => s.TaxUser.LastName))
+            .ForMember(d => d.PermissionCode, o => o.MapFrom(s => s.Permission.Code))
+            .ForMember(d => d.PermissionName, o => o.MapFrom(s => s.Permission.Name));
 
-        // Command mappings
         CreateMap<AssignCompanyPermissionDTO, AssignCompanyPermissionCommand>()
             .ConstructUsing(src => new AssignCompanyPermissionCommand(src));
 

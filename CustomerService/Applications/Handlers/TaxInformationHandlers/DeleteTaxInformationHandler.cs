@@ -44,6 +44,7 @@ public class DeleteTaxInformationHandler
 
             _dbContext.TaxInformations.Remove(taxInfo);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+
             if (result)
             {
                 _logger.LogInformation(

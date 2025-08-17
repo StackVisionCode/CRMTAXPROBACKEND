@@ -1,6 +1,5 @@
 using AuthService.Domains.Addresses;
 using AuthService.Domains.CustomPlans;
-using AuthService.Domains.UserCompanies;
 using AuthService.Domains.Users;
 using Common;
 
@@ -20,5 +19,4 @@ public class Company : BaseEntity
     public required Guid CustomPlanId { get; set; }
     public virtual CustomPlan CustomPlan { get; set; } = null!;
     public virtual ICollection<TaxUser> TaxUsers { get; set; } = new List<TaxUser>();
-    public virtual ICollection<UserCompany> UserCompanies { get; set; } = new List<UserCompany>();
 }

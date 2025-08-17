@@ -43,21 +43,33 @@ public class CreateDependentHandler : IRequestHandler<CreateDependentCommands, A
             if (exists)
             {
                 _logger.LogWarning(
-                    "Dependent already exists with CustomerId: {CustomerId}",
-                    request.dependent.CustomerId
+                    "Dependent already exists with CustomerId: {CustomerId}, Name: {FullName}",
+                    request.dependent.CustomerId,
+                    request.dependent.FullName
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "Dependent with this CustomerId already exists.",
+                    "Dependent with this information already exists for this customer.",
                     false
                 );
             }
 
             var dependent = _mapper.Map<Domains.Customers.Dependent>(request.dependent);
             dependent.CreatedAt = DateTime.UtcNow;
+
             await _dbContext.Dependents.AddAsync(dependent, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
-            _logger.LogInformation("Dependent created successfully: {Dependent}", dependent);
+
+            if (result)
+            {
+                _logger.LogInformation(
+                    "Dependent created successfully: {DependentId} for Customer: {CustomerId} by TaxUser: {CreatedBy}",
+                    dependent.Id,
+                    dependent.CustomerId,
+                    dependent.CreatedByTaxUserId
+                );
+            }
+
             return new ApiResponse<bool>(
                 result,
                 result ? "Dependent created successfully" : "Failed to create Dependent",

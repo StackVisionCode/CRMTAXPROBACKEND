@@ -36,10 +36,10 @@ public class GetAllAddressHandler
             var result = await (
                 from address in _dbContext.Addresses
                 join customer in _dbContext.Customers on address.CustomerId equals customer.Id
-
                 select new ReadAddressDTO
                 {
                     Id = address.Id,
+                    CustomerId = address.CustomerId,
                     Country = address.Country,
                     StreetAddress = address.StreetAddress,
                     ApartmentNumber = address.ApartmentNumber,
@@ -47,27 +47,42 @@ public class GetAllAddressHandler
                     State = address.State,
                     ZipCode = address.ZipCode,
                     Customer = customer.FirstName + " " + customer.LastName,
+                    // Auditoría
+                    CreatedAt = address.CreatedAt,
+                    CreatedByTaxUserId = address.CreatedByTaxUserId,
+                    UpdatedAt = address.UpdatedAt,
+                    LastModifiedByTaxUserId = address.LastModifiedByTaxUserId,
                 }
-            ).ToListAsync();
+            ).ToListAsync(cancellationToken);
 
             if (result is null || !result.Any())
             {
                 _logger.LogInformation("No addresses found.");
-                return new ApiResponse<List<ReadAddressDTO>>(false, "No addresses found", null!);
+                return new ApiResponse<List<ReadAddressDTO>>(
+                    false,
+                    "No addresses found",
+                    new List<ReadAddressDTO>()
+                );
             }
 
-            var addressDTO = _mapper.Map<List<ReadAddressDTO>>(result);
-            _logger.LogInformation("Addresses retrieved successfully: {Addresses}", addressDTO);
+            _logger.LogInformation(
+                "Addresses retrieved successfully: {Count} records",
+                result.Count
+            );
             return new ApiResponse<List<ReadAddressDTO>>(
                 true,
                 "Addresses retrieved successfully",
-                addressDTO
+                result
             );
         }
         catch (Exception ex)
         {
             _logger.LogError("Error retrieving addresses: {Message}", ex.Message);
-            return new ApiResponse<List<ReadAddressDTO>>(false, ex.Message, null!);
+            return new ApiResponse<List<ReadAddressDTO>>(
+                false,
+                ex.Message,
+                new List<ReadAddressDTO>()
+            );
         }
     }
 }

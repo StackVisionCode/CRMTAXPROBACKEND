@@ -30,17 +30,26 @@ public class GetCompanyByDomainHandler
     {
         try
         {
-            // Misma lógica que GetCompanyById pero filtrado por Domain
             var companyQuery =
                 from c in _dbContext.Companies
                 join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
+                join tu in _dbContext.TaxUsers on c.Id equals tu.CompanyId
                 join a in _dbContext.Addresses on c.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
                 join country in _dbContext.Countries on a.CountryId equals country.Id into countries
                 from country in countries.DefaultIfEmpty()
                 join state in _dbContext.States on a.StateId equals state.Id into states
                 from state in states.DefaultIfEmpty()
-                where c.Domain == request.Domain
+                // JOINs para TaxUser address
+                join ta in _dbContext.Addresses on tu.AddressId equals ta.Id into taxUserAddresses
+                from ta in taxUserAddresses.DefaultIfEmpty()
+                join tcountry in _dbContext.Countries
+                    on ta.CountryId equals tcountry.Id
+                    into taxUserCountries
+                from tcountry in taxUserCountries.DefaultIfEmpty()
+                join tstate in _dbContext.States on ta.StateId equals tstate.Id into taxUserStates
+                from tstate in taxUserStates.DefaultIfEmpty()
+                where c.Domain == request.Domain && tu.IsOwner == true
                 select new CompanyDTO
                 {
                     Id = c.Id,
@@ -53,22 +62,43 @@ public class GetCompanyByDomainHandler
                     Domain = c.Domain,
                     CreatedAt = c.CreatedAt,
 
+                    // Información del TaxUser Owner
+                    AdminUserId = tu.Id,
+                    AdminEmail = tu.Email,
+                    AdminName = tu.Name,
+                    AdminLastName = tu.LastName,
+                    AdminPhoneNumber = tu.PhoneNumber,
+                    AdminPhotoUrl = tu.PhotoUrl,
+                    AdminIsActive = tu.IsActive,
+                    AdminConfirmed = tu.Confirm ?? false,
+                    AdminAddress =
+                        ta != null
+                            ? new AddressDTO
+                            {
+                                CountryId = ta.CountryId,
+                                StateId = ta.StateId,
+                                City = ta.City,
+                                Street = ta.Street,
+                                Line = ta.Line,
+                                ZipCode = ta.ZipCode,
+                                CountryName = tcountry.Name,
+                                StateName = tstate.Name,
+                            }
+                            : null,
+
                     // Información del CustomPlan
                     CustomPlanId = cp.Id,
                     CustomPlanPrice = cp.Price,
+                    CustomPlanUserLimit = cp.UserLimit,
                     CustomPlanIsActive = cp.IsActive,
                     CustomPlanStartDate = cp.StartDate,
-                    CustomPlanEndDate = cp.EndDate,
                     CustomPlanRenewDate = cp.RenewDate,
                     CustomPlanIsRenewed = cp.isRenewed,
 
-                    // Conteos correctos
+                    // Conteo de TaxUsers
                     CurrentTaxUserCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
-                    CurrentUserCompanyCount = _dbContext.UserCompanies.Count(uc =>
-                        uc.CompanyId == c.Id
-                    ),
 
-                    // Dirección
+                    // Dirección de la Company
                     Address =
                         a != null
                             ? new AddressDTO
@@ -87,6 +117,7 @@ public class GetCompanyByDomainHandler
                     // Inicializar colecciones
                     BaseModules = new List<string>(),
                     AdditionalModules = new List<string>(),
+                    AdminRoleNames = new List<string>(),
                 };
 
             var company = await companyQuery.FirstOrDefaultAsync(cancellationToken);
@@ -96,6 +127,16 @@ public class GetCompanyByDomainHandler
                 _logger.LogWarning("Company not found with domain: {Domain}", request.Domain);
                 return new ApiResponse<CompanyDTO>(false, "Company not found", null!);
             }
+
+            // Obtener roles del Owner
+            var rolesQuery =
+                from ur in _dbContext.UserRoles
+                join r in _dbContext.Roles on ur.RoleId equals r.Id
+                where ur.TaxUserId == company.AdminUserId
+                select r.Name;
+
+            var roles = await rolesQuery.ToListAsync(cancellationToken);
+            company.AdminRoleNames = roles;
 
             // Obtener módulos
             await PopulateCompanyModulesAsync(company, cancellationToken);
@@ -118,9 +159,6 @@ public class GetCompanyByDomainHandler
         }
     }
 
-    /// <summary>
-    /// Helper method para poblar módulos (mismo que GetCompanyById)
-    /// </summary>
     private async Task PopulateCompanyModulesAsync(CompanyDTO company, CancellationToken ct)
     {
         var modulesQuery =
@@ -133,7 +171,6 @@ public class GetCompanyByDomainHandler
         var modules = await modulesQuery.ToListAsync(ct);
 
         company.BaseModules = modules.Where(m => m.HasService).Select(m => m.ModuleName).ToList();
-
         company.AdditionalModules = modules
             .Where(m => !m.HasService)
             .Select(m => m.ModuleName)

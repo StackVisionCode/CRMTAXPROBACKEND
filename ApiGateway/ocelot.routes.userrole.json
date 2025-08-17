@@ -1,7 +1,7 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/UserRole/Assign",
+      "DownstreamPathTemplate": "/api/UserRole/assign",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/userroles/assign",
@@ -12,18 +12,18 @@
       "Priority": 0
     },
     {
-      "DownstreamPathTemplate": "/api/CompanyUser/{id}/roles/{roleId}",
+      "DownstreamPathTemplate": "/api/UserRole/assign/{userId}/{roleId}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "UpstreamPathTemplate": "/api/companyuser/{id}/roles/assign",
+      "UpstreamPathTemplate": "/api/auth/userroles/assign/{userId}/{roleId}",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
       "SwaggerKey": "auth",
-      "Priority": 0
+      "Priority": 1
     },
     {
-      "DownstreamPathTemplate": "/api/UserRole/Remove",
+      "DownstreamPathTemplate": "/api/UserRole/remove",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/userroles/remove",
@@ -34,11 +34,22 @@
       "Priority": 0
     },
     {
-      "DownstreamPathTemplate": "/api/CompanyUser/{id}/roles/{roleId}",
+      "DownstreamPathTemplate": "/api/UserRole/remove/{userId}/{roleId}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "UpstreamPathTemplate": "/api/companyuser/{id}roles/{roleId}",
+      "UpstreamPathTemplate": "/api/auth/userroles/remove/{userId}/{roleId}",
       "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/api/UserRole/update-roles",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/userroles/update-roles",
+      "UpstreamHttpMethod": [ "PUT" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
       "SwaggerKey": "auth",
@@ -49,17 +60,6 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/userroles/{userId}/roles",
-      "UpstreamHttpMethod": [ "GET" ],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
-      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
-      "SwaggerKey": "auth",
-      "Priority": 0
-    },
-    {
-      "DownstreamPathTemplate": "/api/CompanyUser/{id}/roles",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
-      "UpstreamPathTemplate": "/api/companyuser/{id}/roles",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },

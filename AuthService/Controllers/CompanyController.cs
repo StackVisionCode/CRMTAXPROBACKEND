@@ -1,6 +1,5 @@
 using AuthService.Applications.DTOs.CompanyDTOs;
 using AuthService.DTOs.CompanyDTOs;
-using AuthService.DTOs.UserDTOs;
 using Commands.UserCommands;
 using Common;
 using MediatR;
@@ -75,10 +74,42 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        [HttpGet("GetUsers")]
-        public async Task<ActionResult<ApiResponse<List<UserGetDTO>>>> GetUsers(Guid companyId)
+        [HttpGet("GetMyCompanyUsers")]
+        public async Task<ActionResult<ApiResponse<CompanyUsersCompleteDTO>>> GetMyCompanyUsers()
         {
-            var query = new GetUsersByCompanyIdQuery(companyId);
+            var companyIdRaw = User.FindFirst("companyId")?.Value;
+            if (!Guid.TryParse(companyIdRaw, out var companyId))
+                return Unauthorized(
+                    new ApiResponse<CompanyUsersCompleteDTO>(false, "Invalid company session")
+                );
+
+            var query = new GetMyCompanyUsersQuery(companyId);
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetCompanyStats")]
+        public async Task<ActionResult<ApiResponse<CompanyStatsDTO>>> GetCompanyStats(
+            Guid? companyId = null
+        )
+        {
+            // Si no se proporciona companyId, usar el de la sesión
+            if (!companyId.HasValue)
+            {
+                var companyIdRaw = User.FindFirst("companyId")?.Value;
+                if (!Guid.TryParse(companyIdRaw, out var sessionCompanyId))
+                    return Unauthorized(
+                        new ApiResponse<CompanyStatsDTO>(false, "Invalid company session")
+                    );
+
+                companyId = sessionCompanyId;
+            }
+
+            var query = new GetCompanyStatsQuery(companyId.Value);
             var result = await _mediator.Send(query);
 
             if (result.Success == false)

@@ -1,6 +1,5 @@
 using Applications.DTOs.CompanyDTOs;
 using AuthService.DTOs.UserDTOs;
-using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -30,7 +29,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
     {
         try
         {
-            // Query mejorado con CustomPlan info
+            // Query mejorado con IsOwner y CustomPlan info
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
@@ -54,6 +53,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                     Id = u.Id,
                     CompanyId = u.CompanyId,
                     Email = u.Email,
+                    IsOwner = u.IsOwner,
                     Name = u.Name,
                     LastName = u.LastName,
                     PhoneNumber = u.PhoneNumber,
@@ -62,7 +62,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                     Confirm = u.Confirm ?? false,
                     CreatedAt = u.CreatedAt,
 
-                    // Dirección del preparador
+                    // Dirección del usuario
                     Address =
                         a != null
                             ? new AddressDTO
@@ -101,7 +101,8 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                             }
                             : null,
 
-                    RoleNames = new List<string>(), // Se llenará después
+                    RoleNames = new List<string>(),
+                    CustomPermissions = new List<string>(),
                 };
 
             var users = await userQuery.ToListAsync(cancellationToken);
@@ -110,13 +111,14 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
             {
                 return new ApiResponse<List<UserGetDTO>>(
                     true,
-                    "No tax preparers found",
+                    "No tax users found",
                     new List<UserGetDTO>()
                 );
             }
 
-            // Obtener roles por separado para evitar problemas de JOIN múltiple
             var userIds = users.Select(u => u.Id).ToList();
+
+            // Obtener roles por separado
             var rolesQuery =
                 from ur in _dbContext.UserRoles
                 join r in _dbContext.Roles on ur.RoleId equals r.Id
@@ -128,25 +130,42 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                 .GroupBy(x => x.TaxUserId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
 
-            // Asignar roles a usuarios
+            // Obtener permisos personalizados (CompanyPermissions)
+            var customPermissionsQuery =
+                from cp in _dbContext.CompanyPermissions
+                join p in _dbContext.Permissions on cp.PermissionId equals p.Id
+                where userIds.Contains(cp.TaxUserId) && cp.IsGranted
+                select new { cp.TaxUserId, p.Code };
+
+            var customPermissions = await customPermissionsQuery.ToListAsync(cancellationToken);
+            var permissionsByUser = customPermissions
+                .GroupBy(x => x.TaxUserId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
+
+            // Asignar roles y permisos a usuarios
             foreach (var user in users)
             {
                 if (rolesByUser.TryGetValue(user.Id, out var roles))
                 {
                     user.RoleNames = roles;
                 }
+
+                if (permissionsByUser.TryGetValue(user.Id, out var permissions))
+                {
+                    user.CustomPermissions = permissions;
+                }
             }
 
-            _logger.LogInformation("Retrieved {Count} tax preparers successfully", users.Count);
+            _logger.LogInformation("Retrieved {Count} tax users successfully", users.Count);
             return new ApiResponse<List<UserGetDTO>>(
                 true,
-                "Tax preparers retrieved successfully",
+                "Tax users retrieved successfully",
                 users
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving tax preparers: {Message}", ex.Message);
+            _logger.LogError(ex, "Error retrieving tax users: {Message}", ex.Message);
             return new ApiResponse<List<UserGetDTO>>(false, ex.Message, new List<UserGetDTO>());
         }
     }

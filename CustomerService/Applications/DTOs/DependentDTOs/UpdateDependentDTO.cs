@@ -10,4 +10,5 @@ public class UpdateDependentDTO
     public string? FullName { get; set; }
     public DateTime DateOfBirth { get; set; }
     public required Guid RelationshipId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
 }

@@ -9,9 +9,11 @@ public class NewCustomPlanDTO
 
     [Range(0, double.MaxValue)]
     public required decimal Price { get; set; }
+
+    [Range(1, int.MaxValue)]
+    public required int UserLimit { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
     public DateTime RenewDate { get; set; } = DateTime.UtcNow.AddYears(1);
 
     // Módulos adicionales a incluir

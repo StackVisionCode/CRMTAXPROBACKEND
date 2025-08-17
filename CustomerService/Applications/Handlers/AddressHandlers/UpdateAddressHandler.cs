@@ -1,12 +1,11 @@
 using AutoMapper;
 using Common;
 using CustomerService.DTOs.AddressCommands;
-using CustomerService.DTOs.AddressDTOs;
 using CustomerService.Infrastructure.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace CustomerService.Hanlders.AddressHandlers;
+namespace CustomerService.Handlers.AddressHandlers;
 
 public class UpdateAddressHandler : IRequestHandler<UpdateAddressCommands, ApiResponse<bool>>
 {
@@ -43,33 +42,41 @@ public class UpdateAddressHandler : IRequestHandler<UpdateAddressCommands, ApiRe
                 return new ApiResponse<bool>(false, "Address not found", false);
             }
 
+            // Verificar duplicado para el mismo customer
             var duplicateExists = await _context.Addresses.AnyAsync(
-                c => c.StreetAddress == request.address.StreetAddress && c.Id != request.address.Id,
+                c =>
+                    c.StreetAddress == request.address.StreetAddress
+                    && c.Id != request.address.Id
+                    && c.CustomerId == request.address.CustomerId,
                 cancellationToken
             );
 
             if (duplicateExists)
             {
                 _logger.LogWarning(
-                    "Address with StreetAddress {StreetAddress} already exists",
-                    request.address.StreetAddress
+                    "Address with StreetAddress {StreetAddress} already exists for Customer {CustomerId}",
+                    request.address.StreetAddress,
+                    request.address.CustomerId
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "Address with this StreetAddress already exists.",
+                    "Address with this StreetAddress already exists for this customer.",
                     false
                 );
             }
+
             _mapper.Map(request.address, existingAddress);
             existingAddress.UpdatedAt = DateTime.UtcNow;
 
             _context.Addresses.Update(existingAddress);
             var result = await _context.SaveChangesAsync(cancellationToken) > 0;
+
             if (result)
             {
                 _logger.LogInformation(
-                    "Address with ID {Id} updated successfully",
-                    existingAddress.Id
+                    "Address updated successfully: {AddressId} by TaxUser: {LastModifiedBy}",
+                    existingAddress.Id,
+                    existingAddress.LastModifiedByTaxUserId
                 );
                 return new ApiResponse<bool>(true, "Address updated successfully", true);
             }

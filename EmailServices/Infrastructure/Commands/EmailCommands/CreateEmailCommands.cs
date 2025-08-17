@@ -3,4 +3,8 @@ using MediatR;
 
 namespace Infrastructure.Commands;
 
-public record class CreateEmailCommand(EmailDTO EmailDto) : IRequest<EmailDTO>;
+public record class CreateEmailCommand(
+    CreateEmailDTO EmailDto,
+    Guid CompanyId,
+    Guid CreatedByTaxUserId
+) : IRequest<EmailDTO>;

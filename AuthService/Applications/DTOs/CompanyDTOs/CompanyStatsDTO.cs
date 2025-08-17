@@ -1,10 +1,9 @@
-using AuthService.DTOs.UserCompanyDTOs;
 using AuthService.DTOs.UserDTOs;
 
 namespace AuthService.DTOs.CompanyDTOs;
 
 /// <summary>
-/// DTO para estadísticas completas de una company
+/// ACTUALIZADO: DTO para estadísticas completas de una company
 /// </summary>
 public class CompanyStatsDTO
 {
@@ -13,17 +12,11 @@ public class CompanyStatsDTO
     public string? Domain { get; set; }
     public bool IsCompany { get; set; }
 
-    // Estadísticas de preparadores (TaxUsers)
-    public int TotalPreparers { get; set; }
-    public int ActivePreparers { get; set; }
-
-    // Estadísticas de empleados (UserCompanies)
-    public int TotalEmployees { get; set; }
-    public int ActiveEmployees { get; set; }
-
-    // Totales combinados
-    public int TotalUsers => TotalPreparers + TotalEmployees;
-    public int ActiveUsers => ActivePreparers + ActiveEmployees;
+    // CAMBIO: Solo estadísticas de TaxUsers ahora
+    public int TotalUsers { get; set; } // Total TaxUsers
+    public int ActiveUsers { get; set; } // TaxUsers activos
+    public int OwnerCount { get; set; } = 1; // Siempre 1 Owner
+    public int RegularUsers { get; set; } // TaxUsers que no son Owner
 
     // Plan información
     public decimal CustomPlanPrice { get; set; }
@@ -38,8 +31,7 @@ public class CompanyStatsDTO
 }
 
 /// <summary>
-/// ✅ OPCIONAL: DTO combinado para obtener toda la información de usuarios
-/// Útil cuando necesitas tanto preparadores como empleados en una sola llamada
+///  DTO para obtener todos los usuarios de la company
 /// </summary>
 public class CompanyUsersCompleteDTO
 {
@@ -47,18 +39,19 @@ public class CompanyUsersCompleteDTO
     public string? CompanyName { get; set; }
     public bool IsCompany { get; set; }
 
-    // Preparadores (TaxUsers)
-    public List<UserGetDTO> Preparers { get; set; } = new();
-    public int TotalPreparers => Preparers.Count;
+    // Solo TaxUsers ahora (incluyendo Owner y Users regulares)
+    public List<UserGetDTO> Users { get; set; } = new();
+    public UserGetDTO? Owner => Users.FirstOrDefault(u => u.IsOwner);
+    public List<UserGetDTO> RegularUsers => Users.Where(u => !u.IsOwner).ToList();
 
-    // Empleados (UserCompanies)
-    public List<UserCompanyDTO> Employees { get; set; } = new();
-    public int TotalEmployees => Employees.Count;
+    public int TotalUsers => Users.Count;
+    public int OwnerCount => Owner != null ? 1 : 0;
+    public int RegularUsersCount => RegularUsers.Count;
 
     // Plan limits
     public int ServiceUserLimit { get; set; }
-    public bool IsWithinLimits => TotalEmployees <= ServiceUserLimit;
+    public bool IsWithinLimits => RegularUsersCount <= ServiceUserLimit;
 
     // Totales
-    public int TotalUsers => TotalPreparers + TotalEmployees;
+    public int ActiveUsers => Users.Count(u => u.IsActive);
 }

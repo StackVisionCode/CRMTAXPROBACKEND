@@ -38,17 +38,23 @@ public class GetContactInfoByCustomerIdHandler
                 join customer in _dbContext.Customers on contactInfo.CustomerId equals customer.Id
                 join preferredContact in _dbContext.PreferredContacts
                     on contactInfo.PreferredContactId equals preferredContact.Id
-                where contactInfo.CustomerId == request.CustomerId // Filter by CustomerId
+                where contactInfo.CustomerId == request.CustomerId
                 select new ReadContactInfoDTO
                 {
                     Id = contactInfo.Id,
+                    CustomerId = contactInfo.CustomerId,
                     Email = contactInfo.Email,
                     IsLoggin = contactInfo.IsLoggin,
                     PhoneNumber = contactInfo.PhoneNumber,
+                    PreferredContactId = contactInfo.PreferredContactId,
+                    PasswordClient = contactInfo.PasswordClient,
                     Customer = customer.FirstName + " " + customer.LastName,
                     PreferredContact = preferredContact.Name,
-                    // Add PasswordClient if needed, but be careful with sensitive data
-                    PasswordClient = contactInfo.PasswordClient, // Only if necessary and handled securely
+                    // Auditoría
+                    CreatedAt = contactInfo.CreatedAt,
+                    CreatedByTaxUserId = contactInfo.CreatedByTaxUserId,
+                    UpdatedAt = contactInfo.UpdatedAt,
+                    LastModifiedByTaxUserId = contactInfo.LastModifiedByTaxUserId,
                 }
             ).FirstOrDefaultAsync(cancellationToken);
 

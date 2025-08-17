@@ -4,9 +4,10 @@ using MediatR;
 namespace Infrastructure.Queries;
 
 public record GetEmailsWithPaginationQuery(
+    Guid CompanyId,
     int Page = 1,
     int PageSize = 10,
-    Guid? UserId = null,
+    Guid? TaxUserId = null,
     string? Status = null,
     DateTime? FromDate = null,
     DateTime? ToDate = null

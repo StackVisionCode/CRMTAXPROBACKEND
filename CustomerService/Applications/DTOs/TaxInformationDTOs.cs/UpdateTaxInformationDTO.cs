@@ -12,4 +12,5 @@ public class UpdateTaxInformationDTOs
     public string? BankAccountNumber { get; set; }
     public string? BankRoutingNumber { get; set; }
     public required bool IsReturningCustomer { get; set; } // Indicates if the customer is returning for tax services
+    public Guid? LastModifiedByTaxUserId { get; set; }
 }

@@ -1,6 +1,7 @@
 using AuthService.Applications.Common;
 using AuthService.Domains.Modules;
 using AuthService.DTOs.CompanyDTOs;
+using AuthService.DTOs.ModuleDTOs;
 using Commands.UserCommands;
 using Common;
 using Infraestructure.Context;
@@ -35,7 +36,7 @@ public class UpdateCompanyPlanHandler
         {
             var dto = request.CompanyPlanData;
 
-            // 1. Obtener información completa actual
+            // Solo TaxUsers ahora, no UserCompanies
             var currentStateQuery =
                 from c in _dbContext.Companies
                 join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
@@ -44,12 +45,15 @@ public class UpdateCompanyPlanHandler
                 {
                     Company = c,
                     CustomPlan = cp,
-                    // Conteo de usuarios activos
+                    // Solo contar TaxUsers activos
                     TaxUsersCount = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == c.Id && u.IsActive
                     ),
-                    UserCompaniesCount = _dbContext.UserCompanies.Count(uc =>
-                        uc.CompanyId == c.Id && uc.IsActive
+                    OwnerCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && u.IsOwner && u.IsActive
+                    ),
+                    RegularUsersCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && !u.IsOwner && u.IsActive
                     ),
                 };
 
@@ -64,7 +68,7 @@ public class UpdateCompanyPlanHandler
                 );
             }
 
-            // CORREGIDO: Obtener módulos actuales por separado
+            // Obtener módulos actuales por separado
             var currentModulesQuery =
                 from cm in _dbContext.CustomModules
                 join m in _dbContext.Modules on cm.ModuleId equals m.Id
@@ -80,12 +84,14 @@ public class UpdateCompanyPlanHandler
 
             var company = currentState.Company;
             var currentPlan = currentState.CustomPlan;
-            var totalActiveUsers = currentState.TaxUsersCount + currentState.UserCompaniesCount;
+            var totalActiveUsers = currentState.TaxUsersCount;
 
             _logger.LogInformation(
-                "Starting service plan update for company {CompanyId}: Current users: {UserCount}",
+                "Starting service plan update for company {CompanyId}: TaxUsers: {TaxUsers} (Owner: {Owner}, Regular: {Regular})",
                 dto.CompanyId,
-                totalActiveUsers
+                totalActiveUsers,
+                currentState.OwnerCount,
+                currentState.RegularUsersCount
             );
 
             // 2. Obtener información del nuevo servicio
@@ -108,7 +114,7 @@ public class UpdateCompanyPlanHandler
                 );
             }
 
-            // CORREGIDO: Obtener módulos del nuevo servicio por separado
+            // Obtener módulos del nuevo servicio por separado
             var newServiceModulesQuery =
                 from m in _dbContext.Modules
                 where m.ServiceId == newServiceInfo.Service.Id && m.IsActive
@@ -124,20 +130,23 @@ public class UpdateCompanyPlanHandler
             var newService = newServiceInfo.Service;
 
             // 3. Determinar el ServiceLevel actual para comparación
-            var currentServiceLevel = DetermineCurrentServiceLevel(currentModules);
+            var currentServiceLevel = DetermineCurrentServiceLevel(
+                currentModules,
+                cancellationToken
+            );
 
             _logger.LogInformation(
-                "Plan change: {CurrentLevel} → {NewLevel}, User limit: {CurrentLimit} → {NewLimit}",
+                "Plan change: {CurrentLevel} → {NewLevel}, User limit: unlimited → {NewLimit}",
                 currentServiceLevel,
                 dto.NewServiceLevel,
-                "unlimited",
                 newService.UserLimit
             );
 
-            // 4. Validar el cambio de plan
+            // Validar el cambio de plan considerando solo TaxUsers
             var validationResult = ValidateServicePlanChange(
                 totalActiveUsers,
                 newService.UserLimit,
+                currentState.OwnerCount,
                 dto.ForceUserDeactivation
             );
 
@@ -154,19 +163,19 @@ public class UpdateCompanyPlanHandler
                 );
             }
 
-            // 5. Desactivar usuarios excedentes si es necesario
+            // Desactivar TaxUsers excedentes si es necesario
             var deactivatedUsers = new List<string>();
             if (totalActiveUsers > newService.UserLimit)
             {
-                var usersToDeactivate = totalActiveUsers - newService.UserLimit;
-                deactivatedUsers = await DeactivateExcessUsersAsync(
+                deactivatedUsers = await DeactivateExcessTaxUsersAsync(
                     dto.CompanyId,
-                    usersToDeactivate,
+                    totalActiveUsers, // 🔧 CAMBIO: Pasar totalActiveUsers
+                    newService.UserLimit, // 🔧 CAMBIO: Pasar newUserLimit
                     cancellationToken
                 );
 
                 _logger.LogInformation(
-                    "Deactivated {Count} users due to plan downgrade: {Users}",
+                    "Deactivated {Count} TaxUsers due to plan downgrade: {Users}",
                     deactivatedUsers.Count,
                     string.Join(", ", deactivatedUsers)
                 );
@@ -174,11 +183,13 @@ public class UpdateCompanyPlanHandler
 
             // 6. Actualizar CustomPlan
             var planPrice = dto.CustomPrice ?? newService.Price;
+            var planUserLimit = dto.CustomUserLimit ?? newService.UserLimit;
             var previousPrice = currentPlan.Price;
+            var previousUserLimit = currentPlan.UserLimit;
 
             currentPlan.Price = planPrice;
+            currentPlan.UserLimit = planUserLimit;
             currentPlan.StartDate = dto.StartDate ?? DateTime.UtcNow;
-            currentPlan.EndDate = dto.EndDate;
             currentPlan.RenewDate = (dto.EndDate ?? DateTime.UtcNow).AddYears(1);
             currentPlan.IsActive = true;
             currentPlan.UpdatedAt = DateTime.UtcNow;
@@ -220,20 +231,22 @@ public class UpdateCompanyPlanHandler
                 NewPlan = dto.NewServiceLevel.ToString(),
                 PreviousPrice = previousPrice,
                 NewPrice = planPrice,
-                PreviousUserLimit = int.MaxValue, // Asumimos que el plan anterior no tenía límite
-                NewUserLimit = newService.UserLimit,
+                PreviousUserLimit = previousUserLimit,
+                NewUserLimit = planUserLimit,
                 ActiveUsersCount = totalActiveUsers - deactivatedUsers.Count,
                 DeactivatedUsersCount = deactivatedUsers.Count,
                 DeactivatedUserEmails = deactivatedUsers,
                 AddedModules = moduleChanges.AddedModules,
                 RemovedModules = moduleChanges.RemovedModules,
                 EffectiveDate = currentPlan.StartDate ?? DateTime.UtcNow,
-                ExpirationDate = currentPlan.EndDate,
+                ExpirationDate =
+                    !currentPlan.isRenewed && currentPlan.RenewDate > DateTime.UtcNow
+                        ? currentPlan.RenewDate
+                        : null,
             };
-
             _logger.LogInformation(
                 "Service plan updated successfully for company {CompanyId}: {PreviousPlan} → {NewPlan}, "
-                    + "Price: ${PreviousPrice} → ${NewPrice}, Deactivated users: {DeactivatedCount}",
+                    + "Price: ${PreviousPrice} → ${NewPrice}, Deactivated TaxUsers: {DeactivatedCount}",
                 dto.CompanyId,
                 updateResult.PreviousPlan,
                 updateResult.NewPlan,
@@ -266,128 +279,139 @@ public class UpdateCompanyPlanHandler
     }
 
     /// <summary>
-    /// CORREGIDO: Determina el ServiceLevel actual basado en los módulos
+    /// Determina el ServiceLevel actual basado en los módulos
     /// </summary>
-    private ServiceLevel? DetermineCurrentServiceLevel(List<ModuleInfo> currentModules)
+    private async Task<ServiceLevel?> DetermineCurrentServiceLevel(
+        List<ModuleInfo> currentModules,
+        CancellationToken ct
+    )
     {
-        // Si tiene módulos de un servicio específico, determinar cuál
         var serviceIds = currentModules
-            .Where(m => m.ServiceId != null)
-            .Select(m => m.ServiceId)
+            .Where(m => m.ServiceId.HasValue)
+            .Select(m => m.ServiceId ?? Guid.Empty)
             .Distinct()
             .ToList();
 
         if (serviceIds.Count == 1)
         {
-            // Aquí podrías hacer una query para obtener el nombre del servicio
-            // Por ahora retornamos Basic como placeholder
-            return ServiceLevel.Basic;
+            // 🔧 MEJORA: Query real para obtener el ServiceLevel
+            var serviceQuery = await (
+                from s in _dbContext.Services
+                where s.Id == serviceIds.First()
+                select s.Name
+            ).FirstOrDefaultAsync(ct);
+
+            return serviceQuery switch
+            {
+                "Basic" => ServiceLevel.Basic,
+                "Standard" => ServiceLevel.Standard,
+                "Pro" => ServiceLevel.Pro,
+                _ => null,
+            };
         }
 
-        return null; // Plan personalizado
+        return null; // Plan personalizado con múltiples servicios
     }
 
     /// <summary>
-    /// CORREGIDO: Valida si el cambio de plan es posible (sin async)
+    /// Valida si el cambio de plan es posible
     /// </summary>
     private (bool IsValid, string Message) ValidateServicePlanChange(
-        int currentActiveUsers,
+        int currentActiveTaxUsers,
         int newUserLimit,
+        int ownerCount,
         bool forceDeactivation
     )
     {
-        if (currentActiveUsers > newUserLimit && !forceDeactivation)
+        // Verificar que siempre hay al menos un Owner
+        if (ownerCount == 0)
         {
             return (
                 false,
-                $"Cannot downgrade plan: Current active users ({currentActiveUsers}) exceeds new plan limit ({newUserLimit}). "
-                    + $"Set ForceUserDeactivation=true to proceed with user deactivation."
+                "Company must have at least one Owner. Cannot proceed with plan change."
             );
         }
 
-        // Aquí puedes agregar más validaciones según reglas de negocio
-        // Ejemplo: verificar pagos pendientes, facturas, etc.
+        // Owner siempre cuenta en el límite
+        var regularUsersCount = currentActiveTaxUsers - ownerCount;
+
+        // Verificar contra newUserLimit directamente
+        if (currentActiveTaxUsers > newUserLimit && !forceDeactivation)
+        {
+            return (
+                false,
+                $"Cannot downgrade plan: Current active users ({currentActiveTaxUsers}) exceed new plan limit ({newUserLimit}). "
+                    + $"Set ForceUserDeactivation=true to proceed."
+            );
+        }
+
+        // Verificar que el nuevo límite de usuarios es válido
+        if (newUserLimit < 1)
+        {
+            return (false, "Service plan must allow at least 1 user (the Owner).");
+        }
 
         return (true, "Validation passed");
     }
 
     /// <summary>
-    /// Desactiva usuarios excedentes (UserCompanies primero, luego TaxUsers)
+    /// Desactiva TaxUsers excedentes (nunca el Owner)
     /// </summary>
-    private async Task<List<string>> DeactivateExcessUsersAsync(
+    private async Task<List<string>> DeactivateExcessTaxUsersAsync(
         Guid companyId,
-        int usersToDeactivate,
+        int totalActiveUsers,
+        int newUserLimit,
         CancellationToken ct
     )
     {
         var deactivatedEmails = new List<string>();
 
-        // Prioridad 1: Desactivar UserCompanies (usuarios menos críticos)
-        if (usersToDeactivate > 0)
+        // newUserLimit incluye al Owner, así que necesitamos desactivar el exceso
+        var usersToDeactivate = totalActiveUsers - newUserLimit;
+
+        if (usersToDeactivate <= 0)
+            return deactivatedEmails;
+
+        // Solo desactivar TaxUsers que NO sean Owner
+        var nonOwnerTaxUsersQuery =
+            from u in _dbContext.TaxUsers
+            where u.CompanyId == companyId && u.IsActive && !u.IsOwner
+            orderby u.CreatedAt descending
+            select u;
+
+        var taxUsersToDeactivate = await nonOwnerTaxUsersQuery
+            .Take(usersToDeactivate)
+            .ToListAsync(ct);
+
+        foreach (var taxUser in taxUsersToDeactivate)
         {
-            var userCompaniesQuery =
-                from uc in _dbContext.UserCompanies
-                where uc.CompanyId == companyId && uc.IsActive
-                orderby uc.CreatedAt descending // Los más recientes primero
-                select uc;
+            taxUser.IsActive = false;
+            taxUser.UpdatedAt = DateTime.UtcNow;
+            deactivatedEmails.Add(taxUser.Email);
 
-            var userCompaniesToDeactivate = await userCompaniesQuery
-                .Take(usersToDeactivate)
-                .ToListAsync(ct);
-
-            foreach (var userCompany in userCompaniesToDeactivate)
-            {
-                userCompany.IsActive = false;
-                userCompany.IsActiveDate = DateTime.UtcNow;
-                deactivatedEmails.Add(userCompany.Email);
-
-                _logger.LogDebug("Deactivated UserCompany: {Email}", userCompany.Email);
-            }
-
-            usersToDeactivate -= userCompaniesToDeactivate.Count;
+            _logger.LogDebug("Deactivated TaxUser: {Email}", taxUser.Email);
         }
 
-        // Prioridad 2: Desactivar TaxUsers (pero nunca el último administrador)
-        if (usersToDeactivate > 0)
+        var remainingToDeactivate = usersToDeactivate - taxUsersToDeactivate.Count;
+        if (remainingToDeactivate > 0)
         {
-            // Obtener TaxUsers que NO sean el último administrador
-            var adminRoleQuery =
-                from r in _dbContext.Roles
-                where r.Name.Contains("Administrator")
-                select r.Id;
-
-            var adminRoleIds = await adminRoleQuery.ToListAsync(ct);
-
-            var nonCriticalTaxUsersQuery =
-                from u in _dbContext.TaxUsers
-                where u.CompanyId == companyId && u.IsActive
-                where
-                    !(
-                        from ur in _dbContext.UserRoles
-                        where ur.TaxUserId == u.Id && adminRoleIds.Contains(ur.RoleId)
-                        select ur
-                    ).Any() // No es administrador
-                orderby u.CreatedAt descending
-                select u;
-
-            var taxUsersToDeactivate = await nonCriticalTaxUsersQuery
-                .Take(usersToDeactivate)
-                .ToListAsync(ct);
-
-            foreach (var taxUser in taxUsersToDeactivate)
-            {
-                taxUser.IsActive = false;
-                deactivatedEmails.Add(taxUser.Email);
-
-                _logger.LogDebug("Deactivated TaxUser: {Email}", taxUser.Email);
-            }
+            _logger.LogWarning(
+                "Could only deactivate {Deactivated} of {Required} regular users. "
+                    + "{Remaining} users remain above limit (Owner cannot be deactivated). "
+                    + "Total active users will be {FinalCount} (limit: {Limit})",
+                taxUsersToDeactivate.Count,
+                usersToDeactivate,
+                remainingToDeactivate,
+                totalActiveUsers - taxUsersToDeactivate.Count,
+                newUserLimit
+            );
         }
 
         return deactivatedEmails;
     }
 
     /// <summary>
-    /// CORREGIDO: Actualiza los CustomModules según el nuevo servicio
+    /// Actualiza los CustomModules según el nuevo servicio
     /// </summary>
     private async Task<(
         List<string> AddedModules,
@@ -427,11 +451,10 @@ public class UpdateCompanyPlanHandler
             if (existingModule != null)
             {
                 existingModule.CustomModule.IsIncluded = true;
-                removedModules.Remove(existingModule.Module.Name); // No se removió, se mantuvo
+                removedModules.Remove(existingModule.Module.Name);
             }
             else
             {
-                // Crear nuevo CustomModule
                 var newCustomModule = new CustomModule
                 {
                     Id = Guid.NewGuid(),
@@ -489,14 +512,4 @@ public class UpdateCompanyPlanHandler
 
         return (addedModules, removedModules);
     }
-}
-
-/// <summary>
-/// NUEVO: Clase helper para evitar problemas con anonymous types
-/// </summary>
-public class ModuleInfo
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public Guid? ServiceId { get; set; }
 }

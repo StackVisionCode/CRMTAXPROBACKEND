@@ -28,9 +28,6 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
     private readonly LinkBuilder _linkBuilder;
     private readonly IConfirmTokenService _confirmTokenService;
 
-    // Constantes de geografía (US-only)
-    private const int USA = 220;
-
     public CreateCompanyTaxHandler(
         ApplicationDbContext dbContext,
         ILogger<CreateCompanyTaxHandler> logger,
@@ -98,52 +95,62 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                         false
                     );
                 }
-
-                _logger.LogInformation("Validated ServiceLevel: {ServiceLevel}", requestedLevel);
             }
 
-            // Obtener rol Administrator usando Join
+            // Determinar ServiceLevel y obtener configuración del servicio
             var serviceLevel = DetermineServiceLevel(request.CompanyTax);
             var adminRoleName = GetAdministratorRoleName(serviceLevel);
 
-            var adminRoleQuery =
-                from r in _dbContext.Roles
-                where r.Name == adminRoleName
+            // Obtener configuración del servicio y rol en una consulta
+            var serviceConfigQuery =
+                from s in _dbContext.Services
+                join r in _dbContext.Roles on adminRoleName equals r.Name
+                where
+                    s.Name == serviceLevel.ToString()
+                    && s.IsActive
+                    && r.ServiceLevel == serviceLevel
                 select new
                 {
-                    r.Id,
-                    r.Name,
-                    r.ServiceLevel,
+                    ServiceId = s.Id,
+                    ServiceName = s.Name,
+                    Price = s.Price,
+                    UserLimit = s.UserLimit,
+                    AdminRoleId = r.Id,
+                    AdminRoleName = r.Name,
                 };
 
-            var adminRole = await adminRoleQuery.FirstOrDefaultAsync(cancellationToken);
-            if (adminRole == null)
+            var serviceConfig = await serviceConfigQuery.FirstOrDefaultAsync(cancellationToken);
+            if (serviceConfig == null)
             {
                 _logger.LogError(
-                    "Administrator role not found for ServiceLevel: {ServiceLevel}",
+                    "Service configuration not found for ServiceLevel: {ServiceLevel}",
                     serviceLevel
                 );
                 return new ApiResponse<bool>(
                     false,
-                    $"Administrator role not found for {serviceLevel}",
+                    $"Service configuration not found for {serviceLevel}",
                     false
                 );
             }
 
             _logger.LogInformation(
-                "Assigning role: {RoleName} for ServiceLevel: {ServiceLevel}",
-                adminRole.Name,
-                serviceLevel
+                "Creating company with ServiceLevel: {ServiceLevel}, Role: {RoleName}",
+                serviceLevel,
+                serviceConfig.AdminRoleName
             );
+
+            // Generar IDs únicos
+            var companyId = Guid.NewGuid();
+            var adminUserId = Guid.NewGuid();
 
             // Lógica de direcciones según el tipo de cuenta
             Address? companyAddressEntity = null;
             Address? adminAddressEntity = null;
 
-            // 3a. Para EMPRESAS: crear ambas direcciones si existen
+            // Para EMPRESAS: crear ambas direcciones si existen
             if (request.CompanyTax.IsCompany)
             {
-                // Dirección de la empresa (usando Address del DTO)
+                // Dirección de la empresa
                 if (request.CompanyTax.Address is not null)
                 {
                     var addrDto = request.CompanyTax.Address;
@@ -152,7 +159,7 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                         addrDto.StateId,
                         cancellationToken
                     );
-                    if (!validateResult.Success)
+                    if (!validateResult.IsValid)
                         return new ApiResponse<bool>(false, validateResult.Message, false);
 
                     companyAddressEntity = new Address
@@ -168,10 +175,6 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     };
 
                     await _dbContext.Addresses.AddAsync(companyAddressEntity, cancellationToken);
-                    _logger.LogDebug(
-                        "Created company address with ID: {AddressId}",
-                        companyAddressEntity.Id
-                    );
                 }
 
                 // Dirección del administrador (separada)
@@ -183,7 +186,7 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                         addrDto.StateId,
                         cancellationToken
                     );
-                    if (!validateResult.Success)
+                    if (!validateResult.IsValid)
                         return new ApiResponse<bool>(false, validateResult.Message, false);
 
                     adminAddressEntity = new Address
@@ -199,13 +202,9 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     };
 
                     await _dbContext.Addresses.AddAsync(adminAddressEntity, cancellationToken);
-                    _logger.LogDebug(
-                        "Created admin address with ID: {AddressId}",
-                        adminAddressEntity.Id
-                    );
                 }
             }
-            // 3b. Para INDIVIDUALES: usar Address como dirección del usuario
+            // Para INDIVIDUALES: usar Address como dirección compartida
             else
             {
                 if (request.CompanyTax.Address is not null)
@@ -216,10 +215,9 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                         addrDto.StateId,
                         cancellationToken
                     );
-                    if (!validateResult.Success)
+                    if (!validateResult.IsValid)
                         return new ApiResponse<bool>(false, validateResult.Message, false);
 
-                    // Para individuales: Address se usa tanto para company como para user
                     companyAddressEntity = new Address
                     {
                         Id = Guid.NewGuid(),
@@ -236,15 +234,10 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
 
                     // Para individuales: misma dirección para usuario
                     adminAddressEntity = companyAddressEntity;
-
-                    _logger.LogDebug(
-                        "Created individual address with ID: {AddressId} (shared for company and user)",
-                        companyAddressEntity.Id
-                    );
                 }
             }
 
-            // 4. GUARDAR DIRECCIONES PRIMERO para obtener sus IDs
+            // Guardar direcciones primero para obtener sus IDs
             if (companyAddressEntity != null)
             {
                 var addressesSaved = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
@@ -254,11 +247,17 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     _logger.LogError("Failed to save addresses");
                     return new ApiResponse<bool>(false, "Failed to save addresses", false);
                 }
-                _logger.LogDebug("Addresses saved successfully");
             }
 
-            // Crear CustomPlan
-            var customPlan = await CreateCustomPlanAsync(serviceLevel, cancellationToken);
+            // Crear CustomPlan con CompanyId desde el inicio
+            var customPlan = await CreateCustomPlanAsync(
+                companyId,
+                serviceLevel,
+                serviceConfig.ServiceId,
+                serviceConfig.Price,
+                serviceConfig.UserLimit,
+                cancellationToken
+            );
             if (customPlan == null)
             {
                 await transaction.RollbackAsync(cancellationToken);
@@ -269,76 +268,56 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                 return new ApiResponse<bool>(false, "Failed to create custom plan", false);
             }
 
-            _logger.LogDebug(
-                "Created CustomPlan with ID: {CustomPlanId} for ServiceLevel: {ServiceLevel}",
-                customPlan.Id,
-                serviceLevel
-            );
-
-            // 5. Crear Company
+            // Crear Company
             var company = _mapper.Map<Company>(request.CompanyTax);
-            company.Id = Guid.NewGuid();
+            company.Id = companyId;
             company.CustomPlanId = customPlan.Id;
+            company.AddressId = companyAddressEntity?.Id;
             company.CreatedAt = DateTime.UtcNow;
-
-            // CRÍTICO: Asignar AddressId si existe la dirección
-            if (companyAddressEntity != null)
-            {
-                company.AddressId = companyAddressEntity.Id;
-                _logger.LogDebug("Assigned company AddressId: {AddressId}", company.AddressId);
-            }
 
             await _dbContext.Companies.AddAsync(company, cancellationToken);
 
-            // 6. Crear TaxUser para el admin
+            // Crear TaxUser Owner
+            var (token, expiration) = _confirmTokenService.Generate(
+                adminUserId,
+                request.CompanyTax.Email
+            );
+
             var adminUser = new TaxUser
             {
-                Id = Guid.NewGuid(),
-                CompanyId = company.Id,
+                Id = adminUserId,
+                CompanyId = companyId,
                 Email = request.CompanyTax.Email,
                 Password = _passwordHash.HashPassword(request.CompanyTax.Password),
                 Name = request.CompanyTax.Name,
                 LastName = request.CompanyTax.LastName,
                 PhoneNumber = request.CompanyTax.PhoneNumber,
                 PhotoUrl = request.CompanyTax.PhotoUrl,
+                AddressId = adminAddressEntity?.Id,
                 IsActive = false,
+                IsOwner = true,
                 Confirm = false,
+                ConfirmToken = token,
                 OtpVerified = false,
                 CreatedAt = DateTime.UtcNow,
             };
 
-            // CRÍTICO: Asignar AddressId si existe la dirección
-            if (adminAddressEntity != null)
-            {
-                adminUser.AddressId = adminAddressEntity.Id;
-                _logger.LogDebug("Assigned admin AddressId: {AddressId}", adminUser.AddressId);
-            }
-
-            // 7. Generar token de confirmación
-            var (token, expiration) = _confirmTokenService.Generate(adminUser.Id, adminUser.Email);
-            adminUser.ConfirmToken = token;
-
             await _dbContext.TaxUsers.AddAsync(adminUser, cancellationToken);
 
-            // Actualizar CustomPlan con el CompanyId real
-            customPlan.CompanyId = company.Id;
-            _dbContext.CustomPlans.Update(customPlan);
-
-            // 8. Asignar rol Administrator
+            // Asignar rol Administrator
             await _dbContext.UserRoles.AddAsync(
                 new UserRole
                 {
                     Id = Guid.NewGuid(),
                     TaxUserId = adminUser.Id,
-                    RoleId = adminRole.Id,
+                    RoleId = serviceConfig.AdminRoleId,
                     CreatedAt = DateTime.UtcNow,
                 },
                 cancellationToken
             );
 
-            // 9. Guardar Company, User y UserRole
+            // Guardar todas las entidades
             var finalResult = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
-
             if (!finalResult)
             {
                 await transaction.RollbackAsync(cancellationToken);
@@ -348,10 +327,10 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
 
             await transaction.CommitAsync(cancellationToken);
 
+            // Construir payloads de address para el evento
             AddressPayload? companyAddressPayload = null;
             AddressPayload? adminAddressPayload = null;
 
-            // 10. Construir payloads de address para el evento
             if (request.CompanyTax.IsCompany)
             {
                 // EMPRESAS: CompanyAddress y UserAddress separadas
@@ -363,30 +342,19 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                     adminAddressEntity,
                     cancellationToken
                 );
-
-                _logger.LogDebug(
-                    "Company account - CompanyAddress and UserAddress both populated for {Email}",
-                    request.CompanyTax.Email
-                );
             }
             else
             {
-                // INDIVIDUALES: Misma dirección para CompanyAddress y UserAddress
-                // porque en individuales, address representa tanto la ubicación del "negocio" como del usuario
+                // INDIVIDUALES: Misma dirección compartida
                 var sharedAddressPayload = await BuildAddressPayloadAsync(
                     companyAddressEntity,
                     cancellationToken
                 );
                 companyAddressPayload = sharedAddressPayload;
-                adminAddressPayload = sharedAddressPayload; // Misma dirección compartida
-
-                _logger.LogDebug(
-                    "Individual account - Same address used for both CompanyAddress and UserAddress for {Email}",
-                    request.CompanyTax.Email
-                );
+                adminAddressPayload = sharedAddressPayload;
             }
 
-            // 11. Link de confirmación
+            // Link de confirmación
             string link = _linkBuilder.BuildConfirmationLink(
                 request.Origin,
                 adminUser.Email,
@@ -396,12 +364,11 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             _logger.LogInformation("Company created successfully: {CompanyId}", company.Id);
 
             // Publicar eventos
-            // Evento legacy (sin Address)
             _eventBus.Publish(
                 new AccountRegisteredEvent(
                     Id: Guid.NewGuid(),
                     OccurredOn: DateTime.UtcNow,
-                    UserId: adminUser.Id,
+                    UserId: company.Id,
                     Email: adminUser.Email,
                     Name: adminUser.Name ?? string.Empty,
                     LastName: adminUser.LastName ?? string.Empty,
@@ -417,7 +384,6 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                 )
             );
 
-            // Publicacion de evento de correo de confirmacion
             _eventBus.Publish(
                 new AccountConfirmationLinkEvent(
                     Id: Guid.NewGuid(),
@@ -448,31 +414,36 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         }
     }
 
-    // ==========================
-    // Helpers privados del handler
-    // ==========================
+    #region Helper Methods
 
-    private async Task<(bool Success, string Message)> ValidateAddressAsync(
+    private async Task<(bool IsValid, string Message)> ValidateAddressAsync(
         int countryId,
         int stateId,
         CancellationToken ct
     )
     {
-        // País (US-only)
-        if (countryId != USA)
-            return (false, "Only United States (CountryId = 220) is supported.");
+        // Validar país y estado en una consulta
+        var addressValidation = await (
+            from c in _dbContext.Countries
+            join s in _dbContext.States on c.Id equals s.CountryId
+            where c.Id == countryId && s.Id == stateId
+            select new
+            {
+                CountryName = c.Name,
+                StateName = s.Name,
+                IsUSA = c.Id == 220, // USA country ID - configurable
+            }
+        ).FirstOrDefaultAsync(ct);
 
-        var country = await _dbContext
-            .Countries.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == countryId, ct);
-        if (country is null)
-            return (false, $"CountryId '{countryId}' not found.");
+        if (addressValidation == null)
+        {
+            return (false, $"Invalid CountryId '{countryId}' or StateId '{stateId}'");
+        }
 
-        var state = await _dbContext
-            .States.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == stateId && s.CountryId == countryId, ct);
-        if (state is null)
-            return (false, $"StateId '{stateId}' not found for CountryId '{countryId}'.");
+        if (!addressValidation.IsUSA)
+        {
+            return (false, "Only United States addresses are currently supported");
+        }
 
         return (true, "OK");
     }
@@ -482,21 +453,21 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         CancellationToken ct
     )
     {
-        if (address is null)
+        if (address == null)
             return null;
 
-        var country = await _dbContext
-            .Countries.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == address.CountryId, ct);
-        var state = await _dbContext
-            .States.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == address.StateId, ct);
+        var geoInfo = await (
+            from c in _dbContext.Countries
+            join s in _dbContext.States on c.Id equals s.CountryId
+            where c.Id == address.CountryId && s.Id == address.StateId
+            select new { CountryName = c.Name, StateName = s.Name }
+        ).FirstOrDefaultAsync(ct);
 
         return new AddressPayload(
             CountryId: address.CountryId,
-            CountryName: country?.Name ?? string.Empty,
+            CountryName: geoInfo?.CountryName ?? string.Empty,
             StateId: address.StateId,
-            StateName: state?.Name ?? string.Empty,
+            StateName: geoInfo?.StateName ?? string.Empty,
             City: address.City?.Trim(),
             Street: address.Street?.Trim(),
             Line: address.Line?.Trim(),
@@ -504,105 +475,71 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
         );
     }
 
-    /// <summary>
-    /// Determina el ServiceLevel basado en el tipo de registro
-    /// Por ahora: Basic por defecto, pero se puede personalizar
-    /// </summary>
     private ServiceLevel DetermineServiceLevel(NewCompanyDTO companyDto)
     {
-        // Si se especifica ServiceLevel explícitamente, usarlo
         if (companyDto.ServiceLevel.HasValue)
         {
-            var requestedLevel = companyDto.ServiceLevel.Value;
             _logger.LogInformation(
                 "Using user-specified ServiceLevel: {ServiceLevel}",
-                requestedLevel
+                companyDto.ServiceLevel.Value
             );
-            return requestedLevel;
+            return companyDto.ServiceLevel.Value;
         }
 
-        // Lógica de negocio por defecto cuando no se especifica
-        if (companyDto.IsCompany)
-        {
-            _logger.LogInformation("Company registration - defaulting to Standard ServiceLevel");
-            return ServiceLevel.Standard; // Empresas → Standard por defecto
-        }
-        else
-        {
-            _logger.LogInformation("Individual registration - defaulting to Basic ServiceLevel");
-            return ServiceLevel.Basic; // Individuales → Basic por defecto
-        }
+        var defaultLevel = companyDto.IsCompany ? ServiceLevel.Standard : ServiceLevel.Basic;
+        _logger.LogInformation(
+            "{AccountType} registration - defaulting to {ServiceLevel} ServiceLevel",
+            companyDto.IsCompany ? "Company" : "Individual",
+            defaultLevel
+        );
+        return defaultLevel;
     }
 
-    /// <summary>
-    /// Obtiene el nombre del rol Administrator según el ServiceLevel
-    /// </summary>
-    private string GetAdministratorRoleName(ServiceLevel serviceLevel)
+    private static string GetAdministratorRoleName(ServiceLevel serviceLevel)
     {
         return serviceLevel switch
         {
             ServiceLevel.Basic => "Administrator Basic",
             ServiceLevel.Standard => "Administrator Standard",
             ServiceLevel.Pro => "Administrator Pro",
-            _ => "Administrator Basic", // Fallback
+            _ => "Administrator Basic",
         };
     }
 
-    /// <summary>
-    /// Crea un CustomPlan con módulos por defecto según el ServiceLevel
-    /// </summary>
     private async Task<CustomPlan?> CreateCustomPlanAsync(
+        Guid companyId,
         ServiceLevel serviceLevel,
+        Guid baseServiceId,
+        decimal servicePrice,
+        int serviceUserLimit, // 🆕 NUEVO PARÁMETRO
         CancellationToken ct
     )
     {
         try
         {
-            // Obtener Service según ServiceLevel
-            var serviceQuery =
-                from s in _dbContext.Services
-                where s.Name == serviceLevel.ToString() && s.IsActive
-                select new
-                {
-                    s.Id,
-                    s.Name,
-                    s.Price,
-                };
-
-            var service = await serviceQuery.FirstOrDefaultAsync(ct);
-            if (service == null)
-            {
-                _logger.LogError(
-                    "Service not found for ServiceLevel: {ServiceLevel}",
-                    serviceLevel
-                );
-                return null;
-            }
-
-            // Crear CustomPlan
+            // 🆕 Crear CustomPlan con UserLimit
             var customPlan = new CustomPlan
             {
                 Id = Guid.NewGuid(),
-                CompanyId = Guid.Empty, // Se asignará después cuando se cree la Company
-                Price = service.Price,
+                CompanyId = companyId,
+                Price = servicePrice,
+                UserLimit = serviceUserLimit,
                 IsActive = true,
                 StartDate = DateTime.UtcNow,
-                EndDate = null, // Sin expiración por defecto
                 RenewDate = DateTime.UtcNow.AddYears(1),
                 CreatedAt = DateTime.UtcNow,
             };
 
             await _dbContext.CustomPlans.AddAsync(customPlan, ct);
 
-            // Obtener módulos del Service para crear CustomModules
+            // Resto del método sin cambios...
             var moduleQuery =
                 from m in _dbContext.Modules
-                where m.ServiceId == service.Id && m.IsActive
+                where m.ServiceId == baseServiceId && m.IsActive
                 select new { m.Id, m.Name };
 
             var modules = await moduleQuery.ToListAsync(ct);
 
-            // Crear CustomModules para cada módulo del Service
             foreach (var module in modules)
             {
                 var customModule = new CustomModule
@@ -618,7 +555,6 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
                 _logger.LogDebug("Added module {ModuleName} to CustomPlan", module.Name);
             }
 
-            // Guardar CustomPlan y CustomModules
             var saved = await _dbContext.SaveChangesAsync(ct) > 0;
             if (!saved)
             {
@@ -627,9 +563,10 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             }
 
             _logger.LogInformation(
-                "CustomPlan created successfully with {ModuleCount} modules for {ServiceLevel}",
+                "CustomPlan created successfully with {ModuleCount} modules for {ServiceLevel}, UserLimit: {UserLimit}",
                 modules.Count,
-                serviceLevel
+                serviceLevel,
+                serviceUserLimit
             );
 
             return customPlan;
@@ -644,4 +581,6 @@ public class CreateCompanyTaxHandler : IRequestHandler<CreateTaxCompanyCommands,
             return null;
         }
     }
+
+    #endregion
 }

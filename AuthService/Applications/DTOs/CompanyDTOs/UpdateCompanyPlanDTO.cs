@@ -5,16 +5,15 @@ namespace AuthService.DTOs.CompanyDTOs;
 
 public class UpdateCompanyPlanDTO
 {
-    [Required]
-    public Guid CompanyId { get; set; }
+    public required Guid CompanyId { get; set; }
 
-    [Required]
     [EnumDataType(typeof(ServiceLevel))]
-    public ServiceLevel NewServiceLevel { get; set; }
+    public required ServiceLevel NewServiceLevel { get; set; }
 
     /// Precio personalizado opcional. Si no se especifica, usa el precio del servicio base.
     [Range(0, double.MaxValue, ErrorMessage = "Custom price must be 0 or greater")]
     public decimal? CustomPrice { get; set; }
+    public int? CustomUserLimit { get; set; }
 
     /// Fecha de inicio del nuevo plan. Si no se especifica, usa la fecha actual.
     public DateTime? StartDate { get; set; }

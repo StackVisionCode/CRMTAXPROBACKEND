@@ -38,7 +38,7 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
 
         try
         {
-            // ✅ MEJORADO: Buscar company con información completa del CustomPlan
+            // Buscar company con información completa del CustomPlan
             var companyQuery =
                 from c in _dbContext.Companies
                 join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
@@ -47,8 +47,13 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
                 {
                     Company = c,
                     CustomPlan = cp,
-                    CurrentUserCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id)
-                        + _dbContext.UserCompanies.Count(uc => uc.CompanyId == c.Id),
+                    CurrentActiveTaxUserCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && u.IsActive
+                    ),
+                    TotalTaxUserCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
+                    OwnerCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && u.IsOwner && u.IsActive
+                    ),
                     HasAddress = c.AddressId.HasValue,
                     AddressId = c.AddressId,
                 };
@@ -64,11 +69,21 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
             var customPlan = companyData.CustomPlan;
 
             _logger.LogInformation(
-                "Updating company: {CompanyId}, CurrentUsers: {UserCount}, CustomPlanId: {CustomPlanId}",
+                "Updating company: {CompanyId}, Active TaxUsers: {ActiveCount}/{TotalCount} "
+                    + "(Owner: {OwnerCount}), CustomPlanId: {CustomPlanId}",
                 company.Id,
-                companyData.CurrentUserCount,
+                companyData.CurrentActiveTaxUserCount,
+                companyData.TotalTaxUserCount,
+                companyData.OwnerCount,
                 customPlan.Id
             );
+
+            // Verificar que hay al menos un Owner
+            if (companyData.OwnerCount == 0)
+            {
+                _logger.LogError("Company {CompanyId} has no Owner", company.Id);
+                return new ApiResponse<bool>(false, "Company must have at least one Owner", false);
+            }
 
             // Verificar si el dominio ya existe en otra company (si se está cambiando)
             if (
@@ -95,7 +110,7 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
             var criticalChanges = await ValidateCriticalChangesAsync(
                 company,
                 request.CompanyTax,
-                companyData.CurrentUserCount,
+                companyData.CurrentActiveTaxUserCount,
                 cancellationToken
             );
 
@@ -108,7 +123,7 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
                 return new ApiResponse<bool>(false, criticalChanges.Message, false);
             }
 
-            // ✅ Guardar valores actuales para no sobreescribirlos
+            // Guardar valores actuales para no sobreescribirlos
             var currentAddressId = company.AddressId;
             var currentCustomPlanId = company.CustomPlanId;
 
@@ -116,11 +131,11 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
             _mapper.Map(request.CompanyTax, company);
             company.UpdatedAt = DateTime.UtcNow;
 
-            // ✅ Restaurar valores críticos que no deben cambiar via este endpoint
+            // Restaurar valores críticos que no deben cambiar via este endpoint
             company.AddressId = currentAddressId;
             company.CustomPlanId = currentCustomPlanId;
 
-            // ✅ MEJORADO: Manejar actualización de dirección
+            // Manejar actualización de dirección
             var addressResult = await HandleAddressUpdateAsync(
                 company,
                 request.CompanyTax.Address,
@@ -146,17 +161,23 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
                 return new ApiResponse<bool>(false, planUpdateResult.Message, false);
             }
 
-            // ✅ Guardar todos los cambios
+            // Guardar todos los cambios
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
             if (result)
             {
                 await transaction.CommitAsync(cancellationToken);
+
+                // Log con más detalles
                 _logger.LogInformation(
-                    "Company updated successfully: CompanyId={CompanyId}, Domain={Domain}, AddressId={AddressId}",
+                    "Company updated successfully: CompanyId={CompanyId}, "
+                        + "Domain={Domain}, IsCompany={IsCompany}, "
+                        + "AddressId={AddressId}, CustomPlanId={CustomPlanId}",
                     company.Id,
                     company.Domain,
-                    company.AddressId
+                    company.IsCompany,
+                    company.AddressId,
+                    company.CustomPlanId
                 );
 
                 return new ApiResponse<bool>(true, "Company updated successfully", true);
@@ -185,13 +206,15 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
         }
     }
 
+    #region Helper Methods
+
     /// <summary>
     /// Valida cambios críticos que podrían afectar el plan actual
     /// </summary>
     private async Task<(bool IsValid, string Message)> ValidateCriticalChangesAsync(
         AuthService.Domains.Companies.Company company,
         UpdateCompanyDTO updateDto,
-        int currentUserCount,
+        int currentActiveTaxUserCount,
         CancellationToken ct
     )
     {
@@ -205,24 +228,86 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
                 updateDto.IsCompany
             );
 
-            // Si tiene usuarios activos, no permitir cambio de tipo de cuenta
-            if (currentUserCount > 1) // Más que solo el admin
+            // 🔧 MEJORA: Solo verificar usuarios activos
+            if (currentActiveTaxUserCount > 1) // Más que solo el Owner
             {
                 return (
                     false,
-                    "Cannot change account type when company has multiple users. Remove additional users first."
+                    $"Cannot change account type when company has {currentActiveTaxUserCount} active users. "
+                        + "Deactivate additional users first."
                 );
+            }
+
+            // Verificar que el Owner está activo
+            var activeOwnerExists = await _dbContext.TaxUsers.AnyAsync(
+                u => u.CompanyId == company.Id && u.IsOwner && u.IsActive,
+                ct
+            );
+
+            if (!activeOwnerExists)
+            {
+                return (false, "Cannot change account type: No active Owner found.");
             }
         }
 
-        // Validar límites del plan actual si es necesario
-        // (Esta lógica se puede expandir según las reglas de negocio)
+        // Validar cambios de dominio con mejor mensaje
+        if (
+            !string.IsNullOrEmpty(updateDto.Domain)
+            && !string.Equals(updateDto.Domain, company.Domain, StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            // Verificar formato del dominio
+            if (!IsValidDomainFormat(updateDto.Domain))
+            {
+                return (false, "Domain format is invalid. Use only letters, numbers, and hyphens.");
+            }
+
+            _logger.LogInformation(
+                "Domain change: {CompanyId} from '{OldDomain}' to '{NewDomain}'",
+                company.Id,
+                company.Domain,
+                updateDto.Domain
+            );
+        }
+
+        // Validar cambios de nombre de empresa
+        if (
+            updateDto.IsCompany
+            && !string.IsNullOrEmpty(updateDto.CompanyName)
+            && !string.Equals(
+                updateDto.CompanyName,
+                company.CompanyName,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            _logger.LogInformation(
+                "Company name change: {CompanyId} from '{OldName}' to '{NewName}'",
+                company.Id,
+                company.CompanyName,
+                updateDto.CompanyName
+            );
+
+            // Aquí podrías agregar validaciones adicionales según reglas de negocio
+            // Por ejemplo: verificar si requiere aprobación, documentos, etc.
+        }
 
         return (true, "Validation passed");
     }
 
+    private static bool IsValidDomainFormat(string domain)
+    {
+        if (string.IsNullOrWhiteSpace(domain))
+            return false;
+
+        // Básico: solo letras, números y guiones, sin espacios
+        return System.Text.RegularExpressions.Regex.IsMatch(domain, @"^[a-zA-Z0-9-]+$")
+            && domain.Length >= 3
+            && domain.Length <= 50;
+    }
+
     /// <summary>
-    /// ✅ MEJORADO: Maneja la actualización de dirección con mejor control
+    /// Maneja la actualización de dirección con mejor control
     /// </summary>
     private async Task<(bool Success, string Message)> HandleAddressUpdateAsync(
         AuthService.Domains.Companies.Company company,
@@ -246,26 +331,44 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
                 if (company.AddressId.HasValue)
                 {
                     // Actualizar dirección existente
-                    var addressQuery =
-                        from a in _dbContext.Addresses
-                        where a.Id == company.AddressId.Value
-                        select a;
+                    var existingAddress = await _dbContext.Addresses.FirstOrDefaultAsync(
+                        a => a.Id == company.AddressId.Value,
+                        ct
+                    );
 
-                    var existingAddress = await addressQuery.FirstOrDefaultAsync(ct);
                     if (existingAddress != null)
                     {
-                        existingAddress.CountryId = addressDto.CountryId;
-                        existingAddress.StateId = addressDto.StateId;
-                        existingAddress.City = addressDto.City?.Trim();
-                        existingAddress.Street = addressDto.Street?.Trim();
-                        existingAddress.Line = addressDto.Line?.Trim();
-                        existingAddress.ZipCode = addressDto.ZipCode?.Trim();
-                        existingAddress.UpdatedAt = DateTime.UtcNow;
+                        // Verificar si realmente hay cambios
+                        bool hasChanges =
+                            existingAddress.CountryId != addressDto.CountryId
+                            || existingAddress.StateId != addressDto.StateId
+                            || existingAddress.City?.Trim() != addressDto.City?.Trim()
+                            || existingAddress.Street?.Trim() != addressDto.Street?.Trim()
+                            || existingAddress.Line?.Trim() != addressDto.Line?.Trim()
+                            || existingAddress.ZipCode?.Trim() != addressDto.ZipCode?.Trim();
 
-                        _logger.LogDebug(
-                            "Updated existing address: {AddressId}",
-                            existingAddress.Id
-                        );
+                        if (hasChanges)
+                        {
+                            existingAddress.CountryId = addressDto.CountryId;
+                            existingAddress.StateId = addressDto.StateId;
+                            existingAddress.City = addressDto.City?.Trim();
+                            existingAddress.Street = addressDto.Street?.Trim();
+                            existingAddress.Line = addressDto.Line?.Trim();
+                            existingAddress.ZipCode = addressDto.ZipCode?.Trim();
+                            existingAddress.UpdatedAt = DateTime.UtcNow;
+
+                            _logger.LogDebug(
+                                "Updated existing address: {AddressId}",
+                                existingAddress.Id
+                            );
+                        }
+                        else
+                        {
+                            _logger.LogDebug(
+                                "No address changes detected for: {AddressId}",
+                                existingAddress.Id
+                            );
+                        }
                     }
                     else
                     {
@@ -281,22 +384,15 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
             }
             else if (company.AddressId.HasValue)
             {
-                // Eliminar dirección si se envía null
-                var addressToDeleteQuery =
-                    from a in _dbContext.Addresses
-                    where a.Id == company.AddressId.Value
-                    select a;
+                // Soft delete o marcar como eliminado
+                _logger.LogInformation(
+                    "Removing address reference for company: {CompanyId}, AddressId: {AddressId}",
+                    company.Id,
+                    company.AddressId.Value
+                );
 
-                var addressToDelete = await addressToDeleteQuery.FirstOrDefaultAsync(ct);
-                if (addressToDelete != null)
-                {
-                    _dbContext.Addresses.Remove(addressToDelete);
-                    _logger.LogDebug(
-                        "Marked address for deletion: {AddressId}",
-                        addressToDelete.Id
-                    );
-                }
                 company.AddressId = null;
+                // Nota: No eliminamos físicamente la Address por integridad referencial
             }
 
             return (true, "Address updated successfully");
@@ -304,14 +400,14 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating address for company: {CompanyId}", company.Id);
-            return (false, "Failed to update address");
+            return (false, $"Failed to update address: {ex.Message}");
         }
     }
 
     /// <summary>
     /// Actualiza información del CustomPlan si es necesario
     /// </summary>
-    private async Task<(bool Success, string Message)> UpdateCustomPlanInfoAsync(
+    private Task<(bool Success, string Message)> UpdateCustomPlanInfoAsync(
         AuthService.Domains.CustomPlans.CustomPlan customPlan,
         AuthService.Domains.Companies.Company company,
         CancellationToken ct
@@ -321,7 +417,7 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
         {
             bool planNeedsUpdate = false;
 
-            // Ejemplo: Si cambia el dominio, podríamos querer actualizar algo en el plan
+            // Si cambia el dominio, podríamos querer actualizar algo en el plan
             // Por ahora, solo actualizamos la fecha de modificación si hubo cambios
             if (company.UpdatedAt.HasValue)
             {
@@ -336,12 +432,12 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
                 _logger.LogDebug("CustomPlan info updated for company: {CompanyId}", company.Id);
             }
 
-            return (true, "CustomPlan updated successfully");
+            return Task.FromResult((true, "CustomPlan updated successfully"));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating CustomPlan for company: {CompanyId}", company.Id);
-            return (false, "Failed to update custom plan information");
+            return Task.FromResult((false, "Failed to update custom plan information"));
         }
     }
 
@@ -373,7 +469,7 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
     }
 
     /// <summary>
-    /// Valida que el país y estado existan
+    /// Valida que el país y estado existan (solo USA por ahora)
     /// </summary>
     private async Task<(bool Success, string Message)> ValidateAddressAsync(
         int countryId,
@@ -381,22 +477,37 @@ public class UpdateCompanyTaxHandler : IRequestHandler<UpdateTaxCompanyCommands,
         CancellationToken ct
     )
     {
+        // Solo Estados Unidos por ahora
+        const int USA = 220;
+
         if (countryId != USA)
             return (false, "Only United States (CountryId = 220) is supported.");
 
-        var countryQuery = from c in _dbContext.Countries where c.Id == countryId select c;
-        var country = await countryQuery.FirstOrDefaultAsync(ct);
-        if (country is null)
-            return (false, $"CountryId '{countryId}' not found.");
+        // Validar país y estado en una consulta
+        var addressValidation = await (
+            from c in _dbContext.Countries
+            join s in _dbContext.States on c.Id equals s.CountryId
+            where c.Id == countryId && s.Id == stateId
+            select new
+            {
+                CountryName = c.Name,
+                StateName = s.Name,
+                IsUSA = c.Id == USA,
+            }
+        ).FirstOrDefaultAsync(ct);
 
-        var stateQuery =
-            from s in _dbContext.States
-            where s.Id == stateId && s.CountryId == countryId
-            select s;
-        var state = await stateQuery.FirstOrDefaultAsync(ct);
-        if (state is null)
-            return (false, $"StateId '{stateId}' not found for CountryId '{countryId}'.");
+        if (addressValidation == null)
+        {
+            return (false, $"Invalid CountryId '{countryId}' or StateId '{stateId}'");
+        }
+
+        if (!addressValidation.IsUSA)
+        {
+            return (false, "Only United States addresses are currently supported");
+        }
 
         return (true, "Address validation passed");
     }
+
+    #endregion
 }

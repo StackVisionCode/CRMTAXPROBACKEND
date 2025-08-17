@@ -11,7 +11,7 @@ public interface IReactiveEmailReceivingService
     );
     Task StartWatchingAsync(EmailConfig config);
     Task StopWatchingAsync(Guid configId);
-    Task<EmailSyncResult> SyncAllEmailsAsync(Guid configId, DateTime? since = null);
+    Task<EmailSyncResult> SyncAllEmailsAsync(Guid configId, Guid companyId, DateTime? since = null);
 }
 
 public class EmailSyncResult

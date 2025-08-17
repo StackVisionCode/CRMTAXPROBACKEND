@@ -58,12 +58,13 @@ public class UpdateDependentHandler : IRequestHandler<UpdateDependentCommands, A
             if (duplicateExists)
             {
                 _logger.LogWarning(
-                    "Dependent already exists with CustomerId: {CustomerId}",
-                    request.dependent.CustomerId
+                    "Dependent already exists with CustomerId: {CustomerId}, Name: {FullName}",
+                    request.dependent.CustomerId,
+                    request.dependent.FullName
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "Dependent with this CustomerId already exists.",
+                    "Dependent with this information already exists for this customer.",
                     false
                 );
             }
@@ -74,17 +75,22 @@ public class UpdateDependentHandler : IRequestHandler<UpdateDependentCommands, A
 
             _dbContext.Dependents.Update(existingDependent);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
+
             if (result)
             {
                 _logger.LogInformation(
-                    "Dependent updated successfully: {Dependent}",
-                    existingDependent
+                    "Dependent updated successfully: {DependentId} by TaxUser: {LastModifiedBy}",
+                    existingDependent.Id,
+                    existingDependent.LastModifiedByTaxUserId
                 );
                 return new ApiResponse<bool>(true, "Dependent updated successfully", true);
             }
             else
             {
-                _logger.LogWarning("Failed to update Dependent: {Dependent}", existingDependent);
+                _logger.LogWarning(
+                    "Failed to update Dependent: {DependentId}",
+                    existingDependent.Id
+                );
                 return new ApiResponse<bool>(false, "Failed to update Dependent", false);
             }
         }

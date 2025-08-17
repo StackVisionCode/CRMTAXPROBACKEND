@@ -3,7 +3,7 @@ namespace SharedLibrary.Contracts;
 public interface IInvitationTokenService
 {
     /// <summary>
-    /// Genera un token de invitación para UserCompany
+    /// ACTUALIZADO: Genera un token de invitación para TaxUser
     /// </summary>
     (string Token, DateTime Expires) GenerateInvitation(
         Guid companyId,

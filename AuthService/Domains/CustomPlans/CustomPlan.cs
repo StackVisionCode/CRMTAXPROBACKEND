@@ -12,9 +12,9 @@ public class CustomPlan : BaseEntity
 {
     public required Guid CompanyId { get; set; }
     public required decimal Price { get; set; }
+    public required int UserLimit { get; set; } // Límite de usuarios por plan personalizado
     public bool IsActive { get; set; } = true;
     public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
     public bool isRenewed { get; set; } = false;
     public DateTime? RenewedDate { get; set; }
     public DateTime RenewDate { get; set; } = DateTime.UtcNow;

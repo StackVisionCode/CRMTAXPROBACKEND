@@ -1,8 +1,8 @@
-using AuthService.DTOs.UserCompanyDTOs;
+using AuthService.DTOs.CompanyDTOs;
 using Common;
 using MediatR;
 
 namespace Queries.CompanyQueries;
 
-public record class GetMyCompanyUsersQuery(Guid CompanyId)
-    : IRequest<ApiResponse<List<UserCompanyDTO>>>;
+public record GetMyCompanyUsersQuery(Guid CompanyId)
+    : IRequest<ApiResponse<CompanyUsersCompleteDTO>>;

@@ -20,11 +20,11 @@ public class NewCompanyDTO
     // CustomPlan info (se crea automáticamente)
     public ServiceLevel? ServiceLevel { get; set; }
     public decimal? CustomPrice { get; set; } // Precio personalizado (opcional)
+    public int? CustomUserLimit { get; set; }
     public DateTime? PlanStartDate { get; set; }
-    public DateTime? PlanEndDate { get; set; }
     public ICollection<NewCustomModuleDTO>? AdditionalModules { get; set; }
 
-    // Admin user info
+    // Admin user info (será el TaxUser Owner)
     [EmailAddress]
     public required string Email { get; set; }
 
