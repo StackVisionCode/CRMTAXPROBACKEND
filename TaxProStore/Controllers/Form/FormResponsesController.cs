@@ -33,5 +33,17 @@ public async Task<IActionResult> CreateResponse([FromBody] FormResponseDto respo
         return Ok(result);
     }
 
+
+      // DELETE: api/FormResponses/delete/{id}
+    [HttpDelete("delete/{id}")]
+    public async Task<IActionResult> DeleteResponse(Guid id)
+    {
+        var command = new DeleteFormIntanceCommads(id);
+        var result = await _mediator.Send(command);
+         return Ok(result);
+    }
+
+  
+
    
 }
