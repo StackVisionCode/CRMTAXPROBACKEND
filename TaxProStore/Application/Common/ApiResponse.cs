@@ -34,6 +34,14 @@ public class ApiResponse<T>
         Success = success;
     }
 
+    
+    public ApiResponse(bool success, T data)
+    {
+        Success = success;
+        Data = data;
+    }
+    
+
     public ApiResponse(bool success, string message, T data, int? statusCode = null)
     {
         Success = success;

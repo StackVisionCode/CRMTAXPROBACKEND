@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using Infrastructure.Context;
+using Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -37,7 +38,7 @@ try
 
     // Add token services
     builder.Services.AddJwtAuth(builder.Configuration);
-
+    builder.Services.AddScoped<IFileService, FileService>();
     // Add services to the container.
     builder.Services.AddCustomCors();
     builder.Services.AddControllers();
