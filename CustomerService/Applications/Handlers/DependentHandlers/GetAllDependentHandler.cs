@@ -38,14 +38,20 @@ public class GetAllDependentHandler
                 join customer in _dbContext.Customers on dependent.CustomerId equals customer.Id
                 join relationship in _dbContext.Relationships
                     on dependent.RelationshipId equals relationship.Id
-
                 select new ReadDependentDTO
                 {
                     Id = dependent.Id,
+                    CustomerId = dependent.CustomerId,
+                    RelationshipId = dependent.RelationshipId,
                     FullName = dependent.FullName,
                     DateOfBirth = dependent.DateOfBirth,
                     Customer = customer.FirstName + " " + customer.LastName,
                     Relationship = relationship.Name,
+                    // NUEVOS: Auditoría
+                    CreatedAt = dependent.CreatedAt,
+                    CreatedByTaxUserId = dependent.CreatedByTaxUserId,
+                    UpdatedAt = dependent.UpdatedAt,
+                    LastModifiedByTaxUserId = dependent.LastModifiedByTaxUserId,
                 }
             ).ToListAsync(cancellationToken);
 
@@ -55,25 +61,28 @@ public class GetAllDependentHandler
                 return new ApiResponse<List<ReadDependentDTO>>(
                     false,
                     "No dependents found.",
-                    null!
+                    new List<ReadDependentDTO>()
                 );
             }
 
-            var dependentDTOs = _mapper.Map<List<ReadDependentDTO>>(result);
             _logger.LogInformation(
-                "Dependents retrieved successfully. {Dependents}",
-                dependentDTOs
+                "Dependents retrieved successfully: {Count} records",
+                result.Count
             );
             return new ApiResponse<List<ReadDependentDTO>>(
                 true,
                 "Dependents retrieved successfully.",
-                dependentDTOs
+                result
             );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while getting dependents.");
-            return new ApiResponse<List<ReadDependentDTO>>(false, ex.Message, null!);
+            return new ApiResponse<List<ReadDependentDTO>>(
+                false,
+                ex.Message,
+                new List<ReadDependentDTO>()
+            );
         }
     }
 }

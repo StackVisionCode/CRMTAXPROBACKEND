@@ -4,5 +4,8 @@ using signature.Application.DTOs;
 
 namespace signature.Infrastruture.Commands;
 
-public record CreateSignatureRequestCommand(CreateSignatureRequestDto Payload)
-    : IRequest<ApiResponse<bool>>;
+public record CreateSignatureRequestCommand(
+    CreateSignatureRequestDto Payload,
+    Guid CompanyId,
+    Guid CreatedByTaxUserId
+) : IRequest<ApiResponse<bool>>;

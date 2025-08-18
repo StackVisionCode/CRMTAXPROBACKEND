@@ -36,10 +36,11 @@ public class GetAddressByCustomerIdHandler
             var result = await (
                 from address in _dbContext.Addresses
                 join customer in _dbContext.Customers on address.CustomerId equals customer.Id
-                where address.CustomerId == request.CustomerId // Filter by CustomerId
+                where address.CustomerId == request.CustomerId
                 select new ReadAddressDTO
                 {
                     Id = address.Id,
+                    CustomerId = address.CustomerId,
                     Country = address.Country,
                     StreetAddress = address.StreetAddress,
                     ApartmentNumber = address.ApartmentNumber,
@@ -47,6 +48,11 @@ public class GetAddressByCustomerIdHandler
                     State = address.State,
                     ZipCode = address.ZipCode,
                     Customer = customer.FirstName + " " + customer.LastName,
+                    // Auditoría
+                    CreatedAt = address.CreatedAt,
+                    CreatedByTaxUserId = address.CreatedByTaxUserId,
+                    UpdatedAt = address.UpdatedAt,
+                    LastModifiedByTaxUserId = address.LastModifiedByTaxUserId,
                 }
             ).FirstOrDefaultAsync(cancellationToken);
 

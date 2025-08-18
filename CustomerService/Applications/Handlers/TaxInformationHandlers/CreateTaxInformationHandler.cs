@@ -32,36 +32,65 @@ public class CreateTaxInformationHandler
     {
         try
         {
+            // Verificar duplicado mejorado
             var exists = await _dbContext.TaxInformations.AnyAsync(
-                c =>
-                    c.CustomerId == request.taxInformation.CustomerId
-                    && c.FilingStatusId == request.taxInformation.FilingStatusId
-                    && c.BankAccountNumber == request.taxInformation.BankAccountNumber,
+                c => c.CustomerId == request.taxInformation.CustomerId,
                 cancellationToken
             );
 
             if (exists)
             {
                 _logger.LogWarning(
-                    "The Tax Information with Bank Account Number: {Bank Account Number} client already has tax information registered.",
-                    request.taxInformation.BankAccountNumber
+                    "Tax Information already exists for Customer: {CustomerId}",
+                    request.taxInformation.CustomerId
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "The Tax Information with Bank Account Number: {Bank Account Number} client already has tax information registered.",
+                    "Tax information already exists for this customer.",
                     false
                 );
             }
+
+            // Verificar cuenta bancaria duplicada si se proporciona
+            if (!string.IsNullOrEmpty(request.taxInformation.BankAccountNumber))
+            {
+                var bankExists = await _dbContext.TaxInformations.AnyAsync(
+                    c => c.BankAccountNumber == request.taxInformation.BankAccountNumber,
+                    cancellationToken
+                );
+
+                if (bankExists)
+                {
+                    _logger.LogWarning(
+                        "Bank Account Number already exists: {BankAccountNumber}",
+                        request.taxInformation.BankAccountNumber
+                    );
+                    return new ApiResponse<bool>(
+                        false,
+                        "This bank account number is already registered.",
+                        false
+                    );
+                }
+            }
+
             var taxInformation = _mapper.Map<Domains.Customers.TaxInformation>(
                 request.taxInformation
             );
             taxInformation.CreatedAt = DateTime.UtcNow;
+
             await _dbContext.TaxInformations.AddAsync(taxInformation, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
-            _logger.LogInformation(
-                "TaxInformation created successfully: {TaxInformation}",
-                taxInformation
-            );
+
+            if (result)
+            {
+                _logger.LogInformation(
+                    "TaxInformation created successfully: {TaxInformationId} for Customer: {CustomerId} by TaxUser: {CreatedBy}",
+                    taxInformation.Id,
+                    taxInformation.CustomerId,
+                    taxInformation.CreatedByTaxUserId
+                );
+            }
+
             return new ApiResponse<bool>(
                 result,
                 result ? "TaxInformation created successfully" : "Failed to create TaxInformation",

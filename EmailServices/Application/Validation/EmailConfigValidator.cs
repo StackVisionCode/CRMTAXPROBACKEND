@@ -6,26 +6,81 @@ public sealed class EmailConfigValidator : IEmailConfigValidator
 {
     public void Validate(EmailConfigDTO cfg)
     {
-        if (string.IsNullOrWhiteSpace(cfg.ProviderType))
+        ValidateCommon(
+            cfg.ProviderType,
+            cfg.SmtpServer,
+            cfg.SmtpPort,
+            cfg.SmtpUsername,
+            cfg.SmtpPassword,
+            cfg.GmailClientId,
+            cfg.GmailClientSecret,
+            cfg.GmailRefreshToken,
+            cfg.GmailEmailAddress
+        );
+    }
+
+    public void Validate(CreateEmailConfigDTO cfg)
+    {
+        ValidateCommon(
+            cfg.ProviderType,
+            cfg.SmtpServer,
+            cfg.SmtpPort,
+            cfg.SmtpUsername,
+            cfg.SmtpPassword,
+            cfg.GmailClientId,
+            cfg.GmailClientSecret,
+            cfg.GmailRefreshToken,
+            cfg.GmailEmailAddress
+        );
+    }
+
+    public void Validate(UpdateEmailConfigDTO cfg)
+    {
+        ValidateCommon(
+            cfg.ProviderType,
+            cfg.SmtpServer,
+            cfg.SmtpPort,
+            cfg.SmtpUsername,
+            cfg.SmtpPassword,
+            cfg.GmailClientId,
+            cfg.GmailClientSecret,
+            cfg.GmailRefreshToken,
+            cfg.GmailEmailAddress
+        );
+    }
+
+    private void ValidateCommon(
+        string? providerType,
+        string? smtpServer,
+        int? smtpPort,
+        string? smtpUsername,
+        string? smtpPassword,
+        string? gmailClientId,
+        string? gmailClientSecret,
+        string? gmailRefreshToken,
+        string? gmailEmailAddress
+    )
+    {
+        if (string.IsNullOrWhiteSpace(providerType))
             throw new ArgumentException("ProviderType is required");
 
-        if (cfg.ProviderType.Equals("Smtp", StringComparison.OrdinalIgnoreCase))
+        if (providerType.Equals("Smtp", StringComparison.OrdinalIgnoreCase))
         {
             if (
-                string.IsNullOrWhiteSpace(cfg.SmtpServer)
-                || !cfg.SmtpPort.HasValue
-                || string.IsNullOrWhiteSpace(cfg.SmtpUsername)
-                || string.IsNullOrWhiteSpace(cfg.SmtpPassword)
+                string.IsNullOrWhiteSpace(smtpServer)
+                || !smtpPort.HasValue
+                || string.IsNullOrWhiteSpace(smtpUsername)
+                || string.IsNullOrWhiteSpace(smtpPassword)
             )
                 throw new ArgumentException("SMTP fields are mandatory");
         }
-        else if (cfg.ProviderType.Equals("Gmail", StringComparison.OrdinalIgnoreCase))
+        else if (providerType.Equals("Gmail", StringComparison.OrdinalIgnoreCase))
         {
             if (
-                string.IsNullOrWhiteSpace(cfg.GmailClientId)
-                || string.IsNullOrWhiteSpace(cfg.GmailClientSecret)
-                || string.IsNullOrWhiteSpace(cfg.GmailRefreshToken)
-                || string.IsNullOrWhiteSpace(cfg.GmailEmailAddress)
+                string.IsNullOrWhiteSpace(gmailClientId)
+                || string.IsNullOrWhiteSpace(gmailClientSecret)
+                || string.IsNullOrWhiteSpace(gmailRefreshToken)
+                || string.IsNullOrWhiteSpace(gmailEmailAddress)
             )
                 throw new ArgumentException("Gmail OAuth2 fields are mandatory");
         }

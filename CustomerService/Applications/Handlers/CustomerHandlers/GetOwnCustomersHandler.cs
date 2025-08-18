@@ -33,10 +33,13 @@ public sealed class GetOwnCustomersHandler
     {
         try
         {
-            // --------- FILTRO (solo clientes del usuario) -----------------------
-            var query = _db.Customers.Where(c => c.TaxUserId == request.UserId);
+            var query = _db.Customers.Where(c => c.CompanyId == request.CompanyId);
 
-            // --------- PROYECCIÓN ----------------------------------------------
+            if (request.CreatedByTaxUserId.HasValue)
+            {
+                query = query.Where(c => c.CreatedByTaxUserId == request.CreatedByTaxUserId.Value);
+            }
+
             var list = await (
                 from cust in query
                 join cr in _db.CustomerTypes on cust.CustomerTypeId equals cr.Id
@@ -48,6 +51,7 @@ public sealed class GetOwnCustomersHandler
                 select new ReadCustomerDTO
                 {
                     Id = cust.Id,
+                    CompanyId = cust.CompanyId,
                     CustomerType = cr.Name,
                     CustomerTypeDescription = cr.Description,
                     FirstName = cust.FirstName,
@@ -59,38 +63,52 @@ public sealed class GetOwnCustomersHandler
                     IsLogin = ci != null && ci.IsLoggin,
                     Occupation = occ.Name,
                     MaritalStatus = ms.Name,
+                    // Auditoría
+                    CreatedAt = cust.CreatedAt,
+                    CreatedByTaxUserId = cust.CreatedByTaxUserId,
+                    UpdatedAt = cust.UpdatedAt,
+                    LastModifiedByTaxUserId = cust.LastModifiedByTaxUserId,
                 }
             ).ToListAsync(ct);
 
             if (list is null || !list.Any())
             {
-                _log.LogInformation("User {UserId} has no customers", request.UserId);
+                var message = request.CreatedByTaxUserId.HasValue
+                    ? $"No customers found created by TaxUser {request.CreatedByTaxUserId} in Company {request.CompanyId}"
+                    : $"No customers found for Company {request.CompanyId}";
+
+                _log.LogInformation(message);
                 return new ApiResponse<List<ReadCustomerDTO>>(
                     false,
-                    "No customers found for this user",
-                    null!
+                    message,
+                    new List<ReadCustomerDTO>()
                 );
             }
 
-            var ownCustomerDtos = _mapper.Map<List<ReadCustomerDTO>>(list);
             _log.LogInformation(
-                "Customers retrieved successfully for user {UserId}: {Customers}",
-                request.UserId,
-                ownCustomerDtos
+                "Customers retrieved successfully for Company {CompanyId}, CreatedBy filter: {CreatedBy}, Count: {Count}",
+                request.CompanyId,
+                request.CreatedByTaxUserId?.ToString() ?? "All",
+                list.Count
             );
+
             return new ApiResponse<List<ReadCustomerDTO>>(
                 true,
                 "Customers retrieved successfully",
-                ownCustomerDtos
+                list
             );
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "Error retrieving customers for {UserId}", request.UserId);
+            _log.LogError(
+                ex,
+                "Error retrieving customers for Company {CompanyId}",
+                request.CompanyId
+            );
             return new ApiResponse<List<ReadCustomerDTO>>(
                 false,
                 $"Error retrieving customers: {ex.Message}",
-                null!
+                new List<ReadCustomerDTO>()
             );
         }
     }

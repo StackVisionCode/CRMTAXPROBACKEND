@@ -31,19 +31,30 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, ApiResponse<bool>>
     {
         try
         {
-            var session = await _context.Sessions.FirstOrDefaultAsync(
-                s => s.Id == request.SessionId && s.TaxUserId == request.UserId,
-                cancellationToken
-            );
+            // Buscar sesión del TaxUser
+            var session = await _context
+                .Sessions.Where(s => s.Id == request.SessionId && s.TaxUserId == request.UserId)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (session == null)
             {
                 _logger.LogWarning(
-                    "Logout failed: Session {Session} not found for user {User}",
+                    "Logout failed: Session {SessionId} not found for TaxUser {UserId}",
                     request.SessionId,
                     request.UserId
                 );
                 return new ApiResponse<bool>(false, "Session not found");
+            }
+
+            // Verificar si la sesión ya está revocada
+            if (session.IsRevoke)
+            {
+                _logger.LogInformation(
+                    "Session {SessionId} for TaxUser {UserId} was already revoked",
+                    request.SessionId,
+                    request.UserId
+                );
+                return new ApiResponse<bool>(true, "Session already logged out", true);
             }
 
             // Revocar la sesión
@@ -53,15 +64,21 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, ApiResponse<bool>>
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "User {User} logged out. Session {Session} revoked",
+                "TaxUser {UserId} logged out successfully. Session {SessionId} revoked",
                 request.UserId,
                 request.SessionId
             );
+
             return new ApiResponse<bool>(true, "Logout successful", true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during logout process for user {User}", request.UserId);
+            _logger.LogError(
+                ex,
+                "Error during logout process for TaxUser {UserId}, Session {SessionId}",
+                request.UserId,
+                request.SessionId
+            );
             return new ApiResponse<bool>(false, "An error occurred during logout");
         }
     }

@@ -20,35 +20,151 @@ public class AssignRoleToUserHandler : IRequestHandler<AssignRoleToUserCommand, 
 
     public async Task<ApiResponse<bool>> Handle(AssignRoleToUserCommand req, CancellationToken ct)
     {
-        // Validar existencia
-        var userExists = await _db.TaxUsers.AnyAsync(u => u.Id == req.UserId, ct);
-        if (!userExists)
-            return new ApiResponse<bool>(false, "User not found", false);
+        try
+        {
+            // Validar existencia con información adicional
+            var userInfoQuery =
+                from u in _db.TaxUsers
+                where u.Id == req.UserId
+                select new
+                {
+                    u.Id,
+                    u.Email,
+                    u.IsOwner,
+                    u.CompanyId,
+                };
 
-        var roleExists = await _db.Roles.AnyAsync(r => r.Id == req.RoleId, ct);
-        if (!roleExists)
-            return new ApiResponse<bool>(false, "Role not found", false);
+            var userInfo = await userInfoQuery.FirstOrDefaultAsync(ct);
+            if (userInfo == null)
+            {
+                _log.LogWarning("User not found: {UserId}", req.UserId);
+                return new ApiResponse<bool>(false, "User not found", false);
+            }
 
-        var already = await _db.UserRoles.AnyAsync(
-            ur => ur.TaxUserId == req.UserId && ur.RoleId == req.RoleId,
-            ct
-        );
+            var roleInfoQuery =
+                from r in _db.Roles
+                where r.Id == req.RoleId
+                select new
+                {
+                    r.Id,
+                    r.Name,
+                    r.ServiceLevel,
+                    r.PortalAccess,
+                };
 
-        if (already)
-            return new ApiResponse<bool>(false, "User already has this role", false);
+            var roleInfo = await roleInfoQuery.FirstOrDefaultAsync(ct);
+            if (roleInfo == null)
+            {
+                _log.LogWarning("Role not found: {RoleId}", req.RoleId);
+                return new ApiResponse<bool>(false, "Role not found", false);
+            }
 
-        await _db.UserRoles.AddAsync(
-            new UserRole
+            // Verificar si ya tiene el rol asignado
+            var alreadyAssignedQuery =
+                from ur in _db.UserRoles
+                where ur.TaxUserId == req.UserId && ur.RoleId == req.RoleId
+                select ur.Id;
+
+            var alreadyAssigned = await alreadyAssignedQuery.AnyAsync(ct);
+            if (alreadyAssigned)
+            {
+                _log.LogWarning(
+                    "User {UserId} already has role {RoleName}",
+                    req.UserId,
+                    roleInfo.Name
+                );
+                return new ApiResponse<bool>(false, "User already has this role", false);
+            }
+
+            // Verificar compatibilidad Owner-Role
+            if (userInfo.IsOwner && !IsOwnerCompatibleRole(roleInfo.Name))
+            {
+                _log.LogWarning(
+                    "Cannot assign incompatible role {RoleName} to company owner {UserId}",
+                    roleInfo.Name,
+                    req.UserId
+                );
+                return new ApiResponse<bool>(
+                    false,
+                    "Cannot assign User or Customer roles to company owner",
+                    false
+                );
+            }
+
+            // Verificar que Users regulares no reciban roles Administrator
+            if (!userInfo.IsOwner && IsAdministratorRole(roleInfo.Name))
+            {
+                _log.LogWarning(
+                    "Cannot assign Administrator role {RoleName} to regular user {UserId}",
+                    roleInfo.Name,
+                    req.UserId
+                );
+                return new ApiResponse<bool>(
+                    false,
+                    "Cannot assign Administrator roles to regular users",
+                    false
+                );
+            }
+
+            // Crear la asignación
+            var userRole = new UserRole
             {
                 Id = Guid.NewGuid(),
                 TaxUserId = req.UserId,
                 RoleId = req.RoleId,
                 CreatedAt = DateTime.UtcNow,
-            },
-            ct
-        );
+            };
 
-        var success = await _db.SaveChangesAsync(ct) > 0;
-        return new ApiResponse<bool>(success, success ? "Role assigned" : "Failed", success);
+            await _db.UserRoles.AddAsync(userRole, ct);
+            var success = await _db.SaveChangesAsync(ct) > 0;
+
+            if (success)
+            {
+                _log.LogInformation(
+                    "Role assigned successfully: User={UserId} ({Email}, IsOwner={IsOwner}), Role={RoleName}",
+                    req.UserId,
+                    userInfo.Email,
+                    userInfo.IsOwner,
+                    roleInfo.Name
+                );
+                return new ApiResponse<bool>(true, "Role assigned successfully", true);
+            }
+            else
+            {
+                _log.LogError(
+                    "Failed to assign role: User={UserId}, Role={RoleId}",
+                    req.UserId,
+                    req.RoleId
+                );
+                return new ApiResponse<bool>(false, "Failed to assign role", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(
+                ex,
+                "Error assigning role: User={UserId}, Role={RoleId}, Message={Message}",
+                req.UserId,
+                req.RoleId,
+                ex.Message
+            );
+            return new ApiResponse<bool>(false, ex.Message, false);
+        }
+    }
+
+    /// <summary>
+    /// Verificar si un rol es compatible con Owner
+    /// </summary>
+    private static bool IsOwnerCompatibleRole(string roleName)
+    {
+        return roleName == "Developer" || roleName.Contains("Administrator");
+    }
+
+    /// <summary>
+    /// Verificar si un rol es de tipo Administrator
+    /// </summary>
+    private static bool IsAdministratorRole(string roleName)
+    {
+        return roleName == "Developer" || roleName.Contains("Administrator");
     }
 }

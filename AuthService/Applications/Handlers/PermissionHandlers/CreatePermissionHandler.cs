@@ -31,72 +31,115 @@ public class CreatePermissionHandler : IRequestHandler<CreatePermissionCommands,
         CancellationToken cancellationToken
     )
     {
+        using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
         try
         {
+            // Verificar si el código ya existe
             var exists = await _dbContext.Permissions.AnyAsync(
                 p => p.Code == request.Permission.Code,
                 cancellationToken
             );
             if (exists)
-                return new(false, "Permission code already exists", false);
+            {
+                _logger.LogWarning(
+                    "Permission code already exists: {Code}",
+                    request.Permission.Code
+                );
+                return new ApiResponse<bool>(false, "Permission code already exists", false);
+            }
 
             var permission = _mapper.Map<Permission>(request.Permission);
+            permission.Id = Guid.NewGuid();
             permission.CreatedAt = DateTime.UtcNow;
 
-            /* ──────────────────────────────────────────────────────────────── */
-            /*    Elegir los roles a enlazar                                   */
-            /*    a) si el caller mandó RoleIds => usar esos                   */
-            /*    b) caso contrario => buscar el rol “Administrator”           */
-            /* ──────────────────────────────────────────────────────────────── */
-
+            // Elegir los roles a enlazar
             IEnumerable<Guid> targetRoles;
 
             if (request.Permission.RoleIds is { Count: > 0 })
             {
-                targetRoles = request.Permission.RoleIds!;
+                // Verificar que los roles existan
+                var validRolesQuery =
+                    from r in _dbContext.Roles
+                    where request.Permission.RoleIds.Contains(r.Id)
+                    select r.Id;
+
+                var validRoles = await validRolesQuery.ToListAsync(cancellationToken);
+                if (validRoles.Count != request.Permission.RoleIds.Count)
+                {
+                    var invalidIds = request.Permission.RoleIds.Except(validRoles);
+                    _logger.LogWarning(
+                        "Invalid role IDs: {InvalidIds}",
+                        string.Join(", ", invalidIds)
+                    );
+                    return new ApiResponse<bool>(false, "One or more role IDs are invalid", false);
+                }
+
+                targetRoles = validRoles;
             }
             else
             {
-                targetRoles = await _dbContext
-                    .Roles.Where(r => r.Name == "Administrator")
-                    .Select(r => r.Id)
-                    .ToListAsync(cancellationToken);
+                // Buscar TODOS los roles Administrator (Basic, Standard, Pro)
+                var adminRolesQuery =
+                    from r in _dbContext.Roles
+                    where r.Name.Contains("Administrator") || r.Name == "Developer"
+                    select r.Id;
+
+                targetRoles = await adminRolesQuery.ToListAsync(cancellationToken);
 
                 if (!targetRoles.Any())
-                    return new(
+                {
+                    _logger.LogWarning("No Administrator roles found to assign permission to");
+                    return new ApiResponse<bool>(
                         false,
-                        "No target roles supplied and Administrator role not found",
+                        "No Administrator roles found and no target roles supplied",
                         false
                     );
+                }
+
+                _logger.LogDebug(
+                    "Assigning permission to {Count} Administrator roles",
+                    targetRoles.Count()
+                );
             }
 
-            /* ──────────────────────────────────────────────────────────────── */
-            /* Construir RolePermission (n registros)                       */
-            /* ──────────────────────────────────────────────────────────────── */
-            var links = targetRoles.Select(rid => new RolePermission
-            {
-                Id = Guid.NewGuid(),
-                RoleId = rid,
-                PermissionId = permission.Id,
-                CreatedAt = DateTime.UtcNow,
-            });
+            // Construir RolePermission links
+            var links = targetRoles
+                .Select(rid => new RolePermission
+                {
+                    Id = Guid.NewGuid(),
+                    RoleId = rid,
+                    PermissionId = permission.Id,
+                    CreatedAt = DateTime.UtcNow,
+                })
+                .ToList();
 
-            /* ──────────────────────────────────────────────────────────────── */
-            /* Guardar todo en una sola tx                                  */
-            /* ──────────────────────────────────────────────────────────────── */
+            // Guardar todo
             await _dbContext.Permissions.AddAsync(permission, cancellationToken);
             await _dbContext.RolePermissions.AddRangeAsync(links, cancellationToken);
 
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
-            _logger.LogInformation("Permission created successfully: {Permission}", permission);
-            return new ApiResponse<bool>(
-                result,
-                result ? "Permission created successfully" : "Failed to create permission",
-                result
-            );
+
+            if (result)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Permission created successfully: {Code} assigned to {RoleCount} roles",
+                    permission.Code,
+                    links.Count
+                );
+                return new ApiResponse<bool>(true, "Permission created successfully", true);
+            }
+            else
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError("Failed to create permission: {Code}", request.Permission.Code);
+                return new ApiResponse<bool>(false, "Failed to create permission", false);
+            }
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error creating permission: {Message}", ex.Message);
             return new ApiResponse<bool>(false, ex.Message, false);
         }

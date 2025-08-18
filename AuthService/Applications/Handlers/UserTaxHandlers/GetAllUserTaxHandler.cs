@@ -1,6 +1,5 @@
 using Applications.DTOs.CompanyDTOs;
 using AuthService.DTOs.UserDTOs;
-using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -12,17 +11,14 @@ namespace Handlers.UserTaxHandlers;
 public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse<List<UserGetDTO>>>
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetAllUserTaxHandler> _logger;
 
     public GetAllUserTaxHandler(
         ApplicationDbContext dbContext,
-        IMapper mapper,
         ILogger<GetAllUserTaxHandler> logger
     )
     {
         _dbContext = dbContext;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -33,10 +29,11 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
     {
         try
         {
+            // Query mejorado con IsOwner y CustomPlan info
             var userQuery =
                 from u in _dbContext.TaxUsers
-                join c in _dbContext.Companies on u.CompanyId equals c.Id into companies
-                from c in companies.DefaultIfEmpty()
+                join c in _dbContext.Companies on u.CompanyId equals c.Id
+                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join a in _dbContext.Addresses on u.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
                 join country in _dbContext.Countries on a.CountryId equals country.Id into countries
@@ -56,6 +53,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                     Id = u.Id,
                     CompanyId = u.CompanyId,
                     Email = u.Email,
+                    IsOwner = u.IsOwner,
                     Name = u.Name,
                     LastName = u.LastName,
                     PhoneNumber = u.PhoneNumber,
@@ -63,7 +61,8 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                     IsActive = u.IsActive,
                     Confirm = u.Confirm ?? false,
                     CreatedAt = u.CreatedAt,
-                    // User Address
+
+                    // Dirección del usuario
                     Address =
                         a != null
                             ? new AddressDTO
@@ -78,13 +77,15 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                                 StateName = state.Name,
                             }
                             : null,
-                    // Company info
-                    CompanyFullName = c != null ? c.FullName : null,
-                    CompanyName = c != null ? c.CompanyName : null,
-                    CompanyBrand = c != null ? c.Brand : null,
-                    CompanyIsIndividual = c != null ? !c.IsCompany : false,
-                    CompanyDomain = c != null ? c.Domain : null,
-                    // Company Address
+
+                    // Company info completa
+                    CompanyFullName = c.FullName,
+                    CompanyName = c.CompanyName,
+                    CompanyBrand = c.Brand,
+                    CompanyIsIndividual = !c.IsCompany,
+                    CompanyDomain = c.Domain,
+
+                    // Dirección de la company
                     CompanyAddress =
                         ca != null
                             ? new AddressDTO
@@ -99,7 +100,9 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                                 StateName = cstate.Name,
                             }
                             : null,
-                    RoleNames = new List<string>(), // Se llenará después
+
+                    RoleNames = new List<string>(),
+                    CustomPermissions = new List<string>(),
                 };
 
             var users = await userQuery.ToListAsync(cancellationToken);
@@ -108,13 +111,14 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
             {
                 return new ApiResponse<List<UserGetDTO>>(
                     true,
-                    "No users found",
+                    "No tax users found",
                     new List<UserGetDTO>()
                 );
             }
 
-            // Obtener roles por separado para evitar problemas de JOIN múltiple
             var userIds = users.Select(u => u.Id).ToList();
+
+            // Obtener roles por separado
             var rolesQuery =
                 from ur in _dbContext.UserRoles
                 join r in _dbContext.Roles on ur.RoleId equals r.Id
@@ -126,21 +130,42 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                 .GroupBy(x => x.TaxUserId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
 
-            // Asignar roles a usuarios
+            // Obtener permisos personalizados (CompanyPermissions)
+            var customPermissionsQuery =
+                from cp in _dbContext.CompanyPermissions
+                join p in _dbContext.Permissions on cp.PermissionId equals p.Id
+                where userIds.Contains(cp.TaxUserId) && cp.IsGranted
+                select new { cp.TaxUserId, p.Code };
+
+            var customPermissions = await customPermissionsQuery.ToListAsync(cancellationToken);
+            var permissionsByUser = customPermissions
+                .GroupBy(x => x.TaxUserId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
+
+            // Asignar roles y permisos a usuarios
             foreach (var user in users)
             {
                 if (rolesByUser.TryGetValue(user.Id, out var roles))
                 {
                     user.RoleNames = roles;
                 }
+
+                if (permissionsByUser.TryGetValue(user.Id, out var permissions))
+                {
+                    user.CustomPermissions = permissions;
+                }
             }
 
-            _logger.LogInformation("Retrieved {Count} users successfully", users.Count);
-            return new ApiResponse<List<UserGetDTO>>(true, "Users retrieved successfully", users);
+            _logger.LogInformation("Retrieved {Count} tax users successfully", users.Count);
+            return new ApiResponse<List<UserGetDTO>>(
+                true,
+                "Tax users retrieved successfully",
+                users
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving users: {Message}", ex.Message);
+            _logger.LogError(ex, "Error retrieving tax users: {Message}", ex.Message);
             return new ApiResponse<List<UserGetDTO>>(false, ex.Message, new List<UserGetDTO>());
         }
     }

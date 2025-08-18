@@ -164,13 +164,22 @@ namespace signature.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RejectReason")
@@ -198,6 +207,15 @@ namespace signature.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_SignatureRequests_CompanyId");
+
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_SignatureRequests_CreatedByTaxUserId");
+
+                    b.HasIndex("CompanyId", "Status")
+                        .HasDatabaseName("IX_SignatureRequests_CompanyId_Status");
 
                     b.ToTable("SignatureRequests", (string)null);
                 });

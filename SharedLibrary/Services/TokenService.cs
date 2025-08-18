@@ -55,6 +55,7 @@ internal sealed class TokenService : ITokenService
 
         // Claims de company
         claims.Add(new Claim("companyId", req.User.CompanyId.ToString()));
+        claims.Add(new Claim("isOwner", req.User.IsOwner.ToString()));
         claims.Add(new Claim("isCompany", req.User.IsCompany.ToString().ToLower()));
 
         if (!string.IsNullOrWhiteSpace(req.User.CompanyName))

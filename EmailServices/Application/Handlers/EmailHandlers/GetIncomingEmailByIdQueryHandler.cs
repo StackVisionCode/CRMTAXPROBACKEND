@@ -12,11 +12,17 @@ public class GetIncomingEmailByIdQueryHandler
 {
     private readonly EmailContext _ctx;
     private readonly IMapper _map;
+    private readonly ILogger<GetIncomingEmailByIdQueryHandler> _log;
 
-    public GetIncomingEmailByIdQueryHandler(EmailContext ctx, IMapper map)
+    public GetIncomingEmailByIdQueryHandler(
+        EmailContext ctx,
+        IMapper map,
+        ILogger<GetIncomingEmailByIdQueryHandler> log
+    )
     {
         _ctx = ctx;
         _map = map;
+        _log = log;
     }
 
     public async Task<IncomingEmailDTO?> Handle(
@@ -24,10 +30,22 @@ public class GetIncomingEmailByIdQueryHandler
         CancellationToken ct
     )
     {
+        // Query eficiente sin Include - primero obtenemos el email
         var email = await _ctx
-            .IncomingEmails.Include(e => e.Attachments)
-            .FirstOrDefaultAsync(e => e.Id == query.Id, ct);
+            .IncomingEmails.Where(e => e.Id == query.Id && e.CompanyId == query.CompanyId)
+            .FirstOrDefaultAsync(ct);
 
-        return email is null ? null : _map.Map<IncomingEmailDTO>(email);
+        if (email is null)
+            return null;
+
+        // Luego obtenemos los attachments en una query separada
+        var attachments = await _ctx
+            .EmailAttachments.Where(a => a.EmailId == query.Id && a.CompanyId == query.CompanyId)
+            .ToListAsync(ct);
+
+        var dto = _map.Map<IncomingEmailDTO>(email);
+        dto.Attachments = _map.Map<List<EmailAttachmentDTO>>(attachments);
+
+        return dto;
     }
 }

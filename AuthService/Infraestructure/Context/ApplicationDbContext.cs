@@ -1,12 +1,18 @@
+using System.Text.Json;
+using AuthService.Applications.Common;
 using AuthService.Domains.Addresses;
 using AuthService.Domains.Companies;
+using AuthService.Domains.CustomPlans;
 using AuthService.Domains.Geography;
+using AuthService.Domains.Modules;
 using AuthService.Domains.Permissions;
 using AuthService.Domains.Roles;
+using AuthService.Domains.Services;
 using AuthService.Domains.Sessions;
 using AuthService.Domains.Users;
 using Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Infraestructure.Context;
 
@@ -27,12 +33,39 @@ public class ApplicationDbContext : DbContext
     public DbSet<Address> Addresses { get; set; }
     public DbSet<Country> Countries { get; set; }
     public DbSet<State> States { get; set; }
+    public DbSet<Service> Services { get; set; }
+    public DbSet<Module> Modules { get; set; }
+    public DbSet<CustomModule> CustomModules { get; set; }
+    public DbSet<CustomPlan> CustomPlans { get; set; }
+    public DbSet<CompanyPermission> CompanyPermissions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Aplica la convención de RowVersion para **todas** las entidades que hereden de BaseEntity
+        // Configuraciones existentes de BaseEntity
+        ApplyBaseEntityConventions(modelBuilder);
+
+        // Configuraciones existentes de geografía
+        ApplyGeographyConventions(modelBuilder);
+
+        // Configurar tablas existentes
+        ConfigureExistingTables(modelBuilder);
+
+        // CONFIGURACIONES ACTUALIZADAS
+        ConfigureUpdatedTables(modelBuilder);
+        ConfigureUpdatedRelationships(modelBuilder);
+        ConfigureUpdatedIndexes(modelBuilder);
+
+        // Precisión decimal
+        ConfigureDecimalPrecision(modelBuilder);
+
+        // Seeds actualizados
+        SeedData(modelBuilder);
+    }
+
+    private void ApplyBaseEntityConventions(ModelBuilder modelBuilder)
+    {
         foreach (
             var entity in modelBuilder
                 .Model.GetEntityTypes()
@@ -40,143 +73,37 @@ public class ApplicationDbContext : DbContext
         )
         {
             modelBuilder.Entity(entity.Name).Property<byte[]>("RowVersion").IsRowVersion();
-        }
-
-        // Aplica la convención de CreatedAt y UpdatedAt para **todas** las entidades que hereden de BaseEntity
-        foreach (
-            var entity in modelBuilder
-                .Model.GetEntityTypes()
-                .Where(t => typeof(BaseEntity).IsAssignableFrom(t.ClrType))
-        )
-        {
             modelBuilder
                 .Entity(entity.Name)
                 .Property<DateTime>("CreatedAt")
                 .HasDefaultValueSql("GETUTCDATE()")
                 .ValueGeneratedOnAdd();
-
             modelBuilder.Entity(entity.Name).Property<DateTime?>("UpdatedAt");
             modelBuilder.Entity(entity.Name).Property<DateTime?>("DeleteAt");
         }
 
-        // Aplicar las mismas configuraciones a entidades específicas que NO heredan de BaseEntity
+        // Para Country y State
         var additionalEntityTypes = new[] { typeof(State), typeof(Country) };
-
         foreach (var entityType in additionalEntityTypes)
         {
             var entityTypeInfo = modelBuilder.Model.FindEntityType(entityType);
             if (entityTypeInfo != null)
             {
-                // RowVersion
                 modelBuilder.Entity(entityType).Property<byte[]>("RowVersion").IsRowVersion();
-
-                // CreatedAt con valor por defecto
                 modelBuilder
                     .Entity(entityType)
                     .Property<DateTime>("CreatedAt")
                     .HasDefaultValueSql("GETUTCDATE()")
                     .ValueGeneratedOnAdd();
-
-                // UpdatedAt y DeleteAt opcionales
                 modelBuilder.Entity(entityType).Property<DateTime?>("UpdatedAt");
                 modelBuilder.Entity(entityType).Property<DateTime?>("DeleteAt");
             }
         }
+    }
 
-        // Configuración de tablas
-        modelBuilder.Entity<TaxUser>().ToTable("TaxUsers");
-        modelBuilder.Entity<Role>().ToTable("Roles");
-        modelBuilder.Entity<RolePermission>().ToTable("RolePermissions");
-        modelBuilder.Entity<UserRole>().ToTable("UserRoles");
-        modelBuilder.Entity<CustomerRole>().ToTable("CustomerRoles");
-        modelBuilder.Entity<Permission>().ToTable("Permissions");
-        modelBuilder.Entity<Session>().ToTable("Sessions");
-        modelBuilder.Entity<CustomerSession>().ToTable("CustomerSessions");
-        modelBuilder.Entity<Company>().ToTable("Companies");
-        modelBuilder.Entity<Address>().ToTable("Addresses");
-        modelBuilder.Entity<Country>().ToTable("Countries");
-        modelBuilder.Entity<State>().ToTable("States");
-
-        // Índices únicos
-        modelBuilder.Entity<Role>().HasIndex(r => r.Name).IsUnique();
-        modelBuilder.Entity<Permission>().HasIndex(p => p.Code).IsUnique();
-        modelBuilder.Entity<TaxUser>().HasIndex(u => u.Email).IsUnique();
-        modelBuilder.Entity<Company>().HasIndex(c => c.Domain).IsUnique();
-
-        // Checks
-        modelBuilder
-            .Entity<Company>()
-            .ToTable(b => b.HasCheckConstraint("CK_Companies_UserLimit", "[UserLimit] >= 0"));
-
-        // RolePermission (Relación Role <-> Permission)
-        modelBuilder
-            .Entity<RolePermission>()
-            .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
-            .IsUnique();
-
-        modelBuilder
-            .Entity<RolePermission>()
-            .HasOne(rp => rp.Role)
-            .WithMany(r => r.RolePermissions)
-            .HasForeignKey(rp => rp.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder
-            .Entity<RolePermission>()
-            .HasOne(rp => rp.Permission)
-            .WithMany(p => p.RolePermissions)
-            .HasForeignKey(rp => rp.PermissionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // UserRole (Relación TaxUser <-> Role)
-        modelBuilder.Entity<UserRole>().HasIndex(ur => new { ur.TaxUserId, ur.RoleId }).IsUnique();
-
-        modelBuilder
-            .Entity<UserRole>()
-            .HasOne(ur => ur.TaxUser)
-            .WithMany(u => u.UserRoles)
-            .HasForeignKey(ur => ur.TaxUserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder
-            .Entity<UserRole>()
-            .HasOne(ur => ur.Role)
-            .WithMany(r => r.UserRoles)
-            .HasForeignKey(ur => ur.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // CustomerRole (Relación Customer <-> Role)
-        modelBuilder
-            .Entity<CustomerRole>()
-            .HasIndex(cr => new { cr.CustomerId, cr.RoleId })
-            .IsUnique();
-
-        modelBuilder
-            .Entity<CustomerRole>()
-            .HasOne(cr => cr.Role)
-            .WithMany()
-            .HasForeignKey(cr => cr.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // TaxUser – Company (N : 1) - CAMBIO: Restrict en lugar de Cascade
-        modelBuilder
-            .Entity<TaxUser>()
-            .HasOne(u => u.Company)
-            .WithMany(c => c.TaxUsers)
-            .HasForeignKey(u => u.CompanyId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Relación TaxUser - Sessions (1:N)
-        modelBuilder
-            .Entity<Session>()
-            .HasOne(s => s.TaxUser)
-            .WithMany(u => u.Sessions)
-            .HasForeignKey(s => s.TaxUserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // >>> Relaciones Address <<<
-
-        // Catálogos: State -> Country (N:1)
+    private void ApplyGeographyConventions(ModelBuilder modelBuilder)
+    {
+        // State -> Country (N:1)
         modelBuilder
             .Entity<State>()
             .HasOne(s => s.Country)
@@ -198,8 +125,95 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(a => a.StateId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
 
-        // Company -> Address (N:1, AddressId nullable, SetNull al borrar Address)
+    private void ConfigureExistingTables(ModelBuilder modelBuilder)
+    {
+        // Configuración de tablas existentes
+        modelBuilder.Entity<TaxUser>().ToTable("TaxUsers");
+        modelBuilder.Entity<Role>().ToTable("Roles");
+        modelBuilder.Entity<RolePermission>().ToTable("RolePermissions");
+        modelBuilder.Entity<UserRole>().ToTable("UserRoles");
+        modelBuilder.Entity<CustomerRole>().ToTable("CustomerRoles");
+        modelBuilder.Entity<Permission>().ToTable("Permissions");
+        modelBuilder.Entity<Session>().ToTable("Sessions");
+        modelBuilder.Entity<CustomerSession>().ToTable("CustomerSessions");
+        modelBuilder.Entity<Company>().ToTable("Companies");
+        modelBuilder.Entity<Address>().ToTable("Addresses");
+        modelBuilder.Entity<Country>().ToTable("Countries");
+        modelBuilder.Entity<State>().ToTable("States");
+
+        // Índices únicos existentes
+        modelBuilder.Entity<Role>().HasIndex(r => r.Name).IsUnique();
+        modelBuilder.Entity<Permission>().HasIndex(p => p.Code).IsUnique();
+        modelBuilder.Entity<TaxUser>().HasIndex(u => u.Email).IsUnique();
+        modelBuilder.Entity<Company>().HasIndex(c => c.Domain).IsUnique();
+
+        // Relaciones existentes que se mantienen
+        ConfigureExistingRelationships(modelBuilder);
+    }
+
+    private void ConfigureExistingRelationships(ModelBuilder modelBuilder)
+    {
+        // RolePermission (sin cambios)
+        modelBuilder
+            .Entity<RolePermission>()
+            .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<RolePermission>()
+            .HasOne(rp => rp.Role)
+            .WithMany(r => r.RolePermissions)
+            .HasForeignKey(rp => rp.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<RolePermission>()
+            .HasOne(rp => rp.Permission)
+            .WithMany(p => p.RolePermissions)
+            .HasForeignKey(rp => rp.PermissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // UserRole (sin cambios)
+        modelBuilder.Entity<UserRole>().HasIndex(ur => new { ur.TaxUserId, ur.RoleId }).IsUnique();
+
+        modelBuilder
+            .Entity<UserRole>()
+            .HasOne(ur => ur.TaxUser)
+            .WithMany(u => u.UserRoles)
+            .HasForeignKey(ur => ur.TaxUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany(r => r.UserRoles)
+            .HasForeignKey(ur => ur.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // CustomerRole (sin cambios)
+        modelBuilder
+            .Entity<CustomerRole>()
+            .HasIndex(cr => new { cr.CustomerId, cr.RoleId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<CustomerRole>()
+            .HasOne(cr => cr.Role)
+            .WithMany()
+            .HasForeignKey(cr => cr.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Session – TaxUser (sin cambios)
+        modelBuilder
+            .Entity<Session>()
+            .HasOne(s => s.TaxUser)
+            .WithMany(u => u.Sessions)
+            .HasForeignKey(s => s.TaxUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Address relationships (sin cambios)
         modelBuilder
             .Entity<Company>()
             .HasOne(c => c.Address)
@@ -207,31 +221,230 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(c => c.AddressId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // TaxUser -> Address (N:1, AddressId nullable, SetNull al borrar Address)
         modelBuilder
             .Entity<TaxUser>()
             .HasOne(u => u.Address)
             .WithMany()
             .HasForeignKey(u => u.AddressId)
             .OnDelete(DeleteBehavior.SetNull);
-
-        // Seed data
-        SeedPermissions(modelBuilder);
-        SeedRoles(modelBuilder);
-        SeedRolePermissions(modelBuilder);
-        SeedCompanyAndDeveloper(modelBuilder);
-        SeedGeography(modelBuilder);
     }
 
-    // CONSTANTES CORREGIDAS
+    private void ConfigureUpdatedTables(ModelBuilder modelBuilder)
+    {
+        // Tablas nuevas/actualizadas
+        modelBuilder.Entity<Service>().ToTable("Services");
+
+        modelBuilder
+            .Entity<Service>()
+            .Property(s => s.Features)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v =>
+                    JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null)
+                    ?? new List<string>()
+            )
+            .Metadata.SetValueComparer(
+                new ValueComparer<List<string>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList()
+                )
+            );
+        modelBuilder.Entity<Module>().ToTable("Modules");
+        modelBuilder.Entity<CustomModule>().ToTable("CustomModules");
+        modelBuilder.Entity<CustomPlan>().ToTable("CustomPlans");
+        modelBuilder.Entity<CompanyPermission>().ToTable("CompanyPermissions");
+    }
+
+    private void ConfigureDecimalPrecision(ModelBuilder modelBuilder)
+    {
+        // Configurar precisión para Service.Price
+        modelBuilder.Entity<Service>().Property(s => s.Price).HasPrecision(18, 2); // 18 dígitos total, 2 decimales
+
+        // Configurar precisión para CustomPlan.Price
+        modelBuilder.Entity<CustomPlan>().Property(cp => cp.Price).HasPrecision(18, 2); // 18 dígitos total, 2 decimales
+    }
+
+    private void ConfigureUpdatedRelationships(ModelBuilder modelBuilder)
+    {
+        // =====================
+        // RELACIÓN PRINCIPAL CAMBIADA: TaxUser -> Company (N:1)
+        // =====================
+        modelBuilder
+            .Entity<TaxUser>()
+            .HasOne(u => u.Company)
+            .WithMany(c => c.TaxUsers) // CAMBIO: Ahora Company tiene muchos TaxUsers
+            .HasForeignKey(u => u.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =====================
+        // RELACIONES DE SERVICIOS Y MÓDULOS
+        // =====================
+
+        // Service -> Module (1:N)
+        modelBuilder
+            .Entity<Module>()
+            .HasOne(m => m.Service)
+            .WithMany(s => s.Modules)
+            .HasForeignKey(m => m.ServiceId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // CustomPlan -> Company (1:1)
+        modelBuilder
+            .Entity<CustomPlan>()
+            .HasOne(cp => cp.Company)
+            .WithOne(c => c.CustomPlan)
+            .HasForeignKey<CustomPlan>(cp => cp.CompanyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Company -> CustomPlan (1:1)
+        modelBuilder
+            .Entity<Company>()
+            .HasOne(c => c.CustomPlan)
+            .WithOne(cp => cp.Company)
+            .HasForeignKey<Company>(c => c.CustomPlanId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // CustomModule (CustomPlan ↔ Module muchos a muchos)
+        modelBuilder
+            .Entity<CustomModule>()
+            .HasIndex(cm => new { cm.CustomPlanId, cm.ModuleId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<CustomModule>()
+            .HasOne(cm => cm.CustomPlan)
+            .WithMany(cp => cp.CustomModules)
+            .HasForeignKey(cm => cm.CustomPlanId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<CustomModule>()
+            .HasOne(cm => cm.Module)
+            .WithMany(m => m.CustomModules)
+            .HasForeignKey(cm => cm.ModuleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // =====================
+        // NUEVA RELACIÓN: CompanyPermission (TaxUser ↔ Permission)
+        // =====================
+        modelBuilder
+            .Entity<CompanyPermission>()
+            .HasIndex(cp => new { cp.TaxUserId, cp.PermissionId })
+            .IsUnique();
+
+        modelBuilder
+            .Entity<CompanyPermission>()
+            .HasOne(cp => cp.TaxUser)
+            .WithMany(u => u.CompanyPermissions)
+            .HasForeignKey(cp => cp.TaxUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder
+            .Entity<CompanyPermission>()
+            .HasOne(cp => cp.Permission)
+            .WithMany(p => p.CompanyPermissions)
+            .HasForeignKey(cp => cp.PermissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureUpdatedIndexes(ModelBuilder modelBuilder)
+    {
+        // Índices existentes
+        modelBuilder.Entity<Service>().HasIndex(s => s.Name).IsUnique();
+        modelBuilder.Entity<Module>().HasIndex(m => m.Name).IsUnique();
+
+        // NUEVOS ÍNDICES
+        modelBuilder.Entity<TaxUser>().HasIndex(u => u.CompanyId); // Para la nueva relación N:1
+        modelBuilder.Entity<TaxUser>().HasIndex(u => u.IsOwner); // Para filtrar owners rápidamente
+        modelBuilder.Entity<CompanyPermission>().HasIndex(cp => cp.TaxUserId);
+        modelBuilder.Entity<CompanyPermission>().HasIndex(cp => cp.PermissionId);
+        modelBuilder.Entity<CompanyPermission>().HasIndex(cp => cp.IsGranted);
+
+        // Índices adicionales para performance
+        modelBuilder.Entity<Module>().HasIndex(m => m.ServiceId);
+        modelBuilder.Entity<CustomPlan>().HasIndex(cp => cp.CompanyId).IsUnique();
+        modelBuilder.Entity<CustomPlan>().HasIndex(cp => cp.IsActive);
+        modelBuilder.Entity<CustomModule>().HasIndex(cm => cm.CustomPlanId);
+        modelBuilder.Entity<CustomModule>().HasIndex(cm => cm.ModuleId);
+
+        // Checks
+        modelBuilder
+            .Entity<Service>()
+            .ToTable(b => b.HasCheckConstraint("CK_Services_UserLimit", "[UserLimit] >= 0"));
+
+        modelBuilder
+            .Entity<Service>()
+            .ToTable(b => b.HasCheckConstraint("CK_Services_Price", "[Price] >= 0"));
+
+        modelBuilder
+            .Entity<CustomPlan>()
+            .ToTable(b => b.HasCheckConstraint("CK_CustomPlans_Price", "[Price] >= 0"));
+
+        modelBuilder
+            .Entity<CustomPlan>()
+            .ToTable(b => b.HasCheckConstraint("CK_CustomPlans_UserLimit", "[UserLimit] >= 1"));
+
+        // 🔧 CORREGIDO: Solo un constraint para fechas, usando RenewDate
+        modelBuilder
+            .Entity<CustomPlan>()
+            .ToTable(b =>
+                b.HasCheckConstraint("CK_CustomPlans_RenewDate", "[RenewDate] IS NOT NULL")
+            );
+
+        // Check para TaxUser - solo puede haber un Owner por Company
+        modelBuilder
+            .Entity<TaxUser>()
+            .ToTable(b =>
+                b.HasCheckConstraint(
+                    "CK_TaxUser_OneOwnerPerCompany",
+                    "([IsOwner] = 0) OR ([IsOwner] = 1)"
+                )
+            );
+    }
+
+    private void SeedData(ModelBuilder modelBuilder)
+    {
+        // Seeds en orden de dependencias
+        SeedPermissions(modelBuilder);
+        SeedServices(modelBuilder);
+        SeedModules(modelBuilder);
+        SeedRoles(modelBuilder);
+        SeedRolePermissions(modelBuilder);
+        SeedGeography(modelBuilder);
+        SeedCustomPlanAndCompany(modelBuilder);
+    }
+
+    // CONSTANTES ACTUALIZADAS
     static readonly Guid CompanySeedId = Guid.Parse("770e8400-e29b-41d4-a716-556655441000");
     static readonly Guid DevUserSeedId = Guid.Parse("880e8400-e29b-41d4-a716-556655441000");
     static readonly Guid DeveloperRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441001");
-    static readonly Guid AdministratorRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441002");
-    static readonly Guid UserRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441003");
-    static readonly Guid CustomerRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441004");
 
-    // Address seeds (GUID)
+    // NUEVOS ADMINISTRATOR ROLES POR SERVICIO
+    static readonly Guid AdministratorBasicRoleId = Guid.Parse(
+        "550e8400-e29b-41d4-a716-446655441002"
+    );
+    static readonly Guid AdministratorStandardRoleId = Guid.Parse(
+        "550e8400-e29b-41d4-a716-446655441003"
+    );
+    static readonly Guid AdministratorProRoleId = Guid.Parse(
+        "550e8400-e29b-41d4-a716-446655441004"
+    );
+
+    static readonly Guid UserRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441005");
+    static readonly Guid CustomerRoleId = Guid.Parse("550e8400-e29b-41d4-a716-446655441006");
+
+    // NUEVOS IDs PARA SERVICIOS
+    static readonly Guid BasicServiceId = Guid.Parse("660e8400-e29b-41d4-a716-556655441001");
+    static readonly Guid StandardServiceId = Guid.Parse("660e8400-e29b-41d4-a716-556655441002");
+    static readonly Guid ProServiceId = Guid.Parse("660e8400-e29b-41d4-a716-556655441003");
+
+    // ID para CustomPlan de StackVision
+    static readonly Guid StackVisionCustomPlanId = Guid.Parse(
+        "880e8400-e29b-41d4-a716-556655441001"
+    );
+
+    // Address seeds
     static readonly Guid CompanyAddressSeedId = Guid.Parse("990e8400-e29b-41d4-a716-556655443001");
     static readonly Guid DevUserAddressSeedId = Guid.Parse("990e8400-e29b-41d4-a716-556655443000");
 
@@ -239,12 +452,153 @@ public class ApplicationDbContext : DbContext
     const int USA = 220; // United States
     const int FL = 9; // Florida
 
+    private static void SeedServices(ModelBuilder modelBuilder)
+    {
+        modelBuilder
+            .Entity<Service>()
+            .HasData(
+                new Service
+                {
+                    Id = BasicServiceId,
+                    Name = "Basic",
+                    Title = "Basic Plan",
+                    Description = "Basic tax preparation service with essential features",
+                    Features = new List<string>
+                    {
+                        "Individual tax returns",
+                        "Basic invoicing",
+                        "Document storage",
+                        "Email support",
+                    },
+                    Price = 29.99m,
+                    UserLimit = 1,
+                    IsActive = true,
+                },
+                new Service
+                {
+                    Id = StandardServiceId,
+                    Name = "Standard",
+                    Title = "Standard Plan",
+                    Description = "Standard service with additional modules and more users",
+                    Features = new List<string>
+                    {
+                        "Individual & business tax returns",
+                        "Advanced invoicing",
+                        "Document management",
+                        "Financial reports",
+                        "Customer portal",
+                        "Priority support",
+                    },
+                    Price = 59.99m,
+                    UserLimit = 4,
+                    IsActive = true,
+                },
+                new Service
+                {
+                    Id = ProServiceId,
+                    Name = "Pro",
+                    Title = "Professional Plan",
+                    Description = "Professional service with all modules and unlimited features",
+                    Features = new List<string>
+                    {
+                        "All tax return types",
+                        "Complete invoicing suite",
+                        "Advanced document management",
+                        "Comprehensive reports",
+                        "Full customer portal",
+                        "Advanced analytics",
+                        "API integrations",
+                        "White label options",
+                        "24/7 premium support",
+                    },
+                    Price = 99.99m,
+                    UserLimit = 5,
+                    IsActive = true,
+                }
+            );
+    }
+
+    private static void SeedModules(ModelBuilder modelBuilder)
+    {
+        var modules = new[]
+        {
+            (
+                1,
+                "Tax Returns",
+                "Individual and business tax return preparation",
+                "/tax-returns",
+                BasicServiceId
+            ),
+            (2, "Invoicing", "Create and manage invoices", "/invoicing", BasicServiceId),
+            (
+                3,
+                "Document Management",
+                "Upload and organize tax documents",
+                "/documents",
+                BasicServiceId
+            ),
+            // Módulos Standard adicionales
+            (4, "Reports", "Generate financial and tax reports", "/reports", StandardServiceId),
+            (
+                5,
+                "Customer Portal",
+                "Dedicated portal for client communication",
+                "/customer-portal",
+                StandardServiceId
+            ),
+            // Módulos Pro adicionales
+            (
+                6,
+                "Advanced Analytics",
+                "Business insights and analytics",
+                "/analytics",
+                ProServiceId
+            ),
+            (
+                7,
+                "API Integration",
+                "Connect with third-party services",
+                "/api-integration",
+                ProServiceId
+            ),
+            (8, "White Label", "Custom branding options", "/white-label", ProServiceId),
+            // Módulos adicionales sin servicio base (disponibles para CustomPlan)
+            (
+                9,
+                "Multi-Company Management",
+                "Manage multiple companies from one dashboard",
+                "/multi-company",
+                Guid.Parse("00000000-0000-0000-0000-000000000000")
+            ),
+            (
+                10,
+                "Advanced Security",
+                "Enhanced security features and compliance",
+                "/security",
+                Guid.Parse("00000000-0000-0000-0000-000000000000")
+            ),
+        };
+
+        var moduleData = modules.Select(m => new Module
+        {
+            Id = Guid.Parse($"770e8400-e29b-41d4-a716-55665544{m.Item1:0000}"),
+            Name = m.Item2,
+            Description = m.Item3,
+            Url = m.Item4,
+            ServiceId =
+                m.Item5 == Guid.Parse("00000000-0000-0000-0000-000000000000") ? null : m.Item5,
+            IsActive = true,
+        });
+
+        modelBuilder.Entity<Module>().HasData(moduleData);
+    }
+
     private static Guid NewPerm(int n) => Guid.Parse($"550e8400-e29b-41d4-a716-44665544{n:0000}");
 
-    // PERMISOS
+    // PERMISOS ACTUALIZADOS
     private static void SeedPermissions(ModelBuilder modelBuilder)
     {
-        // Permisos básicos (1-26)
+        // Permisos básicos (1-26) con IsGranted = true por defecto
         modelBuilder
             .Entity<Permission>()
             .HasData(
@@ -253,160 +607,349 @@ public class ApplicationDbContext : DbContext
                     Id = NewPerm(1),
                     Name = "Create Permissions",
                     Code = "Permission.Create",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(2),
                     Name = "Read Permissions",
                     Code = "Permission.Read",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(3),
                     Name = "View Permissions",
                     Code = "Permission.View",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(4),
                     Name = "Delete Permissions",
                     Code = "Permission.Delete",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(5),
                     Name = "Update Permissions",
                     Code = "Permission.Update",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(6),
                     Name = "Create TaxUsers",
                     Code = "TaxUser.Create",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(7),
                     Name = "Read TaxUsers",
                     Code = "TaxUser.Read",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(8),
                     Name = "View TaxUsers",
                     Code = "TaxUser.View",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(9),
                     Name = "Delete TaxUsers",
                     Code = "TaxUser.Delete",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(10),
                     Name = "Update TaxUsers",
                     Code = "TaxUser.Update",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(11),
                     Name = "Create Customers",
                     Code = "Customer.Create",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(12),
                     Name = "Read Customers",
                     Code = "Customer.Read",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(13),
                     Name = "View Customers",
                     Code = "Customer.View",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(14),
                     Name = "Delete Customers",
                     Code = "Customer.Delete",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(15),
                     Name = "Update Customers",
                     Code = "Customer.Update",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(16),
                     Name = "Create Roles",
                     Code = "Role.Create",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(17),
                     Name = "Read Roles",
                     Code = "Role.Read",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(18),
                     Name = "View Roles",
                     Code = "Role.View",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(19),
                     Name = "Delete Roles",
                     Code = "Role.Delete",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(20),
                     Name = "Update Roles",
                     Code = "Role.Update",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(21),
                     Name = "Create RolePermissions",
                     Code = "RolePermission.Create",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(22),
                     Name = "Read RolePermissions",
                     Code = "RolePermission.Read",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(23),
                     Name = "View RolePermissions",
                     Code = "RolePermission.View",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(24),
                     Name = "Delete RolePermissions",
                     Code = "RolePermission.Delete",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(25),
                     Name = "Update RolePermissions",
                     Code = "RolePermission.Update",
+                    IsGranted = true,
                 },
                 new Permission
                 {
                     Id = NewPerm(26),
                     Name = "Read own profile",
                     Code = "Customer.SelfRead",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(45),
+                    Name = "Create Services",
+                    Code = "Service.Create",
+                    Description = "Create new services in the system",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(46),
+                    Name = "Read Services",
+                    Code = "Service.Read",
+                    Description = "View and retrieve service information",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(47),
+                    Name = "Update Services",
+                    Code = "Service.Update",
+                    Description = "Modify existing services",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(48),
+                    Name = "Delete Services",
+                    Code = "Service.Delete",
+                    Description = "Remove services from the system",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(49),
+                    Name = "Manage Service Status",
+                    Code = "Service.ManageStatus",
+                    Description = "Activate or deactivate services",
+                    IsGranted = true,
+                },
+                // Permisos para MODULE (50-54)
+                new Permission
+                {
+                    Id = NewPerm(50),
+                    Name = "Create Modules",
+                    Code = "Module.Create",
+                    Description = "Create new modules in the system",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(51),
+                    Name = "Read Modules",
+                    Code = "Module.Read",
+                    Description = "View and retrieve module information",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(52),
+                    Name = "Update Modules",
+                    Code = "Module.Update",
+                    Description = "Modify existing modules",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(53),
+                    Name = "Delete Modules",
+                    Code = "Module.Delete",
+                    Description = "Remove modules from the system",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(54),
+                    Name = "Manage Module Status",
+                    Code = "Module.ManageStatus",
+                    Description = "Activate or deactivate modules",
+                    IsGranted = true,
+                },
+                // Permisos para CUSTOMPLAN (55-59)
+                new Permission
+                {
+                    Id = NewPerm(55),
+                    Name = "Create CustomPlans",
+                    Code = "CustomPlan.Create",
+                    Description = "Create new custom plans for companies",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(56),
+                    Name = "Read CustomPlans",
+                    Code = "CustomPlan.Read",
+                    Description = "View and retrieve custom plan information",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(57),
+                    Name = "Update CustomPlans",
+                    Code = "CustomPlan.Update",
+                    Description = "Modify existing custom plans",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(58),
+                    Name = "Delete CustomPlans",
+                    Code = "CustomPlan.Delete",
+                    Description = "Remove custom plans from the system",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(59),
+                    Name = "Manage CustomPlan Status",
+                    Code = "CustomPlan.ManageStatus",
+                    Description = "Activate, deactivate or renew custom plans",
+                    IsGranted = true,
+                },
+                // Permisos para CUSTOMMODULE (60-64)
+                new Permission
+                {
+                    Id = NewPerm(60),
+                    Name = "Create CustomModules",
+                    Code = "CustomModule.Create",
+                    Description = "Assign modules to custom plans",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(61),
+                    Name = "Read CustomModules",
+                    Code = "CustomModule.Read",
+                    Description = "View and retrieve custom module information",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(62),
+                    Name = "Update CustomModules",
+                    Code = "CustomModule.Update",
+                    Description = "Modify existing custom modules",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(63),
+                    Name = "Delete CustomModules",
+                    Code = "CustomModule.Delete",
+                    Description = "Remove custom modules from plans",
+                    IsGranted = true,
+                },
+                new Permission
+                {
+                    Id = NewPerm(64),
+                    Name = "Manage CustomModule Status",
+                    Code = "CustomModule.ManageStatus",
+                    Description = "Include or exclude modules from plans",
+                    IsGranted = true,
                 }
             );
 
-        // Permisos adicionales (27-39)
+        // Permisos adicionales (27-44)
         var extraPerms = new[]
         {
             (27, "Disable customer login", "Customer.DisableLogin"),
@@ -432,12 +975,13 @@ public class ApplicationDbContext : DbContext
             Id = NewPerm(t.Item1),
             Name = t.Item2,
             Code = t.Item3,
+            IsGranted = true, // NUEVO: Todos los permisos activos por defecto
         });
 
         modelBuilder.Entity<Permission>().HasData(extraPerms);
     }
 
-    // ROLES
+    // ROLES (sin cambios)
     private static void SeedRoles(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -450,14 +994,31 @@ public class ApplicationDbContext : DbContext
                     Description =
                         "Has full access to all system features, settings, and user management. Responsible for maintaining and overseeing the platform.",
                     PortalAccess = PortalAccess.Developer,
+                    ServiceLevel = null,
                 },
                 new Role
                 {
-                    Id = AdministratorRoleId,
-                    Name = "Administrator",
-                    Description =
-                        "Administrator of the company/preparer with total control of their organization.",
+                    Id = AdministratorBasicRoleId,
+                    Name = "Administrator Basic",
+                    Description = "Administrator with Basic service permissions and limitations.",
                     PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = ServiceLevel.Basic,
+                },
+                new Role
+                {
+                    Id = AdministratorStandardRoleId,
+                    Name = "Administrator Standard",
+                    Description = "Administrator with Standard service permissions and features.",
+                    PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = ServiceLevel.Standard,
+                },
+                new Role
+                {
+                    Id = AdministratorProRoleId,
+                    Name = "Administrator Pro",
+                    Description = "Administrator with Pro service permissions and full features.",
+                    PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = ServiceLevel.Pro,
                 },
                 new Role
                 {
@@ -466,19 +1027,21 @@ public class ApplicationDbContext : DbContext
                     Description =
                         "User with limited access to specific functionalities of the company.",
                     PortalAccess = PortalAccess.Staff,
+                    ServiceLevel = null,
                 },
                 new Role
                 {
                     Id = CustomerRoleId,
                     Name = "Customer",
                     Description =
-                        "Has limited access to the system, can view and interact with allowed features based on their permissions. Typically focuses on using the core functionality",
+                        "Has limited access to the system, can view and interact with allowed features based on their permissions.",
                     PortalAccess = PortalAccess.Customer,
+                    ServiceLevel = null,
                 }
             );
     }
 
-    // ROLE PERMISSIONS
+    // ROLE PERMISSIONS (sin cambios principales)
     private static void SeedRolePermissions(ModelBuilder mb)
     {
         SeedDeveloperRolePermissions(mb);
@@ -487,11 +1050,10 @@ public class ApplicationDbContext : DbContext
         SeedCustomerRolePermissions(mb);
     }
 
-    // DEVELOPER - Todos los permisos (1-44)
     private static void SeedDeveloperRolePermissions(ModelBuilder mb)
     {
         var entries = Enumerable
-            .Range(1, 44)
+            .Range(1, 64)
             .Select(i => new RolePermission
             {
                 Id = Guid.Parse($"660e8400-e29b-41d4-a716-44665545{i:0000}"),
@@ -502,77 +1064,105 @@ public class ApplicationDbContext : DbContext
         mb.Entity<RolePermission>().HasData(entries);
     }
 
-    // ADMINISTRATOR - Permisos de gestión de company
     private static void SeedAdministratorRolePermissions(ModelBuilder mb)
     {
-        var adminPermissions = new[]
+        // BÁSICO: Solo permisos fundamentales
+        var basicAdminPermissions = new[]
         {
-            // Gestión de usuarios de su company
-            "TaxUser.Create",
-            "TaxUser.Read",
-            "TaxUser.View",
-            "TaxUser.Update",
-            "TaxUser.Delete",
-            // Gestión de customers
             "Customer.Create",
             "Customer.Read",
             "Customer.View",
             "Customer.Update",
-            "Customer.DisableLogin",
-            "Customer.EnableLogin",
-            // Gestión de dependientes
             "Dependent.Create",
-            "Dependent.Update",
-            "Dependent.Delete",
             "Dependent.Read",
             "Dependent.Viewer",
-            // Gestión de información fiscal
             "TaxInformation.Create",
-            "TaxInformation.Update",
-            "TaxInformation.Delete",
             "TaxInformation.Read",
             "TaxInformation.Viewer",
-            // Ver roles y permisos
-            "Role.View",
-            "Permission.View",
-            // Gestión de su company
             "Company.Read",
             "Company.View",
-            "Company.Update",
-            // Ver sesiones
             "Sessions.Read",
         };
 
-        var rolePermissions = adminPermissions.Select(
+        // ESTÁNDAR: Permisos básicos + adicionales (SIN duplicar)
+        var standardAdminPermissionsOnly = new[]
+        {
+            "Customer.DisableLogin",
+            "Customer.EnableLogin",
+            "Dependent.Update",
+            "TaxInformation.Update",
+            "Role.View",
+            "Permission.View",
+            "TaxUser.Read",
+            "TaxUser.View",
+        };
+
+        // PRO: Permisos adicionales únicos para Pro (SIN duplicar)
+        var proAdminPermissionsOnly = new[]
+        {
+            "TaxUser.Create", // AGREGADO: faltaba este
+            "TaxUser.Update",
+            "TaxUser.Delete",
+            "Dependent.Delete",
+            "TaxInformation.Delete",
+            "Company.Update",
+            "Service.Read",
+            "Module.Read",
+            "CustomPlan.Read",
+            "CustomModule.Read",
+        };
+
+        // Combinar permisos para cada rol
+        var allBasicPermissions = basicAdminPermissions;
+        var allStandardPermissions = basicAdminPermissions
+            .Concat(standardAdminPermissionsOnly)
+            .ToArray();
+        var allProPermissions = basicAdminPermissions
+            .Concat(standardAdminPermissionsOnly)
+            .Concat(proAdminPermissionsOnly)
+            .ToArray();
+
+        // Seed Basic Admin - IDs del 0000 al 0012
+        var basicRolePermissions = allBasicPermissions.Select(
             (code, idx) =>
                 new RolePermission
                 {
                     Id = Guid.Parse($"770e8400-e29b-41d4-a716-55665546{idx:0000}"),
-                    RoleId = AdministratorRoleId,
+                    RoleId = AdministratorBasicRoleId,
                     PermissionId = GetPermissionIdByCode(code),
                 }
         );
 
-        mb.Entity<RolePermission>().HasData(rolePermissions);
+        // Seed Standard Admin - IDs del 1000 al 1020
+        var standardRolePermissions = allStandardPermissions.Select(
+            (code, idx) =>
+                new RolePermission
+                {
+                    Id = Guid.Parse($"780e8400-e29b-41d4-a716-55665546{idx:0000}"),
+                    RoleId = AdministratorStandardRoleId,
+                    PermissionId = GetPermissionIdByCode(code),
+                }
+        );
+
+        // Seed Pro Admin - IDs del 2000 al 2030
+        var proRolePermissions = allProPermissions.Select(
+            (code, idx) =>
+                new RolePermission
+                {
+                    Id = Guid.Parse($"790e8400-e29b-41d4-a716-55665546{idx:0000}"),
+                    RoleId = AdministratorProRoleId,
+                    PermissionId = GetPermissionIdByCode(code),
+                }
+        );
+
+        mb.Entity<RolePermission>().HasData(basicRolePermissions);
+        mb.Entity<RolePermission>().HasData(standardRolePermissions);
+        mb.Entity<RolePermission>().HasData(proRolePermissions);
     }
 
-    // USER - Permisos básicos de lectura
     private static void SeedUserRolePermissions(ModelBuilder mb)
     {
-        var userPermissions = new[]
-        {
-            "Customer.View",
-            "Customer.Read",
-            "Dependent.Viewer",
-            "Dependent.Read",
-            "TaxInformation.Viewer",
-            "TaxInformation.Read",
-            "TaxUser.View",
-            "Role.View",
-            "Permission.View",
-            "Sessions.Read",
-            "Customer.SelfRead",
-        };
+        var userPermissions = new[] { "Sessions.Read", "Customer.SelfRead" };
 
         var rolePermissions = userPermissions.Select(
             (code, idx) =>
@@ -587,7 +1177,6 @@ public class ApplicationDbContext : DbContext
         mb.Entity<RolePermission>().HasData(rolePermissions);
     }
 
-    // CUSTOMER - Solo lectura de su perfil
     private static void SeedCustomerRolePermissions(ModelBuilder mb)
     {
         mb.Entity<RolePermission>()
@@ -596,12 +1185,11 @@ public class ApplicationDbContext : DbContext
                 {
                     Id = Guid.Parse("770e8400-e29b-41d4-a716-556655450026"),
                     RoleId = CustomerRoleId,
-                    PermissionId = NewPerm(26), // Customer.SelfRead
+                    PermissionId = NewPerm(26),
                 }
             );
     }
 
-    // Helper para obtener ID de permiso por código
     private static Guid GetPermissionIdByCode(string code)
     {
         var permissionMapping = new Dictionary<string, int>
@@ -650,6 +1238,26 @@ public class ApplicationDbContext : DbContext
             ["Company.View"] = 42,
             ["Company.Update"] = 43,
             ["Company.Delete"] = 44,
+            ["Service.Create"] = 45,
+            ["Service.Read"] = 46,
+            ["Service.Update"] = 47,
+            ["Service.Delete"] = 48,
+            ["Service.ManageStatus"] = 49,
+            ["Module.Create"] = 50,
+            ["Module.Read"] = 51,
+            ["Module.Update"] = 52,
+            ["Module.Delete"] = 53,
+            ["Module.ManageStatus"] = 54,
+            ["CustomPlan.Create"] = 55,
+            ["CustomPlan.Read"] = 56,
+            ["CustomPlan.Update"] = 57,
+            ["CustomPlan.Delete"] = 58,
+            ["CustomPlan.ManageStatus"] = 59,
+            ["CustomModule.Create"] = 60,
+            ["CustomModule.Read"] = 61,
+            ["CustomModule.Update"] = 62,
+            ["CustomModule.Delete"] = 63,
+            ["CustomModule.ManageStatus"] = 64,
         };
 
         if (permissionMapping.TryGetValue(code, out var permNumber))
@@ -1214,17 +1822,20 @@ public class ApplicationDbContext : DbContext
             );
     }
 
-    // COMPANY Y DEVELOPER SEED
-    private static void SeedCompanyAndDeveloper(ModelBuilder mb)
+    // SEED ACTUALIZADO
+    private static void SeedCustomPlanAndCompany(ModelBuilder mb)
     {
-        // 1) Address para la Company (ejemplo en Miami, FL)
+        // Fecha estática para usar en lugar de DateTime.UtcNow
+        var staticDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // 1) Address para la Company
         mb.Entity<Address>()
             .HasData(
                 new Address
                 {
                     Id = CompanyAddressSeedId,
                     CountryId = USA,
-                    StateId = FL, // Florida
+                    StateId = FL,
                     City = "Miami",
                     Street = "NW 1st Ave 100",
                     Line = null,
@@ -1239,7 +1850,7 @@ public class ApplicationDbContext : DbContext
                 {
                     Id = DevUserAddressSeedId,
                     CountryId = USA,
-                    StateId = FL, // Florida
+                    StateId = FL,
                     City = "Miami",
                     Street = "NW 2nd Ave 200",
                     Line = "Suite 5",
@@ -1247,7 +1858,23 @@ public class ApplicationDbContext : DbContext
                 }
             );
 
-        // 3) Company StackVision
+        // 3) CustomPlan para StackVision
+        mb.Entity<CustomPlan>()
+            .HasData(
+                new CustomPlan
+                {
+                    Id = StackVisionCustomPlanId,
+                    CompanyId = CompanySeedId,
+                    Price = 0.00m,
+                    UserLimit = 100,
+                    IsActive = true,
+                    StartDate = staticDate,
+                    isRenewed = false,
+                    RenewDate = staticDate.AddYears(10),
+                }
+            );
+
+        // 4) Company StackVision
         mb.Entity<Company>()
             .HasData(
                 new Company
@@ -1259,13 +1886,13 @@ public class ApplicationDbContext : DbContext
                     Phone = "8298981594",
                     Description = "Software Developers Assembly.",
                     Domain = "stackvision",
-                    UserLimit = 25,
                     Brand = "https://images5.example.com/",
                     AddressId = CompanyAddressSeedId,
+                    CustomPlanId = StackVisionCustomPlanId,
                 }
             );
 
-        // 4) Usuario Developer (se crea automáticamente)
+        // 5) Usuario Developer (ACTUALIZADO: IsOwner = true)
         mb.Entity<TaxUser>()
             .HasData(
                 new
@@ -1275,6 +1902,7 @@ public class ApplicationDbContext : DbContext
                     Email = "stackvisionsoftware@gmail.com",
                     Password = "zBLVJHyDUQKSp3ZYdgIeOEDnoeD61Zg566QoP2165AQAPHxzvJlAWjt1dV+Qinc7",
                     IsActive = true,
+                    IsOwner = true,
                     Name = "Developer",
                     LastName = "StackVision",
                     PhoneNumber = "8298981594",
@@ -1291,7 +1919,7 @@ public class ApplicationDbContext : DbContext
                 }
             );
 
-        // UserRole - Developer
+        // 6) UserRole - Developer
         mb.Entity<UserRole>()
             .HasData(
                 new UserRole

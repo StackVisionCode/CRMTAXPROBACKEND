@@ -7,6 +7,8 @@ public class IncomingEmail
 {
     public Guid Id { get; set; }
     public Guid ConfigId { get; set; }
+    public required Guid CompanyId { get; set; }
+    public required Guid CreatedByTaxUserId { get; set; }
     public string FromAddress { get; set; } = string.Empty;
     public string ToAddress { get; set; } = string.Empty;
     public string? CcAddresses { get; set; }
@@ -18,5 +20,4 @@ public class IncomingEmail
     public string? InReplyTo { get; set; } // Para threading de conversaciones
     public string? References { get; set; } // Para threading de conversaciones
     public List<EmailAttachment> Attachments { get; set; } = new();
-    public Guid UserId { get; set; } // Dueño de la configuración
 }

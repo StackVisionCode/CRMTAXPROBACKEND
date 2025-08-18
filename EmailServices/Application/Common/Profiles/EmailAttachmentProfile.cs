@@ -8,7 +8,12 @@ public class EmailAttachmentProfile : Profile
 {
     public EmailAttachmentProfile()
     {
+        // Domain to DTO
         CreateMap<EmailAttachment, EmailAttachmentDTO>();
-        CreateMap<EmailAttachmentDTO, EmailAttachment>().ForMember(d => d.Id, o => o.Ignore());
+
+        // DTO to Domain
+        CreateMap<EmailAttachmentDTO, EmailAttachment>()
+            .ForMember(d => d.Id, opt => opt.Ignore())
+            .ForMember(d => d.CreatedOn, opt => opt.Ignore());
     }
 }

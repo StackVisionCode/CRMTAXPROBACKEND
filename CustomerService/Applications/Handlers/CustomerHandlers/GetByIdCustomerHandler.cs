@@ -38,11 +38,13 @@ public class GetByIdCustomerHanlder
                 join ct in _dbContext.CustomerTypes on cust.CustomerTypeId equals ct.Id
                 join occ in _dbContext.Occupations on cust.OccupationId equals occ.Id
                 join ms in _dbContext.MaritalStatuses on cust.MaritalStatusId equals ms.Id
-                join ci in _dbContext.ContactInfos on cust.Id equals ci.CustomerId into ciGroup // ← agrupo
-                from ci in ciGroup.DefaultIfEmpty() // ← LEFT JOIN
+                join ci in _dbContext.ContactInfos on cust.Id equals ci.CustomerId into ciGroup
+                from ci in ciGroup.DefaultIfEmpty()
+                where cust.Id == request.Id
                 select new ReadCustomerDTO
                 {
                     Id = cust.Id,
+                    CompanyId = cust.CompanyId,
                     CustomerType = ct.Name,
                     CustomerTypeDescription = ct.Description,
                     FirstName = cust.FirstName,
@@ -51,23 +53,32 @@ public class GetByIdCustomerHanlder
                     DateOfBirth = cust.DateOfBirth,
                     SsnOrItin = cust.SsnOrItin,
                     IsActive = cust.IsActive,
-                    IsLogin = ci != null && ci.IsLoggin, // si no hay contacto → false
+                    IsLogin = ci != null && ci.IsLoggin,
                     Occupation = occ.Name,
                     MaritalStatus = ms.Name,
+                    // Auditoría
+                    CreatedAt = cust.CreatedAt,
+                    CreatedByTaxUserId = cust.CreatedByTaxUserId,
+                    UpdatedAt = cust.UpdatedAt,
+                    LastModifiedByTaxUserId = cust.LastModifiedByTaxUserId,
                 }
-            ).FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+            ).FirstOrDefaultAsync(cancellationToken);
+
             if (customerDTO == null)
             {
-                _logger.LogWarning("Customers with ID {Id} not found.", request.Id);
-                return new ApiResponse<ReadCustomerDTO>(false, "Customers not found", null!);
+                _logger.LogWarning("Customer with ID {Id} not found.", request.Id);
+                return new ApiResponse<ReadCustomerDTO>(false, "Customer not found", null!);
             }
 
-            var dtos = _mapper.Map<ReadCustomerDTO>(customerDTO);
-            return new ApiResponse<ReadCustomerDTO>(true, "Customer retrieved successfully", dtos);
+            return new ApiResponse<ReadCustomerDTO>(
+                true,
+                "Customer retrieved successfully",
+                customerDTO
+            );
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error getting document: {Message}", e.Message);
+            _logger.LogError(e, "Error getting customer: {Message}", e.Message);
             return new ApiResponse<ReadCustomerDTO>(false, e.Message, null!);
         }
     }

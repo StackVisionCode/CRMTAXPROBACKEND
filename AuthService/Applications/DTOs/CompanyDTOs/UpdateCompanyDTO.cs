@@ -7,17 +7,12 @@ public class UpdateCompanyDTO
 {
     [Key]
     public required Guid Id { get; set; }
-
-    public bool? IsCompany { get; set; }
+    public bool IsCompany { get; set; }
     public string? FullName { get; set; }
     public string? CompanyName { get; set; }
-    public AddressDTO? Address { get; set; }
+    public string? Brand { get; set; }
     public string? Phone { get; set; }
     public string? Description { get; set; }
-
-    [Range(0, int.MaxValue)]
-    public int? UserLimit { get; set; }
-
     public string? Domain { get; set; }
-    public string? Brand { get; set; }
+    public AddressDTO? Address { get; set; }
 }

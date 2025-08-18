@@ -7,10 +7,10 @@ namespace CustomerService.Profiles.TaxInformations;
 
 public class TaxInformationProfile : Profile
 {
-  public TaxInformationProfile()
-  {
-    CreateMap<CreateTaxInformationDTOs, TaxInformation>().ReverseMap();
-    CreateMap<ReadTaxInformationDTO, TaxInformation>().ReverseMap();
-    CreateMap<CreateTaxInformationCommands, TaxInformation>().ReverseMap();
-  }
+    public TaxInformationProfile()
+    {
+        CreateMap<CreateTaxInformationDTOs, TaxInformation>().ReverseMap();
+        CreateMap<ReadTaxInformationDTO, TaxInformation>().ReverseMap();
+        CreateMap<CreateTaxInformationCommands, TaxInformation>().ReverseMap();
+    }
 }

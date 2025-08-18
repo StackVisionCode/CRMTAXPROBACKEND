@@ -47,6 +47,37 @@ public class ApplicationDbContext : DbContext
             modelBuilder.Entity(entity.Name).Property<DateTime?>("DeleteAt");
         }
 
+        // Índices para performance con CompanyId y auditoría
+        modelBuilder
+            .Entity<Customer>()
+            .HasIndex(c => c.CompanyId)
+            .HasDatabaseName("IX_Customers_CompanyId");
+
+        modelBuilder
+            .Entity<Customer>()
+            .HasIndex(c => c.CreatedByTaxUserId)
+            .HasDatabaseName("IX_Customers_CreatedBy");
+
+        modelBuilder
+            .Entity<Address>()
+            .HasIndex(a => a.CreatedByTaxUserId)
+            .HasDatabaseName("IX_Addresses_CreatedBy");
+
+        modelBuilder
+            .Entity<ContactInfo>()
+            .HasIndex(c => c.CreatedByTaxUserId)
+            .HasDatabaseName("IX_ContactInfos_CreatedBy");
+
+        modelBuilder
+            .Entity<Dependent>()
+            .HasIndex(d => d.CreatedByTaxUserId)
+            .HasDatabaseName("IX_Dependents_CreatedBy");
+
+        modelBuilder
+            .Entity<TaxInformation>()
+            .HasIndex(t => t.CreatedByTaxUserId)
+            .HasDatabaseName("IX_TaxInformations_CreatedBy");
+
         // relación entre Customer y CustomerTypeAdd commentMore actions
         modelBuilder
             .Entity<Customer>()
@@ -94,13 +125,6 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(c => c.OccupationId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        // Optional: Define required fields and constraints explicitly (optional if already using [Required] attributes)
-        modelBuilder.Entity<Occupation>().Property(o => o.Name).IsRequired().HasMaxLength(100);
-
-        modelBuilder.Entity<Dependent>().Property(d => d.FullName).IsRequired();
-
-        modelBuilder.Entity<Dependent>().Property(d => d.DateOfBirth).IsRequired();
-
         modelBuilder
             .Entity<TaxInformation>()
             .HasOne(t => t.FilingStatus)
@@ -119,11 +143,16 @@ public class ApplicationDbContext : DbContext
             .Entity<ContactInfo>()
             .HasOne(c => c.PreferredContact)
             .WithMany(p => p.Contacts)
-            .HasForeignKey(c => c.PreferredContactId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .HasForeignKey(c => c.PreferredContactId);
 
-        // Configure decimal precision for TaxInformation.LastYearAGI
-        modelBuilder.Entity<TaxInformation>().Property(t => t.LastYearAGI).HasPrecision(18, 2); // 18 total digits, 2 decimal places
+        // Configuraciones de precisión y constraints
+        modelBuilder.Entity<TaxInformation>().Property(t => t.LastYearAGI).HasPrecision(18, 2);
+
+        modelBuilder.Entity<Occupation>().Property(o => o.Name).IsRequired().HasMaxLength(100);
+
+        modelBuilder.Entity<Dependent>().Property(d => d.FullName).IsRequired();
+
+        modelBuilder.Entity<Dependent>().Property(d => d.DateOfBirth).IsRequired();
 
         // Configure table names and keys
 
@@ -132,22 +161,22 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ContactInfo>().ToTable("ContactInfos");
         modelBuilder.Entity<Address>().ToTable("Addresses");
         modelBuilder.Entity<Dependent>().ToTable("Dependents");
+        modelBuilder.Entity<CustomerType>().ToTable("CustomerTypes");
+        modelBuilder.Entity<TaxInformation>().ToTable("TaxInformations");
+        modelBuilder.Entity<Relationship>().ToTable("Relationships");
+        modelBuilder.Entity<FilingStatus>().ToTable("FilingStatuses");
+        modelBuilder.Entity<MaritalStatus>().ToTable("MaritalStatuses");
+        modelBuilder.Entity<PreferredContact>().ToTable("PreferredContacts");
         modelBuilder.Entity<ContactInfo>().HasKey(t => t.Id);
         modelBuilder.Entity<Address>().HasKey(t => t.Id);
         modelBuilder.Entity<Dependent>().HasKey(t => t.Id);
         modelBuilder.Entity<Occupation>().HasKey(t => t.Id);
         modelBuilder.Entity<Customer>().HasKey(t => t.Id);
-        modelBuilder.Entity<CustomerType>().ToTable("CustomerTypes");
         modelBuilder.Entity<CustomerType>().HasKey(t => t.Id);
-        modelBuilder.Entity<TaxInformation>().ToTable("TaxInformations");
         modelBuilder.Entity<TaxInformation>().HasKey(t => t.Id);
-        modelBuilder.Entity<Relationship>().ToTable("Relationships");
         modelBuilder.Entity<Relationship>().HasKey(r => r.Id);
-        modelBuilder.Entity<FilingStatus>().ToTable("FilingStatuses");
         modelBuilder.Entity<FilingStatus>().HasKey(f => f.Id);
-        modelBuilder.Entity<MaritalStatus>().ToTable("MaritalStatuses");
         modelBuilder.Entity<MaritalStatus>().HasKey(m => m.Id);
-        modelBuilder.Entity<PreferredContact>().ToTable("PreferredContacts");
         modelBuilder.Entity<PreferredContact>().HasKey(p => p.Id);
 
         // Seed CustomerType data defaultAdd commentMore actions

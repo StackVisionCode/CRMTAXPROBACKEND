@@ -14,13 +14,24 @@ public class EmailStatisticsService : IEmailStatisticsService
     }
 
     public async Task<EmailStatistics> GetStatisticsAsync(
-        Guid userId,
+        Guid companyId,
+        Guid? taxUserId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null
     )
     {
-        var outgoingQuery = _context.Emails.Where(e => e.SentByUserId == userId);
-        var incomingQuery = _context.IncomingEmails.Where(e => e.UserId == userId);
+        // Filtrar por CompanyId y usar nuevos campos de auditoría
+        var outgoingQuery = _context.Emails.Where(e => e.CompanyId == companyId);
+        var incomingQuery = _context.IncomingEmails.Where(e => e.CompanyId == companyId);
+
+        // Filtrar por TaxUserId si se proporciona
+        if (taxUserId.HasValue)
+        {
+            outgoingQuery = outgoingQuery.Where(e =>
+                e.SentByTaxUserId == taxUserId || e.CreatedByTaxUserId == taxUserId
+            );
+            incomingQuery = incomingQuery.Where(e => e.CreatedByTaxUserId == taxUserId);
+        }
 
         if (fromDate.HasValue)
         {
@@ -68,15 +79,30 @@ public class EmailStatisticsService : IEmailStatisticsService
     }
 
     public async Task<DailyEmailStats[]> GetDailyStatsAsync(
-        Guid userId,
+        Guid companyId,
+        Guid? taxUserId,
         DateTime fromDate,
         DateTime toDate
     )
     {
-        var outgoingStats = await _context
-            .Emails.Where(e =>
-                e.SentByUserId == userId && e.CreatedOn >= fromDate && e.CreatedOn <= toDate
-            )
+        // Filtrar por CompanyId y usar nuevos campos
+        var outgoingQuery = _context.Emails.Where(e =>
+            e.CompanyId == companyId && e.CreatedOn >= fromDate && e.CreatedOn <= toDate
+        );
+
+        var incomingQuery = _context.IncomingEmails.Where(e =>
+            e.CompanyId == companyId && e.ReceivedOn >= fromDate && e.ReceivedOn <= toDate
+        );
+
+        if (taxUserId.HasValue)
+        {
+            outgoingQuery = outgoingQuery.Where(e =>
+                e.SentByTaxUserId == taxUserId || e.CreatedByTaxUserId == taxUserId
+            );
+            incomingQuery = incomingQuery.Where(e => e.CreatedByTaxUserId == taxUserId);
+        }
+
+        var outgoingStats = await outgoingQuery
             .GroupBy(e => e.CreatedOn.Date)
             .Select(g => new
             {
@@ -86,10 +112,7 @@ public class EmailStatisticsService : IEmailStatisticsService
             })
             .ToListAsync();
 
-        var incomingStats = await _context
-            .IncomingEmails.Where(e =>
-                e.UserId == userId && e.ReceivedOn >= fromDate && e.ReceivedOn <= toDate
-            )
+        var incomingStats = await incomingQuery
             .GroupBy(e => e.ReceivedOn.Date)
             .Select(g => new { Date = g.Key, Received = g.Count() })
             .ToListAsync();

@@ -4,4 +4,5 @@ using MediatR;
 
 namespace CustomerService.Commands.AddressCommands;
 
-public record class CreateAddressCommands(CreateAddressDTO addressDTO) : IRequest<ApiResponse<bool>>;
+public record class CreateAddressCommands(CreateAddressDTO addressDTO)
+    : IRequest<ApiResponse<bool>>;

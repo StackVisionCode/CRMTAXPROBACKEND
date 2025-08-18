@@ -10,6 +10,8 @@ public class TaxInformation : BaseEntity
     public string? BankAccountNumber { get; set; }
     public string? BankRoutingNumber { get; set; }
     public required bool IsReturningCustomer { get; set; } // Indicates if the customer is returning for tax services
+    public Guid CreatedByTaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
     public virtual Customer? Customer { get; set; }
     public virtual FilingStatus? FilingStatus { get; set; }
 }

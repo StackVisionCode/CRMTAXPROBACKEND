@@ -6,7 +6,7 @@ public class UpdateCustomerDTO
 {
     [Key]
     public required Guid Id { get; set; }
-    public required Guid TaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
     public required Guid OccupationId { get; set; }
     public required Guid MaritalStatusId { get; set; }
     public required Guid CustomerTypeId { get; set; }

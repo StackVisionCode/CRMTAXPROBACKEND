@@ -1,5 +1,5 @@
 using AuthService.Applications.DTOs.CompanyDTOs;
-using AuthService.DTOs.UserDTOs;
+using AuthService.DTOs.CompanyDTOs;
 using Commands.UserCommands;
 using Common;
 using MediatR;
@@ -74,10 +74,42 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        [HttpGet("GetUsers")]
-        public async Task<ActionResult<ApiResponse<List<UserGetDTO>>>> GetUsers(Guid companyId)
+        [HttpGet("GetMyCompanyUsers")]
+        public async Task<ActionResult<ApiResponse<CompanyUsersCompleteDTO>>> GetMyCompanyUsers()
         {
-            var query = new GetUsersByCompanyIdQuery(companyId);
+            var companyIdRaw = User.FindFirst("companyId")?.Value;
+            if (!Guid.TryParse(companyIdRaw, out var companyId))
+                return Unauthorized(
+                    new ApiResponse<CompanyUsersCompleteDTO>(false, "Invalid company session")
+                );
+
+            var query = new GetMyCompanyUsersQuery(companyId);
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpGet("GetCompanyStats")]
+        public async Task<ActionResult<ApiResponse<CompanyStatsDTO>>> GetCompanyStats(
+            Guid? companyId = null
+        )
+        {
+            // Si no se proporciona companyId, usar el de la sesión
+            if (!companyId.HasValue)
+            {
+                var companyIdRaw = User.FindFirst("companyId")?.Value;
+                if (!Guid.TryParse(companyIdRaw, out var sessionCompanyId))
+                    return Unauthorized(
+                        new ApiResponse<CompanyStatsDTO>(false, "Invalid company session")
+                    );
+
+                companyId = sessionCompanyId;
+            }
+
+            var query = new GetCompanyStatsQuery(companyId.Value);
             var result = await _mediator.Send(query);
 
             if (result.Success == false)
@@ -114,6 +146,48 @@ namespace AuthService.Controllers
                 return BadRequest(new { message = "Failed to delete company" });
 
             return Ok(result);
+        }
+
+        /// Actualiza el plan de servicio de una company
+        [HttpPut("UpdateCompanyPlan")]
+        public async Task<ActionResult<ApiResponse<CompanyPlanUpdateResultDTO>>> UpdateServicePlan(
+            [FromBody] UpdateCompanyPlanDTO servicePlanDto
+        )
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Values.SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(
+                    new ApiResponse<CompanyPlanUpdateResultDTO>(
+                        false,
+                        $"Validation errors: {string.Join(", ", errors)}",
+                        null!
+                    )
+                );
+            }
+
+            var command = new UpdateCompanyPlanCommand(servicePlanDto);
+            var result = await _mediator.Send(command);
+
+            if (result == null)
+                return BadRequest(new { message = "Failed to update service plan" });
+
+            // Retornar diferentes códigos según el resultado
+            if (result.Success == true)
+                return Ok(result);
+            else if (result.Message?.Contains("not found") == true)
+                return NotFound(result);
+            else if (
+                result.Message?.Contains("validation") == true
+                || result.Message?.Contains("limit") == true
+            )
+                return BadRequest(result);
+            else
+                return StatusCode(500, result);
         }
     }
 }

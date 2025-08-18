@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Application.Helpers;
 
 namespace Domain.Entities;
@@ -9,16 +10,25 @@ public class SignatureRequest : BaseEntity
     public Guid? RejectedBySignerId { get; private set; }
     public string? RejectReason { get; private set; }
     public DateTime? RejectedAtUtc { get; private set; }
+
+    [Required]
+    public Guid CompanyId { get; private set; }
+
+    [Required]
+    public Guid CreatedByTaxUserId { get; private set; }
+    public Guid? LastModifiedByTaxUserId { get; private set; }
     public Guid DocumentId { get; private set; }
     public SignatureStatus Status { get; private set; }
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
 
     private SignatureRequest() { } // EF
 
-    public SignatureRequest(Guid documentId, Guid id)
+    public SignatureRequest(Guid documentId, Guid id, Guid companyId, Guid createdByTaxUserId)
     {
         Id = id;
         DocumentId = documentId;
+        CompanyId = companyId;
+        CreatedByTaxUserId = createdByTaxUserId;
         Status = SignatureStatus.Pending;
         CreatedAt = DateTime.UtcNow;
     }
@@ -65,6 +75,12 @@ public class SignatureRequest : BaseEntity
         RejectedBySignerId = signerId;
         RejectReason = reason;
         RejectedAtUtc = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateModifiedBy(Guid taxUserId)
+    {
+        LastModifiedByTaxUserId = taxUserId;
         UpdatedAt = DateTime.UtcNow;
     }
 }

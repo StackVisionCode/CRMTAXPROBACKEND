@@ -130,8 +130,9 @@ public class CustomerLoginHandler
                 LastName: null,
                 CompanyId: Guid.Empty,
                 CompanyName: null,
-                CompanyDomain: null, // ✅ Agregado
-                IsCompany: false, // ✅ Agregado (customers no son companies)
+                CompanyDomain: null,
+                IsCompany: false,
+                IsOwner: false,
                 Roles: roleNames,
                 Permissions: permCodes,
                 Portals: portals

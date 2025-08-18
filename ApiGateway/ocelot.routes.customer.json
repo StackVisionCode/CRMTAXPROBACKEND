@@ -78,7 +78,7 @@
           "Port": 5002
         }
       ],
-      "UpstreamPathTemplate": "/api/customers",
+      "UpstreamPathTemplate": "/api/customers/getallbycompany",
       "UpstreamHttpMethod": [
         "GET"
       ],

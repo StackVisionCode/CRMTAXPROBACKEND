@@ -2,7 +2,8 @@ namespace CustomerService.DTOs.CustomerDTOs;
 
 public class CreateCustomerDTO
 {
-    public required Guid TaxUserId { get; set; }
+    public required Guid CompanyId { get; set; }
+    public required Guid CreatedByTaxUserId { get; set; }
     public required Guid OccupationId { get; set; }
     public required Guid MaritalStatusId { get; set; }
     public required Guid CustomerTypeId { get; set; }

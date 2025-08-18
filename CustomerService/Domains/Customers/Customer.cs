@@ -5,14 +5,15 @@ namespace CustomerService.Domains.Customers;
 public class Customer : BaseEntity
 {
     // Personal
-    public required Guid TaxUserId { get; set; }
+    public required Guid CompanyId { get; set; }
+    public Guid CreatedByTaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
     public required Guid OccupationId { get; set; }
     public required Guid CustomerTypeId { get; set; }
     public required string FirstName { get; set; }
     public string? LastName { get; set; }
     public string? MiddleName { get; set; }
     public DateTime DateOfBirth { get; set; }
-
     public required string SsnOrItin { get; set; }
 
     public Guid MaritalStatusId { get; set; }

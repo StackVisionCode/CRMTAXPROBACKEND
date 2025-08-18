@@ -3,6 +3,7 @@ using EmailServices.Handlers.EventsHandler;
 using EmailServices.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
 using EmailServices.Services.EmailNotificationsServices;
+using Handlers.EventHandlers.InvitationEventHandlers;
 using Handlers.EventHandlers.SignatureEventHandlers;
 using Handlers.EventHandlers.UserEventHandlers;
 using Infrastructure.Context;
@@ -16,6 +17,7 @@ using SharedLibrary.Contracts;
 using SharedLibrary.DTOs;
 using SharedLibrary.DTOs.AuthEvents;
 using SharedLibrary.DTOs.CustomerEventsDTO;
+using SharedLibrary.DTOs.InvitationEvents;
 using SharedLibrary.DTOs.SignatureEvents;
 using SharedLibrary.Extensions;
 
@@ -162,16 +164,13 @@ builder.Services.AddScoped<
     AccountConfirmationLinkHandler
 >();
 builder.Services.AddScoped<
-    IIntegrationEventHandler<UserAddedToCompanyEvent>,
-    UserAddedToCompanyHandler
+    IIntegrationEventHandler<UserInvitationSentEvent>,
+    UserInvitationSentHandler
 >();
+builder.Services.AddScoped<IIntegrationEventHandler<UserRegisteredEvent>, UserRegisteredHandler>();
 builder.Services.AddScoped<
     IIntegrationEventHandler<AccountConfirmedEvent>,
     AccountActivatedHandler
->();
-builder.Services.AddScoped<
-    IIntegrationEventHandler<EmployeeAccountConfirmedEvent>,
-    EmployeeAccountConfirmedHandler
 >();
 builder.Services.AddScoped<
     IIntegrationEventHandler<SignatureInvitationEvent>,
@@ -203,9 +202,9 @@ builder.Services.AddScoped<PasswordResetEventHandler>();
 builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
 builder.Services.AddScoped<PasswordChangedEventHandler>();
 builder.Services.AddScoped<AccountConfirmationLinkHandler>();
-builder.Services.AddScoped<UserAddedToCompanyHandler>();
+builder.Services.AddScoped<UserInvitationSentHandler>();
+builder.Services.AddScoped<UserRegisteredHandler>();
 builder.Services.AddScoped<AccountActivatedHandler>();
-builder.Services.AddScoped<EmployeeAccountConfirmedHandler>();
 builder.Services.AddScoped<SignatureInvitationHandler>();
 builder.Services.AddScoped<PartiallySignedHandler>();
 builder.Services.AddScoped<SignatureRequestRejectedHandler>();
@@ -224,7 +223,7 @@ using (var scope = app.Services.CreateScope())
     if (hybridCache != null)
     {
         logger.LogInformation(
-            "✅ Email Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+            "Email Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
             hybridCache.CurrentCacheMode,
             hybridCache.IsRedisAvailable
         );
@@ -239,9 +238,9 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<PasswordResetOtpEvent, PasswordResetOtpEventsHandler>();
     bus.Subscribe<PasswordChangedEvent, PasswordChangedEventHandler>();
     bus.Subscribe<AccountConfirmationLinkEvent, AccountConfirmationLinkHandler>();
-    bus.Subscribe<UserAddedToCompanyEvent, UserAddedToCompanyHandler>();
+    bus.Subscribe<UserInvitationSentEvent, UserInvitationSentHandler>();
+    bus.Subscribe<UserRegisteredEvent, UserRegisteredHandler>();
     bus.Subscribe<AccountConfirmedEvent, AccountActivatedHandler>();
-    bus.Subscribe<EmployeeAccountConfirmedEvent, EmployeeAccountConfirmedHandler>();
     bus.Subscribe<SignatureInvitationEvent, SignatureInvitationHandler>();
     bus.Subscribe<SignatureRequestRejectedEvent, SignatureRequestRejectedHandler>();
     bus.Subscribe<DocumentPartiallySignedEvent, PartiallySignedHandler>();

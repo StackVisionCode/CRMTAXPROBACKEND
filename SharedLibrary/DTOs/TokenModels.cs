@@ -10,6 +10,7 @@ public sealed record UserInfo(
     string? CompanyName,
     string? CompanyDomain,
     bool IsCompany,
+    bool IsOwner,
     IEnumerable<string> Roles,
     IEnumerable<string> Permissions,
     IReadOnlyCollection<string> Portals

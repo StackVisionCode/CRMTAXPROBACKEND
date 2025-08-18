@@ -243,7 +243,7 @@
     },
 
     {
-      "DownstreamPathTemplate": "/api/EmailStatistics/{userId}",
+      "DownstreamPathTemplate": "/api/EmailStatistics/{companyId}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -251,7 +251,7 @@
           "Port": 5004
         }
       ],
-      "UpstreamPathTemplate": "/api/email-statistics/{userId}",
+      "UpstreamPathTemplate": "/api/email-statistics/{companyId}",
       "UpstreamHttpMethod": ["GET"],
       "AddHeadersToRequest": {
         "X-From-Gateway": "Api-Gateway"
@@ -269,7 +269,7 @@
       "SwaggerKey": "email"
     },
     {
-      "DownstreamPathTemplate": "/api/EmailStatistics/{userId}/daily",
+      "DownstreamPathTemplate": "/api/EmailStatistics/{companyId}/daily",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -277,7 +277,7 @@
           "Port": 5004
         }
       ],
-      "UpstreamPathTemplate": "/api/email-statistics/{userId}/daily",
+      "UpstreamPathTemplate": "/api/email-statistics/{companyId}/daily",
       "UpstreamHttpMethod": ["GET"],
       "AddHeadersToRequest": {
         "X-From-Gateway": "Api-Gateway"

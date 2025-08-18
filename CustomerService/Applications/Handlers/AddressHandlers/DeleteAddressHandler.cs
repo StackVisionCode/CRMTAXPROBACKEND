@@ -38,7 +38,7 @@ public class DeleteAddressHandler : IRequestHandler<DeleteAddressCommands, ApiRe
                 return new ApiResponse<bool>(false, "Address not found", false);
             }
 
-            // Soft delete - marcar como inactivo en lugar de eliminar físicamente
+            // Soft delete - solo actualizar timestamp
             address.UpdatedAt = DateTime.UtcNow;
 
             _dbContext.Addresses.Update(address);
@@ -46,12 +46,15 @@ public class DeleteAddressHandler : IRequestHandler<DeleteAddressCommands, ApiRe
 
             if (result)
             {
-                _logger.LogInformation("Address soft deleted successfully: {Address}", address);
+                _logger.LogInformation(
+                    "Address soft deleted successfully: {AddressId}",
+                    address.Id
+                );
                 return new ApiResponse<bool>(true, "Address soft deleted successfully", true);
             }
             else
             {
-                _logger.LogWarning("Failed to soft delete Address: {Address}", address);
+                _logger.LogWarning("Failed to soft delete Address: {AddressId}", address.Id);
                 return new ApiResponse<bool>(false, "Failed to soft delete Address", false);
             }
         }

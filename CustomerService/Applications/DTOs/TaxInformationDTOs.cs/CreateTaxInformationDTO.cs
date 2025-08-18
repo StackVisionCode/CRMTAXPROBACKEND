@@ -8,4 +8,5 @@ public class CreateTaxInformationDTOs
     public string? BankAccountNumber { get; set; }
     public string? BankRoutingNumber { get; set; }
     public required bool IsReturningCustomer { get; set; } // Indicates if the customer is returning for tax services
+    public required Guid CreatedByTaxUserId { get; set; }
 }

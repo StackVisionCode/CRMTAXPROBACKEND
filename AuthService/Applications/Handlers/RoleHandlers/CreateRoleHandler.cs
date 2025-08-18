@@ -30,39 +30,93 @@ public class CreateRoleHandler : IRequestHandler<CreateRoleCommands, ApiResponse
         CancellationToken cancellationToken
     )
     {
+        using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
         try
         {
+            // Validar que el nombre del rol no exista
+            var nameExistsQuery =
+                from r in _dbContext.Roles
+                where r.Name == request.Role.Name
+                select r.Id;
+
+            if (await nameExistsQuery.AnyAsync(cancellationToken))
+            {
+                _logger.LogWarning("Role name already exists: {RoleName}", request.Role.Name);
+                return new ApiResponse<bool>(false, "Role name already exists", false);
+            }
+
+            // Mapear con todos los campos
             var role = _mapper.Map<Role>(request.Role);
+            role.Id = Guid.NewGuid();
             role.CreatedAt = DateTime.UtcNow;
 
-            var permIds = await _dbContext
-                .Permissions.Where(p => request.Role.PermissionCodes.Contains(p.Code))
-                .Select(p => p.Id)
-                .ToListAsync(cancellationToken);
+            // Validar permisos existentes
+            if (request.Role.PermissionCodes?.Any() == true)
+            {
+                var validPermissionsQuery =
+                    from p in _dbContext.Permissions
+                    where request.Role.PermissionCodes.Contains(p.Code)
+                    select new { p.Id, p.Code };
 
-            // 3. Crear objetos de unión
-            role.RolePermissions = permIds
-                .Select(id => new RolePermission
+                var validPermissions = await validPermissionsQuery.ToListAsync(cancellationToken);
+
+                var invalidCodes = request
+                    .Role.PermissionCodes.Except(validPermissions.Select(vp => vp.Code))
+                    .ToList();
+                if (invalidCodes.Any())
                 {
-                    Id = Guid.NewGuid(),
-                    RoleId = role.Id,
-                    PermissionId = id,
-                    CreatedAt = DateTime.UtcNow,
-                })
-                .ToList();
+                    _logger.LogWarning(
+                        "Invalid permission codes: {InvalidCodes}",
+                        string.Join(", ", invalidCodes)
+                    );
+                    return new ApiResponse<bool>(
+                        false,
+                        $"Invalid permission codes: {string.Join(", ", invalidCodes)}",
+                        false
+                    );
+                }
+
+                // Crear objetos de unión
+                role.RolePermissions = validPermissions
+                    .Select(vp => new RolePermission
+                    {
+                        Id = Guid.NewGuid(),
+                        RoleId = role.Id,
+                        PermissionId = vp.Id,
+                        CreatedAt = DateTime.UtcNow,
+                    })
+                    .ToList();
+
+                _logger.LogDebug(
+                    "Created role with {PermissionCount} permissions",
+                    validPermissions.Count
+                );
+            }
 
             await _dbContext.Roles.AddAsync(role, cancellationToken);
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
-            _logger.LogInformation("Role created successfully: {Role}", role);
-            return new ApiResponse<bool>(
-                result,
-                result ? "Role created successfully" : "Failed to create role",
-                result
-            );
+            if (result)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Role created successfully: {RoleName} (ServiceLevel: {ServiceLevel})",
+                    role.Name,
+                    role.ServiceLevel
+                );
+                return new ApiResponse<bool>(true, "Role created successfully", true);
+            }
+            else
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError("Failed to create role: {RoleName}", request.Role.Name);
+                return new ApiResponse<bool>(false, "Failed to create role", false);
+            }
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error creating role: {Message}", ex.Message);
             return new ApiResponse<bool>(false, ex.Message, false);
         }

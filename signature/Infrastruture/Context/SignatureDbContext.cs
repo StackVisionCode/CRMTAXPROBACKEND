@@ -23,6 +23,21 @@ public class SignatureDbContext : DbContext
         {
             builder.ToTable("SignatureRequests");
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.CompanyId).IsRequired();
+            builder.Property(x => x.CreatedByTaxUserId).IsRequired();
+
+            // Índices para performance
+            builder.HasIndex(x => x.CompanyId).HasDatabaseName("IX_SignatureRequests_CompanyId");
+
+            builder
+                .HasIndex(x => x.CreatedByTaxUserId)
+                .HasDatabaseName("IX_SignatureRequests_CreatedByTaxUserId");
+
+            builder
+                .HasIndex(x => new { x.CompanyId, x.Status })
+                .HasDatabaseName("IX_SignatureRequests_CompanyId_Status");
+
+            builder.Property(x => x.LastModifiedByTaxUserId).IsRequired(false);
             builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(15);
             builder.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
             builder.Property(x => x.RejectReason).HasMaxLength(500);

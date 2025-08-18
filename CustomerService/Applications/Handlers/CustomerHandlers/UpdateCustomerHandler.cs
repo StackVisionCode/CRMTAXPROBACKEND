@@ -45,21 +45,25 @@ public class UpdateCustomerHandler : IRequestHandler<UpdateCustomerCommands, Api
                 return new ApiResponse<bool>(false, "Customer not found", false);
             }
 
-            // Verificar si otro customer ya tiene el mismo SSN/ITIN (excluyendo el actual)
+            // Verificar si otro customer ya tiene el mismo SSN/ITIN en la misma company
             var duplicateExists = await _dbContext.Customers.AnyAsync(
-                c => c.SsnOrItin == request.customer.SsnOrItin && c.Id != request.customer.Id,
+                c =>
+                    c.SsnOrItin == request.customer.SsnOrItin
+                    && c.Id != request.customer.Id
+                    && c.CompanyId == existingCustomer.CompanyId,
                 cancellationToken
             );
 
             if (duplicateExists)
             {
                 _logger.LogWarning(
-                    "Another customer already exists with SSN/ITIN: {SsnOrItin}",
-                    request.customer.SsnOrItin
+                    "Another customer already exists with SSN/ITIN: {SsnOrItin} in Company: {CompanyId}",
+                    request.customer.SsnOrItin,
+                    existingCustomer.CompanyId
                 );
                 return new ApiResponse<bool>(
                     false,
-                    "Another customer with this SSN or ITIN already exists.",
+                    "Another customer with this SSN or ITIN already exists in your company.",
                     false
                 );
             }
@@ -74,8 +78,9 @@ public class UpdateCustomerHandler : IRequestHandler<UpdateCustomerCommands, Api
             if (result)
             {
                 _logger.LogInformation(
-                    "Customer updated successfully: {CustomerId}",
-                    existingCustomer.Id
+                    "Customer updated successfully: {CustomerId} by TaxUser: {LastModifiedBy}",
+                    existingCustomer.Id,
+                    existingCustomer.LastModifiedByTaxUserId
                 );
                 return new ApiResponse<bool>(true, "Customer updated successfully", true);
             }

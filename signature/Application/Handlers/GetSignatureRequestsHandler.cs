@@ -25,43 +25,55 @@ public class GetSignatureRequestsHandler
         CancellationToken cancellationToken
     )
     {
-        var query =
-            from r in _context.SignatureRequests
-            join s in _context.Signers on r.Id equals s.SignatureRequestId into g
-            select new
+        try
+        {
+            var result = await (
+                from sr in _context.SignatureRequests
+                join s in _context.Signers on sr.Id equals s.SignatureRequestId into signerGroup
+                select new SignatureRequestSummaryDto
+                {
+                    Id = sr.Id,
+                    DocumentId = sr.DocumentId,
+                    Status = sr.Status,
+                    CreatedAt = sr.CreatedAt,
+                    UpdatedAt = sr.UpdatedAt,
+                    RejectedAtUtc = sr.RejectedAtUtc,
+                    RejectReason = sr.RejectReason,
+                    RejectedBySignerId = sr.RejectedBySignerId,
+                    CompanyId = sr.CompanyId,
+                    CreatedByTaxUserId = sr.CreatedByTaxUserId,
+                    LastModifiedByTaxUserId = sr.LastModifiedByTaxUserId,
+                    SignerCount = signerGroup.Count(),
+                    SignedCount = signerGroup.Count(x => x.Status == SignerStatus.Signed),
+                }
+            ).OrderByDescending(x => x.CreatedAt).AsNoTracking().ToListAsync(cancellationToken);
+
+            if (result is null || !result.Any())
             {
-                r.Id,
-                r.DocumentId,
-                r.Status,
-                r.CreatedAt,
-                r.UpdatedAt,
-                r.RejectedAtUtc,
-                r.RejectReason,
-                r.RejectedBySignerId,
-                SignerCount = g.Count(),
-                SignedCount = g.Count(x => x.Status == SignerStatus.Signed),
-            };
+                _logger.LogInformation("No signature requests found");
+                return new ApiResponse<List<SignatureRequestSummaryDto>>(
+                    false,
+                    "No signature requests found",
+                    new List<SignatureRequestSummaryDto>()
+                );
+            }
 
-        var data = await query
-            .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new SignatureRequestSummaryDto
-            {
-                Id = x.Id,
-                DocumentId = x.DocumentId,
-                Status = x.Status,
-                CreatedAt = x.CreatedAt,
-                UpdatedAt = x.UpdatedAt,
-                SignerCount = x.SignerCount,
-                SignedCount = x.SignedCount,
-                RejectedAtUtc = x.RejectedAtUtc,
-                RejectReason = x.RejectReason,
-                RejectedBySignerId = x.RejectedBySignerId,
-            })
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
+            _logger.LogInformation("Retrieved {Count} signature requests", result.Count);
 
-        _logger.LogInformation("Retrieved {Count} signature requests.", data.Count);
-
-        return ApiResponse<List<SignatureRequestSummaryDto>>.Ok(data);
+            return new ApiResponse<List<SignatureRequestSummaryDto>>(
+                true,
+                "Signature requests retrieved successfully",
+                result
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving signature requests: {Message}", ex.Message);
+            return new ApiResponse<List<SignatureRequestSummaryDto>>(
+                false,
+                ex.Message,
+                new List<SignatureRequestSummaryDto>()
+            );
+        }
     }
 }

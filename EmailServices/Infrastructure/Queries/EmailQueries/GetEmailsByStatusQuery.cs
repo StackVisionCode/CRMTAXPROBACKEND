@@ -4,5 +4,5 @@ using MediatR;
 
 namespace Infrastructure.Queries;
 
-public record GetEmailsByStatusQuery(EmailStatus Status, Guid? UserId = null)
+public record GetEmailsByStatusQuery(EmailStatus Status, Guid CompanyId, Guid? TaxUserId = null)
     : IRequest<IEnumerable<EmailDTO>>;

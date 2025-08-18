@@ -13,6 +13,8 @@ public class ContactInfo : BaseEntity
     public Guid PreferredContactId { get; set; }
     public required bool IsLoggin { get; set; }
     public string? PasswordClient { get; set; }
+    public Guid CreatedByTaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
     public virtual Customer? Customer { get; set; }
     public virtual PreferredContact? PreferredContact { get; set; }
 }

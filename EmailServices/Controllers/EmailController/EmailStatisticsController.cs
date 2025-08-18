@@ -15,16 +15,22 @@ public class EmailStatisticsController : ControllerBase
         _statisticsService = statisticsService;
     }
 
-    [HttpGet("{userId:Guid}")]
+    [HttpGet("{companyId:Guid}")]
     public async Task<ActionResult<ApiResponse<EmailStatistics>>> GetStatistics(
-        Guid userId,
+        Guid companyId,
+        [FromQuery] Guid? taxUserId = null,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null
     )
     {
         try
         {
-            var stats = await _statisticsService.GetStatisticsAsync(userId, fromDate, toDate);
+            var stats = await _statisticsService.GetStatisticsAsync(
+                companyId,
+                taxUserId,
+                fromDate,
+                toDate
+            );
             var response = new ApiResponse<EmailStatistics>(
                 true,
                 "Statistics retrieved successfully",
@@ -39,15 +45,26 @@ public class EmailStatisticsController : ControllerBase
         }
     }
 
-    [HttpGet("{userId:Guid}/daily")]
+    [HttpGet("{companyId:Guid}/daily")]
     public async Task<ActionResult<ApiResponse<DailyEmailStats[]>>> GetDailyStats(
-        Guid userId,
-        [FromQuery] DateTime fromDate,
-        [FromQuery] DateTime toDate
+        Guid companyId,
+        [FromQuery] Guid? taxUserId = null,
+        [FromQuery] DateTime fromDate = default,
+        [FromQuery] DateTime toDate = default
     )
     {
         try
         {
+            if (fromDate == default || toDate == default)
+            {
+                var errorResponse = new ApiResponse<DailyEmailStats[]>(
+                    false,
+                    "FromDate and ToDate are required",
+                    null
+                );
+                return BadRequest(errorResponse);
+            }
+
             if (fromDate > toDate)
             {
                 var errorResponse = new ApiResponse<DailyEmailStats[]>(
@@ -58,7 +75,12 @@ public class EmailStatisticsController : ControllerBase
                 return BadRequest(errorResponse);
             }
 
-            var stats = await _statisticsService.GetDailyStatsAsync(userId, fromDate, toDate);
+            var stats = await _statisticsService.GetDailyStatsAsync(
+                companyId,
+                taxUserId,
+                fromDate,
+                toDate
+            );
             var response = new ApiResponse<DailyEmailStats[]>(
                 true,
                 "Daily statistics retrieved successfully",

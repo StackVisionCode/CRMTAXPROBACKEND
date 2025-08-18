@@ -1,0 +1,497 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/Service/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services/create",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Service/GetById/{serviceId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services/{serviceId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Service/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Service/GetActive",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services/active",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Service/GetWithStats",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services/stats",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Service/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services/update",
+      "UpstreamHttpMethod": [ "PUT" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Service/Delete/{serviceId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services/delete/{serviceId}",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Service/ToggleStatus/{serviceId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/services/toggle/{serviceId}",
+      "UpstreamHttpMethod": [ "PATCH" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+
+
+    
+    {
+      "DownstreamPathTemplate": "/api/Module/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/create",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/GetById/{moduleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/{moduleId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/GetActive",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/active",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/GetAvailableForCustomPlan",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/available-for-custom-plan",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/GetByService/{serviceId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/by-service/{serviceId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/GetWithStats",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/stats",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/update",
+      "UpstreamHttpMethod": [ "PUT" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/Delete/{moduleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/delete/{moduleId}",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/ToggleStatus/{moduleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/toggle/{moduleId}",
+      "UpstreamHttpMethod": [ "PATCH" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/Module/AssignToService/{moduleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/modules/assign-to-service/{moduleId}",
+      "UpstreamHttpMethod": [ "PATCH" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+
+
+    
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/Create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/create",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/GetById/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/{customPlanId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/GetByCompany/{companyId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/by-company/{companyId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/GetExpiring",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/expiring",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/GetWithStats",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/stats",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/GetByPriceRange",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/by-price-range",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/update",
+      "UpstreamHttpMethod": [ "PUT" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/Delete/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/delete/{customPlanId}",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/ToggleStatus/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/toggle/{customPlanId}",
+      "UpstreamHttpMethod": [ "PATCH" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/Renew/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/renew/{customPlanId}",
+      "UpstreamHttpMethod": [ "PATCH" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomPlan/UpdatePrice/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-plans/update-price/{customPlanId}",
+      "UpstreamHttpMethod": [ "PATCH" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+
+
+    
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/Assign",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/assign",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/GetById/{customModuleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/{customModuleId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/GetAll",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/GetByPlan/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/by-plan/{customPlanId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/GetByModule/{moduleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/by-module/{moduleId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/GetActiveByCompany/{companyId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/active-by-company/{companyId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/GetWithStats",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/stats",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/GetAvailableForPlan/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/available-for-plan/{customPlanId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/Update",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/update",
+      "UpstreamHttpMethod": [ "PUT" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/Remove/{customModuleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/remove/{customModuleId}",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/Toggle/{customModuleId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/toggle/{customModuleId}",
+      "UpstreamHttpMethod": [ "PATCH" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/BulkAssign/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/bulk-assign/{customPlanId}",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    },
+    {
+      "DownstreamPathTemplate": "/api/CustomModule/BulkRemove/{customPlanId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
+      "UpstreamPathTemplate": "/api/auth/plans/custom-modules/bulk-remove/{customPlanId}",
+      "UpstreamHttpMethod": [ "DELETE" ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
+      "SwaggerKey": "auth",
+      "Priority": 0
+    }
+  ]
+}

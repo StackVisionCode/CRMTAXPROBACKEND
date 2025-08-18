@@ -31,7 +31,7 @@ public class LogoutAllHandler : IRequestHandler<LogoutAllCommands, ApiResponse<b
     {
         try
         {
-            // Buscar todas las sesiones activas del usuario
+            // Obtener todas las sesiones activas del TaxUser
             var activeSessions = await _context
                 .Sessions.Where(s => s.TaxUserId == request.UserId && !s.IsRevoke)
                 .ToListAsync(cancellationToken);
@@ -39,23 +39,24 @@ public class LogoutAllHandler : IRequestHandler<LogoutAllCommands, ApiResponse<b
             if (!activeSessions.Any())
             {
                 _logger.LogInformation(
-                    "No active sessions found for user {UserId} to logout",
+                    "No active sessions found for TaxUser {UserId}",
                     request.UserId
                 );
                 return new ApiResponse<bool>(true, "No active sessions found", true);
             }
 
-            // Revocar todas las sesiones
+            // Revocar todas las sesiones activas
+            var currentTime = DateTime.UtcNow;
             foreach (var session in activeSessions)
             {
                 session.IsRevoke = true;
-                session.UpdatedAt = DateTime.UtcNow;
+                session.UpdatedAt = currentTime;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "All sessions for user {UserId} have been revoked. Total sessions: {Count}",
+                "All sessions for TaxUser {UserId} revoked successfully. Total revoked: {Count}",
                 request.UserId,
                 activeSessions.Count
             );
@@ -70,7 +71,7 @@ public class LogoutAllHandler : IRequestHandler<LogoutAllCommands, ApiResponse<b
         {
             _logger.LogError(
                 ex,
-                "Error during logout all process for user {UserId}",
+                "Error during logout all process for TaxUser {UserId}",
                 request.UserId
             );
             return new ApiResponse<bool>(false, "An error occurred during logout process");

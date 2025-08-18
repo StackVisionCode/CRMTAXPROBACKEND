@@ -14,4 +14,5 @@ public class UpdateContactInfoDTOs
     public Guid PreferredContactId { get; set; }
     public required bool IsLoggin { get; set; }
     public string? PasswordClient { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
 }

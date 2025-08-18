@@ -24,10 +24,10 @@ public class GetEmailConfigsQueryHandler
         CancellationToken ct
     )
     {
-        var query = _ctx.EmailConfigs.AsQueryable();
+        var query = _ctx.EmailConfigs.Where(c => c.CompanyId == q.CompanyId && c.IsActive);
 
-        if (q.UserId.HasValue)
-            query = query.Where(c => c.UserId == q.UserId);
+        if (q.TaxUserId.HasValue)
+            query = query.Where(c => c.CreatedByTaxUserId == q.TaxUserId);
 
         var list = await query.OrderBy(c => c.Name).ToListAsync(ct);
         return _map.Map<IEnumerable<EmailConfigDTO>>(list);

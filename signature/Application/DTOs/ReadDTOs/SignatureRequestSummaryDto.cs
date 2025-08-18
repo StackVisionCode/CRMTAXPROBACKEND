@@ -10,6 +10,10 @@ public class SignatureRequestSummaryDto
     public SignatureStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+
+    public Guid CompanyId { get; set; }
+    public Guid CreatedByTaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
     public int SignerCount { get; set; }
     public int SignedCount { get; set; }
     public DateTime? RejectedAtUtc { get; set; }

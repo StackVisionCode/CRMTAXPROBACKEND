@@ -8,6 +8,8 @@ public class Dependent : BaseEntity
     public string? FullName { get; set; }
     public required DateTime DateOfBirth { get; set; }
     public Guid RelationshipId { get; set; }
+    public Guid CreatedByTaxUserId { get; set; }
+    public Guid? LastModifiedByTaxUserId { get; set; }
     public virtual Customer? Customer { get; set; }
     public virtual Relationship? Relationship { get; set; }
 }

@@ -9,5 +9,6 @@ public class PermissionDTO
     public required string Name { get; set; }
     public required string Code { get; set; }
     public string? Description { get; set; }
+    public bool IsGranted { get; set; } = true;
     public ICollection<Guid>? RoleIds { get; set; }
 }

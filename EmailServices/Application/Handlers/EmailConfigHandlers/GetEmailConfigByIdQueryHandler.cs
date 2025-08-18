@@ -21,7 +21,10 @@ public class GetEmailConfigByIdQueryHandler
 
     public async Task<EmailConfigDTO?> Handle(GetEmailConfigByIdQuery q, CancellationToken ct)
     {
-        var entity = await _ctx.EmailConfigs.FirstOrDefaultAsync(c => c.Id == q.Id, ct);
+        var entity = await _ctx
+            .EmailConfigs.Where(c => c.Id == q.Id && c.CompanyId == q.CompanyId && c.IsActive)
+            .FirstOrDefaultAsync(ct);
+
         return entity is null ? null : _map.Map<EmailConfigDTO>(entity);
     }
 }

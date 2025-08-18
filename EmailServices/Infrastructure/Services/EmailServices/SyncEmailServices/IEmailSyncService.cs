@@ -1,8 +1,6 @@
-using Domain;
-
 namespace Infrastructure.Services;
 
 public interface IEmailSyncService
 {
-    Task<EmailSyncResult> SyncEmailsAsync(Guid configId, DateTime? since = null);
+    Task<EmailSyncResult> SyncEmailsAsync(Guid configId, Guid companyId, DateTime? since = null);
 }

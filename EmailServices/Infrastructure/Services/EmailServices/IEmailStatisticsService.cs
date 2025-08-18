@@ -3,11 +3,17 @@ namespace Infrastructure.Services;
 public interface IEmailStatisticsService
 {
     Task<EmailStatistics> GetStatisticsAsync(
-        Guid userId,
+        Guid companyId,
+        Guid? taxUserId = null,
         DateTime? fromDate = null,
         DateTime? toDate = null
     );
-    Task<DailyEmailStats[]> GetDailyStatsAsync(Guid userId, DateTime fromDate, DateTime toDate);
+    Task<DailyEmailStats[]> GetDailyStatsAsync(
+        Guid companyId,
+        Guid? taxUserId,
+        DateTime fromDate,
+        DateTime toDate
+    );
 }
 
 public class EmailStatistics

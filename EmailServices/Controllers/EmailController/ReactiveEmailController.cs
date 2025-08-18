@@ -1,6 +1,7 @@
 using Common;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Api.Controllers;
 
@@ -26,13 +27,18 @@ public class ReactiveEmailController : ControllerBase
     [HttpPost("sync/{configId:Guid}")]
     public async Task<ActionResult<ApiResponse<EmailSyncResult>>> SyncAllEmails(
         Guid configId,
+        [FromQuery] Guid companyId, // NUEVO: CompanyId obligatorio
         [FromQuery] DateTime? since = null,
         [FromQuery] bool forceFullSync = false
     )
     {
         try
         {
-            _logger.LogInformation("📧 Manual sync request for config {ConfigId}", configId);
+            _logger.LogInformation(
+                "📧 Manual sync request for config {ConfigId} (Company: {CompanyId})",
+                configId,
+                companyId
+            );
 
             if (forceFullSync)
             {
@@ -40,7 +46,8 @@ public class ReactiveEmailController : ControllerBase
                 _logger.LogInformation("🔄 Force full sync: checking last 30 days");
             }
 
-            var result = await _reactiveService.SyncAllEmailsAsync(configId, since);
+            // ACTUALIZADO: Usar servicio con CompanyId
+            var result = await _reactiveService.SyncAllEmailsAsync(configId, companyId, since);
 
             var response = new ApiResponse<EmailSyncResult>(result.Success, result.Message, result);
 
@@ -48,7 +55,12 @@ public class ReactiveEmailController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error syncing emails for config {ConfigId}", configId);
+            _logger.LogError(
+                ex,
+                "❌ Error syncing emails for config {ConfigId} (Company: {CompanyId})",
+                configId,
+                companyId
+            );
             var response = new ApiResponse<EmailSyncResult>(false, ex.Message, null);
             return StatusCode(500, response);
         }
@@ -58,7 +70,10 @@ public class ReactiveEmailController : ControllerBase
     /// Inicia el watching reactivo para una configuración específica
     /// </summary>
     [HttpPost("start-watching/{configId:Guid}")]
-    public async Task<ActionResult<ApiResponse<object>>> StartWatching(Guid configId)
+    public async Task<ActionResult<ApiResponse<object>>> StartWatching(
+        Guid configId,
+        [FromQuery] Guid companyId // NUEVO: CompanyId obligatorio
+    )
     {
         try
         {
@@ -66,12 +81,16 @@ public class ReactiveEmailController : ControllerBase
             var context =
                 scope.ServiceProvider.GetRequiredService<Infrastructure.Context.EmailContext>();
 
-            var config = await context.EmailConfigs.FindAsync(configId);
+            // ACTUALIZADO: Buscar config con CompanyId para seguridad
+            var config = await context
+                .EmailConfigs.Where(c => c.Id == configId && c.CompanyId == companyId && c.IsActive)
+                .FirstOrDefaultAsync();
+
             if (config == null)
             {
                 var notFoundResponse = new ApiResponse<object>(
                     false,
-                    "Configuration not found",
+                    "Configuration not found or access denied",
                     null
                 );
                 return NotFound(notFoundResponse);
@@ -82,14 +101,24 @@ public class ReactiveEmailController : ControllerBase
             var response = new ApiResponse<object>(
                 true,
                 $"Started reactive watching for {config.Name}",
-                new { ConfigId = configId, ConfigName = config.Name }
+                new
+                {
+                    ConfigId = configId,
+                    CompanyId = companyId,
+                    ConfigName = config.Name,
+                }
             );
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error starting watch for config {ConfigId}", configId);
+            _logger.LogError(
+                ex,
+                "❌ Error starting watch for config {ConfigId} (Company: {CompanyId})",
+                configId,
+                companyId
+            );
             var response = new ApiResponse<object>(false, ex.Message, null);
             return BadRequest(response);
         }
@@ -99,23 +128,50 @@ public class ReactiveEmailController : ControllerBase
     /// Detiene el watching reactivo para una configuración específica
     /// </summary>
     [HttpPost("stop-watching/{configId:Guid}")]
-    public async Task<ActionResult<ApiResponse<object>>> StopWatching(Guid configId)
+    public async Task<ActionResult<ApiResponse<object>>> StopWatching(
+        Guid configId,
+        [FromQuery] Guid companyId // NUEVO: CompanyId obligatorio
+    )
     {
         try
         {
+            // ACTUALIZADO: Validar que el config pertenece a la compañía
+            using var scope = HttpContext.RequestServices.CreateScope();
+            var context =
+                scope.ServiceProvider.GetRequiredService<Infrastructure.Context.EmailContext>();
+
+            var configExists = await context
+                .EmailConfigs.Where(c => c.Id == configId && c.CompanyId == companyId)
+                .AnyAsync();
+
+            if (!configExists)
+            {
+                var notFoundResponse = new ApiResponse<object>(
+                    false,
+                    "Configuration not found or access denied",
+                    null
+                );
+                return NotFound(notFoundResponse);
+            }
+
             await _reactiveService.StopWatchingAsync(configId);
 
             var response = new ApiResponse<object>(
                 true,
                 "Stopped reactive watching",
-                new { ConfigId = configId }
+                new { ConfigId = configId, CompanyId = companyId }
             );
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error stopping watch for config {ConfigId}", configId);
+            _logger.LogError(
+                ex,
+                "❌ Error stopping watch for config {ConfigId} (Company: {CompanyId})",
+                configId,
+                companyId
+            );
             var response = new ApiResponse<object>(false, ex.Message, null);
             return BadRequest(response);
         }
@@ -125,7 +181,9 @@ public class ReactiveEmailController : ControllerBase
     /// Obtiene el estado del watching reactivo
     /// </summary>
     [HttpGet("watching-status")]
-    public ActionResult<ApiResponse<object>> GetWatchingStatus()
+    public ActionResult<ApiResponse<object>> GetWatchingStatus(
+        [FromQuery] Guid? companyId = null // NUEVO: CompanyId opcional para filtrar
+    )
     {
         try
         {
@@ -136,6 +194,7 @@ public class ReactiveEmailController : ControllerBase
                 new
                 {
                     Message = "Check logs for detailed watching status",
+                    CompanyId = companyId,
                     Timestamp = DateTime.UtcNow,
                 }
             );
@@ -156,6 +215,7 @@ public class ReactiveEmailController : ControllerBase
     [HttpPost("search/{configId:Guid}")]
     public async Task<ActionResult<ApiResponse<object>>> SearchEmails(
         Guid configId,
+        [FromQuery] Guid companyId, // NUEVO: CompanyId obligatorio
         [FromQuery] DateTime? since = null,
         [FromQuery] DateTime? until = null,
         [FromQuery] int maxResults = 50
@@ -167,12 +227,16 @@ public class ReactiveEmailController : ControllerBase
             var context =
                 scope.ServiceProvider.GetRequiredService<Infrastructure.Context.EmailContext>();
 
-            var config = await context.EmailConfigs.FindAsync(configId);
+            // ACTUALIZADO: Buscar config con CompanyId para seguridad
+            var config = await context
+                .EmailConfigs.Where(c => c.Id == configId && c.CompanyId == companyId && c.IsActive)
+                .FirstOrDefaultAsync();
+
             if (config == null)
             {
                 var notFoundResponse = new ApiResponse<object>(
                     false,
-                    "Configuration not found",
+                    "Configuration not found or access denied",
                     null
                 );
                 return NotFound(notFoundResponse);
@@ -186,6 +250,7 @@ public class ReactiveEmailController : ControllerBase
                 new
                 {
                     ConfigId = configId,
+                    CompanyId = companyId,
                     ConfigName = config.Name,
                     EmailsFound = emails.Count(),
                     SearchCriteria = new
@@ -210,9 +275,32 @@ public class ReactiveEmailController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error searching emails for config {ConfigId}", configId);
+            _logger.LogError(
+                ex,
+                "❌ Error searching emails for config {ConfigId} (Company: {CompanyId})",
+                configId,
+                companyId
+            );
             var response = new ApiResponse<object>(false, ex.Message, null);
             return BadRequest(response);
         }
     }
+}
+
+// Clases auxiliares sin cambios
+public class PubSubMessage
+{
+    public Message? Message { get; set; }
+}
+
+public class Message
+{
+    public string? Data { get; set; }
+    public Dictionary<string, string>? Attributes { get; set; }
+}
+
+public class GmailNotification
+{
+    public string? EmailAddress { get; set; }
+    public long? HistoryId { get; set; }
 }

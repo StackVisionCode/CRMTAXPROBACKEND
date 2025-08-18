@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Domain;
 using Infrastructure.Context;
@@ -21,16 +20,24 @@ public class EmailSyncService : IEmailSyncService
         _logger = logger;
     }
 
-    public async Task<EmailSyncResult> SyncEmailsAsync(Guid configId, DateTime? since = null)
+    public async Task<EmailSyncResult> SyncEmailsAsync(
+        Guid configId,
+        Guid companyId,
+        DateTime? since = null
+    )
     {
         var result = new EmailSyncResult { ConfigId = configId };
 
         try
         {
-            var config = await _context.EmailConfigs.FindAsync(configId);
+            // Buscar config con CompanyId para seguridad
+            var config = await _context
+                .EmailConfigs.Where(c => c.Id == configId && c.CompanyId == companyId && c.IsActive)
+                .FirstOrDefaultAsync();
+
             if (config == null)
             {
-                result.Message = "Configuration not found";
+                result.Message = "Configuration not found or access denied";
                 return result;
             }
 
@@ -39,24 +46,46 @@ public class EmailSyncService : IEmailSyncService
             if (!since.HasValue)
             {
                 since = await _context
-                    .IncomingEmails.Where(e => e.ConfigId == configId)
+                    .IncomingEmails.Where(e => e.ConfigId == configId && e.CompanyId == companyId)
                     .OrderByDescending(e => e.ReceivedOn)
                     .Select(e => e.ReceivedOn)
                     .FirstOrDefaultAsync();
 
                 if (since.HasValue)
                 {
-                    since = since.Value.AddHours(-1);
+                    // ✅ CORREGIDO: Validación segura
+                    try
+                    {
+                        since = since.Value.AddHours(-1);
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        // Si no se puede restar 1 hora, usar valor mínimo seguro
+                        since = new DateTime(1900, 1, 1);
+                    }
                 }
                 else
                 {
                     since = DateTime.UtcNow.AddDays(-7);
                 }
             }
+            else
+            {
+                // ✅ VALIDAR el since que viene como parámetro
+                if (
+                    since.Value < new DateTime(1900, 1, 1)
+                    || since.Value > DateTime.UtcNow.AddDays(1)
+                )
+                {
+                    _logger.LogWarning("Invalid since date: {Since}, using default", since.Value);
+                    since = DateTime.UtcNow.AddDays(-7);
+                }
+            }
 
             _logger.LogInformation(
-                "📧 Syncing emails for {ConfigName} since {Since}",
+                "📧 Syncing emails for {ConfigName} (Company: {CompanyId}) since {Since}",
                 config.Name,
+                companyId,
                 since
             );
 
@@ -65,26 +94,28 @@ public class EmailSyncService : IEmailSyncService
 
             var savedEmails = await SaveUniqueEmailsAsync(fetchedEmails.ToList(), config);
             result.NewEmails = savedEmails.Count;
-            result.ExistingEmails = result.TotalFetched - result.NewEmails; // ⭐ CORRECCIÓN: ExistingEmails en lugar de ExistingCount
+            result.ExistingEmails = result.TotalFetched - result.NewEmails;
 
             result.Success = true;
             result.Message =
                 $"Synced successfully: {result.NewEmails} new emails, {result.ExistingEmails} already existed";
 
             _logger.LogInformation(
-                "✅ Sync completed for {ConfigName}: {NewCount} new, {ExistingCount} existing",
+                "✅ Sync completed for {ConfigName} (Company: {CompanyId}): {NewCount} new, {ExistingCount} existing",
                 config.Name,
+                companyId,
                 result.NewEmails,
                 result.ExistingEmails
-            ); // ⭐ CORRECCIÓN: ExistingEmails
+            );
         }
         catch (Exception ex)
         {
             result.Message = $"Sync failed: {ex.Message}";
             _logger.LogError(
                 ex,
-                "❌ Sync failed for config {ConfigId}: {Error}",
+                "❌ Sync failed for config {ConfigId} (Company: {CompanyId}): {Error}",
                 configId,
+                companyId,
                 ex.Message
             );
         }
@@ -92,6 +123,266 @@ public class EmailSyncService : IEmailSyncService
         return result;
     }
 
+    private async Task<IncomingEmail?> GetGmailMessageDetailsAsync(
+        HttpClient client,
+        string messageId,
+        EmailConfig config
+    )
+    {
+        try
+        {
+            var messageUrl = $"https://gmail.googleapis.com/gmail/v1/users/me/messages/{messageId}";
+            var messageResponse = await client.GetAsync(messageUrl);
+
+            if (!messageResponse.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "⚠️ Failed to get Gmail message details for {MessageId}: {StatusCode}",
+                    messageId,
+                    messageResponse.StatusCode
+                );
+                return null;
+            }
+
+            var messageJson = await messageResponse.Content.ReadAsStringAsync();
+            var incomingEmail = ConvertGmailMessageToIncomingEmail(messageJson);
+
+            // Establecer campos obligatorios
+            incomingEmail.ConfigId = config.Id;
+            incomingEmail.CompanyId = config.CompanyId;
+            incomingEmail.CreatedByTaxUserId = config.CreatedByTaxUserId; // El dueño de la config es quien "recibe"
+
+            return incomingEmail;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "⚠️ Error processing Gmail message {MessageId}: {Error}",
+                messageId,
+                ex.Message
+            );
+            return null;
+        }
+    }
+
+    private IncomingEmail ConvertMimeMessageToIncomingEmail(MimeMessage message)
+    {
+        var email = new IncomingEmail
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = Guid.Empty, // Se establecerá después
+            CreatedByTaxUserId = Guid.Empty, // Se establecerá después
+            MessageId = message.MessageId,
+            FromAddress = message.From.FirstOrDefault()?.ToString() ?? "",
+            ToAddress = message.To.FirstOrDefault()?.ToString() ?? "",
+            CcAddresses = string.Join("; ", message.Cc.Select(a => a.ToString())),
+            Subject = message.Subject ?? "",
+            Body = message.TextBody ?? message.HtmlBody ?? "",
+            ReceivedOn = message.Date.DateTime,
+            IsRead = false,
+            InReplyTo = message.InReplyTo,
+            References = string.Join(" ", message.References),
+            Attachments = new List<EmailAttachment>(),
+        };
+
+        // Process attachments
+        foreach (var attachment in message.Attachments.OfType<MimePart>())
+        {
+            using var memory = new MemoryStream();
+            attachment.Content.DecodeTo(memory);
+
+            email.Attachments.Add(
+                new EmailAttachment
+                {
+                    Id = Guid.NewGuid(),
+                    EmailId = email.Id,
+                    CompanyId = Guid.Empty, // Se establecerá después
+                    FileName = attachment.FileName ?? "attachment",
+                    ContentType = attachment.ContentType.MimeType,
+                    Size = memory.Length,
+                    Content = memory.ToArray(),
+                    CreatedOn = DateTime.UtcNow,
+                }
+            );
+        }
+
+        return email;
+    }
+
+    private List<EmailAttachment> ExtractGmailAttachments(JsonElement payload, Guid emailId)
+    {
+        var attachments = new List<EmailAttachment>();
+
+        try
+        {
+            if (payload.TryGetProperty("parts", out var parts))
+            {
+                foreach (var part in parts.EnumerateArray())
+                {
+                    if (
+                        part.TryGetProperty("filename", out var filename)
+                        && !string.IsNullOrEmpty(filename.GetString())
+                        && part.TryGetProperty("body", out var body)
+                    )
+                    {
+                        var attachment = new EmailAttachment
+                        {
+                            Id = Guid.NewGuid(),
+                            EmailId = emailId,
+                            CompanyId = Guid.Empty, // Se establecerá después
+                            FileName = filename.GetString() ?? "attachment",
+                            ContentType = part.TryGetProperty("mimeType", out var mimeType)
+                                ? mimeType.GetString() ?? "application/octet-stream"
+                                : "application/octet-stream",
+                            CreatedOn = DateTime.UtcNow,
+                        };
+
+                        if (body.TryGetProperty("size", out var size))
+                        {
+                            attachment.Size = size.GetInt64();
+                        }
+
+                        if (body.TryGetProperty("attachmentId", out var attachmentId))
+                        {
+                            attachment.FilePath = $"gmail_attachment:{attachmentId.GetString()}";
+                        }
+
+                        attachments.Add(attachment);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "⚠️ Error extracting Gmail attachments");
+        }
+
+        return attachments;
+    }
+
+    private async Task<List<IncomingEmail>> SaveUniqueEmailsAsync(
+        List<IncomingEmail> emails,
+        EmailConfig config
+    )
+    {
+        var savedEmails = new List<IncomingEmail>();
+
+        if (!emails.Any())
+        {
+            return savedEmails;
+        }
+
+        var messageIds = emails
+            .Where(e => !string.IsNullOrEmpty(e.MessageId))
+            .Select(e => e.MessageId)
+            .ToList();
+
+        // Verificar duplicados con CompanyId
+        var existingMessageIds = await _context
+            .IncomingEmails.Where(e =>
+                e.ConfigId == config.Id
+                && e.CompanyId == config.CompanyId
+                && messageIds.Contains(e.MessageId)
+            )
+            .Select(e => e.MessageId)
+            .ToListAsync();
+
+        var newEmails = emails
+            .Where(e =>
+                string.IsNullOrEmpty(e.MessageId) || !existingMessageIds.Contains(e.MessageId)
+            )
+            .ToList();
+
+        if (!newEmails.Any())
+        {
+            _logger.LogDebug("📭 All fetched emails already exist for {ConfigName}", config.Name);
+            return savedEmails;
+        }
+
+        foreach (var email in newEmails)
+        {
+            // Establecer campos obligatorios
+            email.ConfigId = config.Id;
+            email.CompanyId = config.CompanyId;
+            email.CreatedByTaxUserId = config.CreatedByTaxUserId;
+            email.ReceivedOn = email.ReceivedOn == default ? DateTime.UtcNow : email.ReceivedOn;
+
+            // Establecer CompanyId en attachments
+            foreach (var attachment in email.Attachments)
+            {
+                attachment.CompanyId = config.CompanyId;
+            }
+        }
+
+        try
+        {
+            _context.IncomingEmails.AddRange(newEmails);
+            await _context.SaveChangesAsync();
+            savedEmails.AddRange(newEmails);
+
+            _logger.LogInformation(
+                "💾 Saved {Count} new emails for {ConfigName} (Company: {CompanyId})",
+                newEmails.Count,
+                config.Name,
+                config.CompanyId
+            );
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException?.Message?.Contains(
+                    "IX_IncomingEmails_MessageId_ConfigId_CompanyId_Unique"
+                ) == true
+            )
+        {
+            _logger.LogWarning(
+                "⚠️ Duplicate key conflict, saving emails individually for {ConfigName}",
+                config.Name
+            );
+
+            _context.IncomingEmails.RemoveRange(newEmails);
+
+            foreach (var email in newEmails)
+            {
+                try
+                {
+                    var exists = await _context.IncomingEmails.AnyAsync(e =>
+                        e.MessageId == email.MessageId
+                        && e.ConfigId == config.Id
+                        && e.CompanyId == config.CompanyId
+                    );
+
+                    if (!exists)
+                    {
+                        _context.IncomingEmails.Add(email);
+                        await _context.SaveChangesAsync();
+                        savedEmails.Add(email);
+                    }
+                }
+                catch (Exception individualEx)
+                {
+                    _logger.LogWarning(
+                        individualEx,
+                        "⚠️ Failed to save individual email: {Subject}",
+                        email.Subject
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "❌ Failed to save emails for {ConfigName}: {Error}",
+                config.Name,
+                ex.Message
+            );
+            throw;
+        }
+
+        return savedEmails;
+    }
+
+    // Métodos privados sin cambios (no afectados por la reestructuración)
     private async Task<IEnumerable<IncomingEmail>> CheckAllEmailsAsync(
         EmailConfig config,
         int maxMessages,
@@ -177,7 +468,6 @@ public class EmailSyncService : IEmailSyncService
                 if (messageElement.TryGetProperty("id", out var idElement))
                 {
                     var messageId = idElement.GetString();
-                    // ⭐ CORRECCIÓN: Verificar null antes de pasar a método
                     if (!string.IsNullOrEmpty(messageId))
                     {
                         try
@@ -225,7 +515,6 @@ public class EmailSyncService : IEmailSyncService
     {
         var emails = new List<IncomingEmail>();
 
-        // ⭐ CORRECCIÓN: Verificar que SmtpServer no sea null
         if (string.IsNullOrEmpty(config.SmtpServer))
         {
             _logger.LogWarning("⚠️ SMTP server not configured for {ConfigName}", config.Name);
@@ -270,6 +559,12 @@ public class EmailSyncService : IEmailSyncService
             {
                 var message = await inbox.GetMessageAsync(uid);
                 var incomingEmail = ConvertMimeMessageToIncomingEmail(message);
+
+                // Establecer campos obligatorios
+                incomingEmail.ConfigId = config.Id;
+                incomingEmail.CompanyId = config.CompanyId;
+                incomingEmail.CreatedByTaxUserId = config.CreatedByTaxUserId;
+
                 emails.Add(incomingEmail);
             }
             catch (Exception ex)
@@ -333,47 +628,6 @@ public class EmailSyncService : IEmailSyncService
         );
     }
 
-    private async Task<IncomingEmail?> GetGmailMessageDetailsAsync(
-        HttpClient client,
-        string messageId, // ⭐ CORRECCIÓN: messageId ya está verificado como no-null antes de llamar este método
-        EmailConfig config
-    )
-    {
-        try
-        {
-            var messageUrl = $"https://gmail.googleapis.com/gmail/v1/users/me/messages/{messageId}";
-            var messageResponse = await client.GetAsync(messageUrl);
-
-            if (!messageResponse.IsSuccessStatusCode)
-            {
-                _logger.LogWarning(
-                    "⚠️ Failed to get Gmail message details for {MessageId}: {StatusCode}",
-                    messageId,
-                    messageResponse.StatusCode
-                );
-                return null;
-            }
-
-            var messageJson = await messageResponse.Content.ReadAsStringAsync();
-            var incomingEmail = ConvertGmailMessageToIncomingEmail(messageJson);
-
-            incomingEmail.ConfigId = config.Id;
-            incomingEmail.UserId = config.UserId;
-
-            return incomingEmail;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "⚠️ Error processing Gmail message {MessageId}: {Error}",
-                messageId,
-                ex.Message
-            );
-            return null;
-        }
-    }
-
     private IncomingEmail ConvertGmailMessageToIncomingEmail(string messageJson)
     {
         using var doc = JsonDocument.Parse(messageJson);
@@ -383,12 +637,13 @@ public class EmailSyncService : IEmailSyncService
         var email = new IncomingEmail
         {
             Id = Guid.NewGuid(),
+            CompanyId = Guid.Empty, // Se establecerá después
+            CreatedByTaxUserId = Guid.Empty, // Se establecerá después
             IsRead = false,
             ReceivedOn = DateTime.UtcNow,
             Attachments = new List<EmailAttachment>(),
         };
 
-        // Extract headers
         foreach (var header in headers.EnumerateArray())
         {
             var name = header.GetProperty("name").GetString();
@@ -424,52 +679,8 @@ public class EmailSyncService : IEmailSyncService
             }
         }
 
-        // Extract body
         email.Body = ExtractGmailMessageBody(payload);
-
-        // Extract attachments
         email.Attachments = ExtractGmailAttachments(payload, email.Id);
-
-        return email;
-    }
-
-    private IncomingEmail ConvertMimeMessageToIncomingEmail(MimeMessage message)
-    {
-        var email = new IncomingEmail
-        {
-            Id = Guid.NewGuid(),
-            MessageId = message.MessageId,
-            FromAddress = message.From.FirstOrDefault()?.ToString() ?? "",
-            ToAddress = message.To.FirstOrDefault()?.ToString() ?? "",
-            CcAddresses = string.Join("; ", message.Cc.Select(a => a.ToString())),
-            Subject = message.Subject ?? "",
-            Body = message.TextBody ?? message.HtmlBody ?? "",
-            ReceivedOn = message.Date.DateTime,
-            IsRead = false,
-            InReplyTo = message.InReplyTo,
-            References = string.Join(" ", message.References),
-            Attachments = new List<EmailAttachment>(),
-        };
-
-        // Process attachments
-        foreach (var attachment in message.Attachments.OfType<MimePart>())
-        {
-            using var memory = new MemoryStream();
-            attachment.Content.DecodeTo(memory);
-
-            email.Attachments.Add(
-                new EmailAttachment
-                {
-                    Id = Guid.NewGuid(),
-                    EmailId = email.Id,
-                    FileName = attachment.FileName ?? "attachment",
-                    ContentType = attachment.ContentType.MimeType,
-                    Size = memory.Length,
-                    Content = memory.ToArray(),
-                    CreatedOn = DateTime.UtcNow,
-                }
-            );
-        }
 
         return email;
     }
@@ -478,7 +689,6 @@ public class EmailSyncService : IEmailSyncService
     {
         try
         {
-            // Try to get plain text body first
             if (
                 payload.TryGetProperty("body", out var body)
                 && body.TryGetProperty("data", out var data)
@@ -491,7 +701,6 @@ public class EmailSyncService : IEmailSyncService
                 }
             }
 
-            // Check for multipart content
             if (payload.TryGetProperty("parts", out var parts))
             {
                 foreach (var part in parts.EnumerateArray())
@@ -500,7 +709,6 @@ public class EmailSyncService : IEmailSyncService
                     {
                         var mimeTypeStr = mimeType.GetString();
 
-                        // Prefer plain text, but accept HTML if no plain text
                         if (mimeTypeStr == "text/plain" || mimeTypeStr == "text/html")
                         {
                             if (
@@ -528,68 +736,12 @@ public class EmailSyncService : IEmailSyncService
         }
     }
 
-    private List<EmailAttachment> ExtractGmailAttachments(JsonElement payload, Guid emailId)
-    {
-        var attachments = new List<EmailAttachment>();
-
-        try
-        {
-            if (payload.TryGetProperty("parts", out var parts))
-            {
-                foreach (var part in parts.EnumerateArray())
-                {
-                    if (
-                        part.TryGetProperty("filename", out var filename)
-                        && !string.IsNullOrEmpty(filename.GetString())
-                        && part.TryGetProperty("body", out var body)
-                    )
-                    {
-                        var attachment = new EmailAttachment
-                        {
-                            Id = Guid.NewGuid(),
-                            EmailId = emailId,
-                            FileName = filename.GetString() ?? "attachment",
-                            ContentType = part.TryGetProperty("mimeType", out var mimeType)
-                                ? mimeType.GetString() ?? "application/octet-stream"
-                                : "application/octet-stream",
-                            CreatedOn = DateTime.UtcNow,
-                        };
-
-                        // Get attachment size
-                        if (body.TryGetProperty("size", out var size))
-                        {
-                            attachment.Size = size.GetInt64();
-                        }
-
-                        // Note: For Gmail API, actual attachment content needs to be fetched separately
-                        // using attachmentId. For now, we just store metadata.
-                        if (body.TryGetProperty("attachmentId", out var attachmentId))
-                        {
-                            // Store attachment ID for later retrieval if needed
-                            attachment.FilePath = $"gmail_attachment:{attachmentId.GetString()}";
-                        }
-
-                        attachments.Add(attachment);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "⚠️ Error extracting Gmail attachments");
-        }
-
-        return attachments;
-    }
-
     private static string DecodeBase64Url(string base64Url)
     {
         try
         {
-            // Convert base64url to base64
             var base64 = base64Url.Replace('-', '+').Replace('_', '/');
 
-            // Add padding if needed
             switch (base64.Length % 4)
             {
                 case 2:
@@ -605,116 +757,10 @@ public class EmailSyncService : IEmailSyncService
         }
         catch (Exception)
         {
-            return base64Url; // Return as-is if decoding fails
+            return base64Url;
         }
     }
 
-    private async Task<List<IncomingEmail>> SaveUniqueEmailsAsync(
-        List<IncomingEmail> emails,
-        EmailConfig config
-    )
-    {
-        var savedEmails = new List<IncomingEmail>();
-
-        if (!emails.Any())
-        {
-            return savedEmails;
-        }
-
-        var messageIds = emails
-            .Where(e => !string.IsNullOrEmpty(e.MessageId))
-            .Select(e => e.MessageId)
-            .ToList();
-
-        var existingMessageIds = await _context
-            .IncomingEmails.Where(e => e.ConfigId == config.Id && messageIds.Contains(e.MessageId))
-            .Select(e => e.MessageId)
-            .ToListAsync();
-
-        var newEmails = emails
-            .Where(e =>
-                string.IsNullOrEmpty(e.MessageId) || !existingMessageIds.Contains(e.MessageId)
-            )
-            .ToList();
-
-        if (!newEmails.Any())
-        {
-            _logger.LogDebug("📭 All fetched emails already exist for {ConfigName}", config.Name);
-            return savedEmails;
-        }
-
-        foreach (var email in newEmails)
-        {
-            email.ConfigId = config.Id;
-            email.UserId = config.UserId;
-            email.ReceivedOn = email.ReceivedOn == default ? DateTime.UtcNow : email.ReceivedOn;
-        }
-
-        try
-        {
-            _context.IncomingEmails.AddRange(newEmails);
-            await _context.SaveChangesAsync();
-            savedEmails.AddRange(newEmails);
-
-            _logger.LogInformation(
-                "💾 Saved {Count} new emails for {ConfigName}",
-                newEmails.Count,
-                config.Name
-            );
-        }
-        catch (DbUpdateException ex)
-            when (ex.InnerException?.Message?.Contains(
-                    "IX_IncomingEmails_MessageId_ConfigId_Unique"
-                ) == true
-            )
-        {
-            _logger.LogWarning(
-                "⚠️ Duplicate key conflict, saving emails individually for {ConfigName}",
-                config.Name
-            );
-
-            _context.IncomingEmails.RemoveRange(newEmails);
-
-            foreach (var email in newEmails)
-            {
-                try
-                {
-                    var exists = await _context.IncomingEmails.AnyAsync(e =>
-                        e.MessageId == email.MessageId && e.ConfigId == config.Id
-                    );
-
-                    if (!exists)
-                    {
-                        _context.IncomingEmails.Add(email);
-                        await _context.SaveChangesAsync();
-                        savedEmails.Add(email);
-                    }
-                }
-                catch (Exception individualEx)
-                {
-                    _logger.LogWarning(
-                        individualEx,
-                        "⚠️ Failed to save individual email: {Subject}",
-                        email.Subject
-                    );
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "❌ Failed to save emails for {ConfigName}: {Error}",
-                config.Name,
-                ex.Message
-            );
-            throw;
-        }
-
-        return savedEmails;
-    }
-
-    // ⭐ CORRECCIÓN: Parámetro ya verificado como no-null antes de llamar este método
     private string GetImapServerFromSmtp(string smtpServer)
     {
         return smtpServer.ToLower() switch
@@ -726,7 +772,6 @@ public class EmailSyncService : IEmailSyncService
         };
     }
 
-    // ⭐ CORRECCIÓN: Parámetro ya verificado como no-null antes de llamar este método
     private int GetImapPortFromSmtp(string smtpServer)
     {
         return smtpServer.ToLower() switch

@@ -4,9 +4,22 @@ namespace Infrastructure.Services;
 
 public interface IEmailTemplateService
 {
-    Task<string> RenderTemplateAsync(Guid templateId, Dictionary<string, object> variables);
-    Task<EmailTemplateDTO> CreateTemplateAsync(EmailTemplateDTO template);
-    Task<EmailTemplateDTO> UpdateTemplateAsync(Guid id, EmailTemplateDTO template);
-    Task DeleteTemplateAsync(Guid id);
-    Task<IEnumerable<EmailTemplateDTO>> GetTemplatesAsync(Guid userId);
+    Task<string> RenderTemplateAsync(
+        Guid templateId,
+        Guid companyId,
+        Dictionary<string, object> variables
+    );
+    Task<EmailTemplateDTO> CreateTemplateAsync(
+        EmailTemplateDTO template,
+        Guid companyId,
+        Guid createdByTaxUserId
+    );
+    Task<EmailTemplateDTO> UpdateTemplateAsync(
+        Guid id,
+        EmailTemplateDTO template,
+        Guid companyId,
+        Guid lastModifiedByTaxUserId
+    );
+    Task DeleteTemplateAsync(Guid id, Guid companyId, Guid deletedByTaxUserId);
+    Task<IEnumerable<EmailTemplateDTO>> GetTemplatesAsync(Guid companyId, Guid? taxUserId = null);
 }

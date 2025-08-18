@@ -5,9 +5,7 @@ using MediatR;
 namespace CustomerService.Queries.CustomerQueries;
 
 /// <summary>
-/// Devuelve los clientes que pertenecen al usuario logueado
-///   – Si companyId ≠ Guid.Empty   ⇒  todos los clientes creados por cualquier usuario de la compañía.
-///   – Si companyId == Guid.Empty ⇒  sólo los que creó el propio usuario.
+/// Devuelve los customers filtrados por company y opcionalmente por creador
 /// </summary>
-public sealed record GetOwnCustomersQueries(Guid UserId)
+public sealed record GetOwnCustomersQueries(Guid CompanyId, Guid? CreatedByTaxUserId = null)
     : IRequest<ApiResponse<List<ReadCustomerDTO>>>;
