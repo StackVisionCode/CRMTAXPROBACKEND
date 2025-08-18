@@ -75,6 +75,7 @@ public class CreateFormResponseHandler : IRequestHandler<CreateFormResponseComma
             SubmittedAt = entity.SubmittedAt,
             Success = true
         };
+        
         _logger.LogInformation("Form response created successfully with ID: {ResponseId}", result);
         _logger.LogInformation("Form response data analysis: {FieldsCount} fields, {FilesCount} files", 
             dataAnalysis.FieldsCount, dataAnalysis.FilesCount);
