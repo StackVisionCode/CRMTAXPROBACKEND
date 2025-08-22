@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CommLinkService.Migrations
 {
     /// <inheritdoc />
-    public partial class NewMigrationsR : Migration
+    public partial class NewMigrationR : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

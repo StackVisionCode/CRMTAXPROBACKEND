@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CommLinkService.Migrations
 {
     [DbContext(typeof(CommLinkDbContext))]
-    [Migration("20250821024207_NewMigrationsR")]
-    partial class NewMigrationsR
+    [Migration("20250822124635_NewMigrationR")]
+    partial class NewMigrationR
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
