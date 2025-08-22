@@ -71,7 +71,7 @@ public class RequestPasswordResetHandler
             // 🔑 GENERAR TOKEN DE RESET
             var (token, exp) = _tokenSrv.Generate(userData.UserId, userData.Email);
 
-            // ✅ ACTUALIZAR USUARIO CON TOKEN
+            // ACTUALIZAR USUARIO CON TOKEN
             var updateResult =
                 await _db
                     .TaxUsers.Where(u => u.Id == userData.UserId)

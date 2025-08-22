@@ -101,6 +101,9 @@ try
     // Add services
     builder.Services.AddControllers();
 
+    // Registrar AutoMapper
+    builder.Services.AddAutoMapper(typeof(Program));
+
     //configure mediator
     builder.Services.AddMediatR(cfg =>
     {
@@ -165,7 +168,7 @@ try
 
     var app = builder.Build();
 
-    // ✅ 5. MOSTRAR INFORMACIÓN DEL CACHÉ
+    // 5. MOSTRAR INFORMACIÓN DEL CACHÉ
     using (var scope = app.Services.CreateScope())
     {
         var hybridCache = scope.ServiceProvider.GetService<SharedLibrary.Caching.IHybridCache>();
@@ -174,7 +177,7 @@ try
         if (hybridCache != null)
         {
             logger.LogInformation(
-                "✅ CommLink Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                "CommLink Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
                 hybridCache.CurrentCacheMode,
                 hybridCache.IsRedisAvailable
             );
@@ -184,11 +187,7 @@ try
     app.UseCors("AllowAll");
 
     // WebSocket support
-    var webSocketOptions = new WebSocketOptions
-    {
-        KeepAliveInterval = TimeSpan.FromSeconds(30),
-        ReceiveBufferSize = 4 * 1024,
-    };
+    var webSocketOptions = new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) };
     app.UseWebSockets(webSocketOptions);
 
     if (app.Environment.IsDevelopment())

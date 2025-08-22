@@ -53,7 +53,7 @@ public class EmailSyncService : IEmailSyncService
 
                 if (since.HasValue)
                 {
-                    // ✅ CORREGIDO: Validación segura
+                    // CORREGIDO: Validación segura
                     try
                     {
                         since = since.Value.AddHours(-1);
@@ -71,7 +71,7 @@ public class EmailSyncService : IEmailSyncService
             }
             else
             {
-                // ✅ VALIDAR el since que viene como parámetro
+                // VALIDAR el since que viene como parámetro
                 if (
                     since.Value < new DateTime(1900, 1, 1)
                     || since.Value > DateTime.UtcNow.AddDays(1)
@@ -101,7 +101,7 @@ public class EmailSyncService : IEmailSyncService
                 $"Synced successfully: {result.NewEmails} new emails, {result.ExistingEmails} already existed";
 
             _logger.LogInformation(
-                "✅ Sync completed for {ConfigName} (Company: {CompanyId}): {NewCount} new, {ExistingCount} existing",
+                "Sync completed for {ConfigName} (Company: {CompanyId}): {NewCount} new, {ExistingCount} existing",
                 config.Name,
                 companyId,
                 result.NewEmails,
@@ -623,7 +623,7 @@ public class EmailSyncService : IEmailSyncService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation(
-            "✅ Gmail token refreshed successfully for {ConfigName}",
+            "Gmail token refreshed successfully for {ConfigName}",
             config.Name
         );
     }

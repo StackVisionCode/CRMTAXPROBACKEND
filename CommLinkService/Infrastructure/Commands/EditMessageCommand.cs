@@ -1,8 +1,13 @@
+using Common;
+using DTOs.MessageDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record EditMessageCommand(Guid MessageId, Guid UserId, string NewContent)
-    : IRequest<EditMessageResult>;
-
-public sealed record EditMessageResult(bool Success, string? ErrorMessage, DateTime? EditedAt);
+public record class EditMessageCommand(
+    Guid MessageId,
+    ParticipantType EditorType,
+    Guid? EditorTaxUserId,
+    Guid? EditorCustomerId,
+    string NewContent
+) : IRequest<ApiResponse<MessageDTO>>;

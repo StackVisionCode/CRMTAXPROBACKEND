@@ -1,8 +1,14 @@
+using Common;
+using DTOs.MessageDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record ReactToMessageCommand(Guid MessageId, Guid UserId, string Emoji)
-    : IRequest<ReactToMessageResult>;
-
-public sealed record ReactToMessageResult(bool Success, string? ErrorMessage);
+public record class ReactToMessageCommand(
+    Guid MessageId,
+    ParticipantType ReactorType,
+    Guid? ReactorTaxUserId,
+    Guid? ReactorCustomerId,
+    Guid? ReactorCompanyId,
+    string Emoji
+) : IRequest<ApiResponse<MessageReactionDTO>>;

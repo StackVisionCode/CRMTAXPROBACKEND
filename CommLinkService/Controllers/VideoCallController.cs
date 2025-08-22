@@ -1,6 +1,10 @@
-using System.Security.Claims;
-using CommLinkService.Infrastructure.Commands;
-using CommLinkService.Infrastructure.Queries;
+using CommLinkService.Application.Commands;
+using CommLinkService.Application.Common.Shared;
+using CommLinkService.Application.Queries;
+using Common;
+using DTOs.RequestControllerDTOs;
+using DTOs.RoomDTOs;
+using DTOs.VideoCallDTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,77 +14,110 @@ namespace CommLinkService.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public sealed class VideoCallController : ControllerBase
+public class VideoCallController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<VideoCallController> _logger;
 
-    public VideoCallController(IMediator mediator, ILogger<VideoCallController> logger)
+    public VideoCallController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     [HttpPost("start")]
-    public async Task<IActionResult> StartVideoCall([FromBody] StartVideoCallRequest request)
+    public async Task<ActionResult<ApiResponse<VideoCallDTO>>> StartVideoCall(
+        [FromBody] StartVideoCallRequest request
+    )
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
         var command = new StartVideoCallCommand(
             request.RoomId,
-            userId,
-            request.ParticipantIds ?? new List<Guid>()
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
+            userInfo.CompanyId
         );
 
         var result = await _mediator.Send(command);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
     [HttpPost("end")]
-    public async Task<IActionResult> EndVideoCall([FromBody] EndVideoCallRequest request)
+    public async Task<ActionResult<ApiResponse<VideoCallEndDTO>>> EndVideoCall(
+        [FromBody] EndVideoCallRequest request
+    )
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
-        var command = new EndVideoCallCommand(request.RoomId, userId, request.CallId);
+        var command = new EndVideoCallCommand(
+            request.RoomId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
+            request.CallId
+        );
 
         var result = await _mediator.Send(command);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
     [HttpGet("active")]
-    public async Task<IActionResult> GetActiveCalls()
+    public async Task<ActionResult<ApiResponse<List<ActiveVideoCallDTO>>>> GetActiveCalls()
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
-        var query = new GetActiveCallsQuery(userId);
+        var query = new GetActiveVideoCallsQuery(
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
+            userInfo.CompanyId
+        );
+
         var result = await _mediator.Send(query);
+
+        if (result.Success == false)
+            return BadRequest(result);
 
         return Ok(result);
     }
 
     [HttpPut("participant/status")]
-    public async Task<IActionResult> UpdateParticipantStatus([FromBody] UpdateStatusRequest request)
+    public async Task<ActionResult<ApiResponse<RoomParticipantDTO>>> UpdateParticipantStatus(
+        [FromBody] UpdateStatusRequest request
+    )
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
         var command = new UpdateParticipantStatusCommand(
             request.RoomId,
-            userId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
             request.IsMuted,
             request.IsVideoEnabled
         );
 
         var result = await _mediator.Send(command);
 
-        if (result.Success)
-            return Ok(result);
+        if (result.Success == false)
+            return BadRequest(result);
 
-        return BadRequest(result);
+        return Ok(result);
     }
 }
-
-public sealed record StartVideoCallRequest(Guid RoomId, List<Guid>? ParticipantIds);
-
-public sealed record EndVideoCallRequest(Guid RoomId, Guid CallId);
-
-public sealed record UpdateStatusRequest(Guid RoomId, bool? IsMuted, bool? IsVideoEnabled);

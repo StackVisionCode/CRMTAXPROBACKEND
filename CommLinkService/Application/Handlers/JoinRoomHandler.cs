@@ -1,112 +1,132 @@
+using AutoMapper;
+using CommLinkService.Application.Commands;
 using CommLinkService.Domain.Entities;
-using CommLinkService.Infrastructure.Commands;
 using CommLinkService.Infrastructure.Persistence;
+using Common;
+using DTOs.RoomDTOs;
 using MediatR;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CommLinkService.Application.Handlers;
 
-public sealed class JoinRoomHandler : IRequestHandler<JoinRoomCommand, JoinRoomResult>
+public sealed class JoinRoomHandler
+    : IRequestHandler<JoinRoomCommand, ApiResponse<RoomParticipantDTO>>
 {
     private readonly ICommLinkDbContext _context;
+    private readonly IMapper _mapper;
     private readonly ILogger<JoinRoomHandler> _logger;
 
-    public JoinRoomHandler(ICommLinkDbContext context, ILogger<JoinRoomHandler> logger)
+    public JoinRoomHandler(
+        ICommLinkDbContext context,
+        IMapper mapper,
+        ILogger<JoinRoomHandler> logger
+    )
     {
         _context = context;
+        _mapper = mapper;
         _logger = logger;
     }
 
-    public async Task<JoinRoomResult> Handle(
+    public async Task<ApiResponse<RoomParticipantDTO>> Handle(
         JoinRoomCommand request,
         CancellationToken cancellationToken
     )
     {
         try
         {
-            // First check if room exists and has capacity
+            // Verificar que el room existe
             var room = await _context
                 .Rooms.Include(r => r.Participants)
                 .FirstOrDefaultAsync(r => r.Id == request.RoomId && r.IsActive, cancellationToken);
 
             if (room == null)
-                return new JoinRoomResult(false, "Room not found", null);
+                return new ApiResponse<RoomParticipantDTO>(false, "Room not found");
 
-            // Check capacity first to avoid unnecessary queries
+            // Verificar capacidad
             var activeParticipants = room.Participants.Count(p => p.IsActive);
             if (activeParticipants >= room.MaxParticipants)
-                return new JoinRoomResult(false, "Room is full", null);
+                return new ApiResponse<RoomParticipantDTO>(false, "Room is full");
 
-            // Try to find existing participant
-            var existingParticipant = room.Participants.FirstOrDefault(p =>
-                p.UserId == request.UserId
-            );
+            // Buscar participante existente
+            RoomParticipant? existingParticipant = null;
+            if (request.ParticipantType == ParticipantType.TaxUser)
+            {
+                existingParticipant = room.Participants.FirstOrDefault(p =>
+                    p.ParticipantType == ParticipantType.TaxUser && p.TaxUserId == request.TaxUserId
+                );
+            }
+            else if (request.ParticipantType == ParticipantType.Customer)
+            {
+                existingParticipant = room.Participants.FirstOrDefault(p =>
+                    p.ParticipantType == ParticipantType.Customer
+                    && p.CustomerId == request.CustomerId
+                );
+            }
 
             if (existingParticipant != null)
             {
                 if (existingParticipant.IsActive)
-                    return new JoinRoomResult(true, null, existingParticipant.Role);
-
-                // Use direct update approach
-                var rowsAffected = await _context
-                    .RoomParticipants.Where(p => p.Id == existingParticipant.Id && !p.IsActive)
-                    .ExecuteUpdateAsync(setters =>
-                        setters
-                            .SetProperty(p => p.IsActive, true)
-                            .SetProperty(p => p.JoinedAt, DateTime.UtcNow)
+                {
+                    var existingDto = _mapper.Map<RoomParticipantDTO>(existingParticipant);
+                    return new ApiResponse<RoomParticipantDTO>(
+                        true,
+                        "Already in room",
+                        existingDto
                     );
+                }
 
-                if (rowsAffected == 0)
-                    return new JoinRoomResult(false, "Failed to reactivate participant", null);
+                // Reactivar participante
+                existingParticipant.IsActive = true;
+                existingParticipant.JoinedAt = DateTime.UtcNow;
+                existingParticipant.UpdatedAt = DateTime.UtcNow;
 
-                _logger.LogInformation(
-                    "User {UserId} rejoined room {RoomId}",
-                    request.UserId,
-                    request.RoomId
-                );
-                return new JoinRoomResult(true, null, existingParticipant.Role);
-            }
-
-            // Add new participant
-            var newParticipant = new RoomParticipant(
-                room.Id,
-                request.UserId,
-                ParticipantRole.Member
-            );
-            _context.RoomParticipants.Add(newParticipant);
-
-            try
-            {
                 await _context.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation(
-                    "User {UserId} joined room {RoomId}",
-                    request.UserId,
-                    request.RoomId
-                );
-                return new JoinRoomResult(true, null, ParticipantRole.Member);
+
+                var reactivatedDto = _mapper.Map<RoomParticipantDTO>(existingParticipant);
+                return new ApiResponse<RoomParticipantDTO>(true, "Rejoined room", reactivatedDto);
             }
-            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+
+            // Crear nuevo participante
+            var newParticipant = new RoomParticipant
             {
-                // Handle race condition where participant was added by another request
-                return await Handle(request, cancellationToken); // Retry
-            }
+                Id = Guid.NewGuid(),
+                RoomId = request.RoomId,
+                ParticipantType = request.ParticipantType,
+                TaxUserId = request.TaxUserId,
+                CustomerId = request.CustomerId,
+                CompanyId = request.CompanyId,
+                AddedByCompanyId = request.CompanyId ?? Guid.Empty, // Temporal
+                AddedByTaxUserId = request.TaxUserId ?? Guid.Empty, // Temporal
+                Role = ParticipantRole.Member,
+                JoinedAt = DateTime.UtcNow,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            _context.RoomParticipants.Add(newParticipant);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var participantDto = _mapper.Map<RoomParticipantDTO>(newParticipant);
+
+            _logger.LogInformation(
+                "{ParticipantType} {UserId} joined room {RoomId}",
+                request.ParticipantType,
+                request.ParticipantType == ParticipantType.TaxUser
+                    ? request.TaxUserId
+                    : request.CustomerId,
+                request.RoomId
+            );
+
+            return new ApiResponse<RoomParticipantDTO>(
+                true,
+                "Joined room successfully",
+                participantDto
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Error joining room {RoomId} for user {UserId}",
-                request.RoomId,
-                request.UserId
-            );
-            return new JoinRoomResult(false, "An error occurred while joining the room", null);
+            _logger.LogError(ex, "Error joining room");
+            return new ApiResponse<RoomParticipantDTO>(false, "Failed to join room");
         }
-    }
-
-    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
-    {
-        return ex.InnerException is SqlException sqlEx
-            && (sqlEx.Number == 2601 || sqlEx.Number == 2627); // Unique constraint violation codes
     }
 }

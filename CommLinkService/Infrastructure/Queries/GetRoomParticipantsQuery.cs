@@ -1,18 +1,12 @@
-using CommLinkService.Domain.Entities;
+using Common;
+using DTOs.RoomDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Queries;
+namespace CommLinkService.Application.Queries;
 
-public sealed record GetRoomParticipantsQuery(Guid RoomId) : IRequest<GetRoomParticipantsResult>;
-
-public sealed record GetRoomParticipantsResult(List<ParticipantDetailDto> Participants);
-
-public sealed record ParticipantDetailDto(
-    Guid UserId,
-    string DisplayName,
-    ParticipantRole Role,
-    bool IsOnline,
-    bool IsMuted,
-    bool IsVideoEnabled,
-    DateTime JoinedAt
-);
+public sealed record GetRoomParticipantsQuery(
+    Guid RoomId,
+    ParticipantType RequesterType,
+    Guid? RequesterTaxUserId,
+    Guid? RequesterCustomerId
+) : IRequest<ApiResponse<List<RoomParticipantDTO>>>;

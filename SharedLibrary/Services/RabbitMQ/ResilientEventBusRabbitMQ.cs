@@ -185,7 +185,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
                                 {
                                     CreateConsumerForEvent(eventName);
                                     _logger.LogInformation(
-                                        "✅ Consumer creado para {EventName} después de espera",
+                                        "Consumer creado para {EventName} después de espera",
                                         eventName
                                     );
                                 }
@@ -262,7 +262,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
                 try
                 {
                     CreateConsumerForEvent(eventName);
-                    _logger.LogInformation("✅ Consumer reestablecido para {EventName}", eventName);
+                    _logger.LogInformation("Consumer reestablecido para {EventName}", eventName);
                 }
                 catch (Exception ex)
                 {
@@ -282,7 +282,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
             await ProcessPendingEvents();
         });
 
-        _logger.LogInformation("✅ Reconexión completada");
+        _logger.LogInformation("Reconexión completada");
     }
 
     private async Task ProcessPendingEvents()
@@ -306,7 +306,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
                         {
                             PublishInternal(integrationEvent);
                             _logger.LogDebug(
-                                "✅ Evento pendiente {EventName} procesado",
+                                "Evento pendiente {EventName} procesado",
                                 pendingEvent.EventName
                             );
                         }
@@ -323,7 +323,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
                     await Task.Delay(100); // Pequeño delay entre eventos
                 }
 
-                _logger.LogInformation("✅ Procesamiento de eventos pendientes completado");
+                _logger.LogInformation("Procesamiento de eventos pendientes completado");
             }
         }
         catch (Exception ex)
@@ -391,7 +391,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
                     await task;
 
                     _logger.LogDebug(
-                        "✅ Handler {HandlerType} procesó {EventName}",
+                        "Handler {HandlerType} procesó {EventName}",
                         handlerType.Name,
                         eventName
                     );
@@ -411,7 +411,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
             if (allHandlersSucceeded)
             {
                 channel.BasicAck(ea.DeliveryTag, false);
-                _logger.LogDebug("✅ Evento {EventName} procesado exitosamente", eventName);
+                _logger.LogDebug("Evento {EventName} procesado exitosamente", eventName);
             }
             else
             {
@@ -477,7 +477,7 @@ public sealed class ResilientEventBusRabbitMQ : IEventBus, IDisposable
                         }
                         channel.Dispose();
                         _consumerChannels.Remove(eventName);
-                        _logger.LogInformation("✅ Channel eliminado para {EventName}", eventName);
+                        _logger.LogInformation("Channel eliminado para {EventName}", eventName);
                     }
                     else
                     {

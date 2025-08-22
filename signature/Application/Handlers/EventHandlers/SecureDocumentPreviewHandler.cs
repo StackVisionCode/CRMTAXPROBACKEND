@@ -46,7 +46,7 @@ public sealed class SecureDocumentPreviewHandler
             {
                 payload = _encryption.Decrypt<DocumentAccessPayload>(e.EncryptedPayload);
                 _log.LogInformation(
-                    "✅ Payload descifrado exitosamente - SignerId: {SignerId}",
+                    "Payload descifrado exitosamente - SignerId: {SignerId}",
                     payload.SignerId
                 );
             }
@@ -86,7 +86,7 @@ public sealed class SecureDocumentPreviewHandler
             }
 
             _log.LogInformation(
-                "✅ Firmante encontrado: SignerId={SignerId}, CustomerId={CustomerId}, "
+                "Firmante encontrado: SignerId={SignerId}, CustomerId={CustomerId}, "
                     + "Email={Email}, Status={Status}, SignedAt={SignedAt}",
                 signer.Id,
                 signer.CustomerId,
@@ -132,14 +132,14 @@ public sealed class SecureDocumentPreviewHandler
                 // Crear nuevo acceso de preview
                 var documentPreview = new SignPreviewDocument(
                     signatureRequestId: signer.SignatureRequestId,
-                    signerId: payload.SignerId, // ✅ CRÍTICO: Usar el SignerId del payload
+                    signerId: payload.SignerId, // CRÍTICO: Usar el SignerId del payload
                     originalDocumentId: signer.SignatureRequest.DocumentId,
                     sealedDocumentId: e.SealedDocumentId,
                     accessToken: payload.AccessToken,
                     sessionId: payload.SessionId,
                     requestFingerprint: payload.RequestFingerprint,
                     expiresAt: e.ExpiresAt,
-                    maxAccessCount: 10 // ✅ Aumentado para desarrollo
+                    maxAccessCount: 10 // Aumentado para desarrollo
                 );
 
                 _db.SignPreviewDocuments.Add(documentPreview);
@@ -158,7 +158,7 @@ public sealed class SecureDocumentPreviewHandler
             await _db.SaveChangesAsync();
 
             _log.LogInformation(
-                "✅ Preview access preparado exitosamente para SignerId {SignerId}",
+                "Preview access preparado exitosamente para SignerId {SignerId}",
                 payload.SignerId
             );
         }

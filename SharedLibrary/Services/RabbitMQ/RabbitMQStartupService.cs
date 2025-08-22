@@ -38,7 +38,7 @@ public sealed class RabbitMQStartupService : IHostedService
                 if (_connection.TryConnect())
                 {
                     _logger.LogInformation(
-                        "✅ RabbitMQ conectado en startup (intento {Attempt})",
+                        "RabbitMQ conectado en startup (intento {Attempt})",
                         attempt
                     );
                     _connectionState.IsConnected = true;

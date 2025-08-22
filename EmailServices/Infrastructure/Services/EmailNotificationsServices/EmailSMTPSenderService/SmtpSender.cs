@@ -60,7 +60,7 @@ public sealed class SmtpSender : ISmtpSender
 
                     await smtp.SendMailAsync(msg, ct);
 
-                    _log.LogInformation("✅ Correo enviado a {To}", msg.To);
+                    _log.LogInformation("Correo enviado a {To}", msg.To);
                 },
                 new Context { ["logger"] = _log }
             );

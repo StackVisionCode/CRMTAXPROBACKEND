@@ -248,5 +248,16 @@ namespace AuthService.Controllers
 
             return Ok(result);
         }
+
+        [HttpGet("GetByUserId")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var command = new GetTaxUserByIdQuery(id);
+            var result = await _mediator.Send(command);
+            if (result.Success == false)
+                return BadRequest(new { result });
+
+            return Ok(result);
+        }
     }
 }

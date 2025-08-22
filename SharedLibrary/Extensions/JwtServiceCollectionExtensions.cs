@@ -33,7 +33,7 @@ public static class JwtServiceCollectionExtensions
     }
 
     /// <summary>
-    /// ✅ MÉTODO CORREGIDO - Delega la configuración del caché al nuevo sistema HybridCache,
+    /// MÉTODO CORREGIDO - Delega la configuración del caché al nuevo sistema HybridCache,
     /// manteniendo un fallback a un caché en memoria simple si la configuración avanzada falla.
     /// </summary>
     public static IServiceCollection AddSessionCache(this IServiceCollection services)

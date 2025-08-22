@@ -1,43 +1,23 @@
+using Common;
+
 namespace CommLinkService.Domain.Entities;
 
-public sealed class RoomParticipant
+public class RoomParticipant : BaseEntity
 {
-    public Guid Id { get; private set; }
-    public Guid RoomId { get; private set; }
-    public Room Room { get; private set; } = null!; // Navigation property
-    public Guid UserId { get; private set; }
-    public ParticipantRole Role { get; private set; }
-    public DateTime JoinedAt { get; private set; }
-    public bool IsActive { get; private set; }
-    public bool IsMuted { get; private set; }
-    public bool IsVideoEnabled { get; private set; }
+    public Guid RoomId { get; set; }
+    public ParticipantType ParticipantType { get; set; }
+    public Guid? TaxUserId { get; set; } // Para staff/employees
+    public Guid? CustomerId { get; set; } // Para clientes
+    public Guid? CompanyId { get; set; } // Company del TaxUser (null si es Customer)
+    public Guid AddedByCompanyId { get; set; }
+    public Guid AddedByTaxUserId { get; set; }
 
-    private RoomParticipant() { } // EF Core
+    public ParticipantRole Role { get; set; }
+    public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
+    public bool IsActive { get; set; } = true;
+    public bool IsMuted { get; set; } = false;
+    public bool IsVideoEnabled { get; set; } = false;
 
-    public RoomParticipant(Guid roomId, Guid userId, ParticipantRole role)
-    {
-        Id = Guid.NewGuid();
-        RoomId = roomId;
-        UserId = userId;
-        Role = role;
-        JoinedAt = DateTime.UtcNow;
-        IsActive = true;
-        IsMuted = false;
-        IsVideoEnabled = false;
-    }
-
-    public void SetMuted(bool muted) => IsMuted = muted;
-
-    public void SetVideoEnabled(bool enabled) => IsVideoEnabled = enabled;
-
-    public void SetInactive() => IsActive = false;
-
-    public void SetActive() => IsActive = true;
-}
-
-public enum ParticipantRole
-{
-    Member,
-    Admin,
-    Owner,
+    // Navigation
+    public virtual Room Room { get; set; } = null!;
 }

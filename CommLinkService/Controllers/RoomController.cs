@@ -1,7 +1,9 @@
-using System.Security.Claims;
-using CommLinkService.Domain.Entities;
-using CommLinkService.Infrastructure.Commands;
-using CommLinkService.Infrastructure.Queries;
+using CommLinkService.Application.Commands;
+using CommLinkService.Application.Common.Shared;
+using CommLinkService.Application.Queries;
+using Common;
+using DTOs.RequestControllerDTOs;
+using DTOs.RoomDTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,129 +13,230 @@ namespace CommLinkService.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public sealed class RoomController : ControllerBase
+public class RoomController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<RoomController> _logger;
 
-    public RoomController(IMediator mediator, ILogger<RoomController> logger)
+    public RoomController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     [HttpPost("create")]
-    public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
+    public async Task<ActionResult<ApiResponse<RoomDTO>>> CreateRoom(
+        [FromBody] CreateRoomDTO request
+    )
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-        var command = new CreateRoomCommand(
-            request.Name,
-            request.Type,
-            userId,
-            request.ParticipantIds,
-            request.MaxParticipants ?? 10
-        );
-
+        var command = new CreateRoomCommand(request);
         var result = await _mediator.Send(command);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
     [HttpGet("my-rooms")]
-    public async Task<IActionResult> GetMyRooms()
+    public async Task<ActionResult<ApiResponse<List<RoomDTO>>>> GetMyRooms()
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-        var query = new GetUserRoomsQuery(userId);
-        var result = await _mediator.Send(query);
-        return Ok(result);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
+
+        if (userInfo.UserType == ParticipantType.TaxUser)
+        {
+            var query = new GetTaxUserRoomsQuery(
+                userInfo.TaxUserId!.Value,
+                userInfo.CompanyId!.Value
+            );
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+        else
+        {
+            var query = new GetCustomerRoomsQuery(userInfo.CustomerId!.Value);
+            var result = await _mediator.Send(query);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
     }
 
     [HttpGet("{roomId}/messages")]
-    public async Task<IActionResult> GetRoomMessages(
+    public async Task<ActionResult<ApiResponse<GetRoomMessagesResult>>> GetRoomMessages(
         Guid roomId,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 50
     )
     {
-        var query = new GetRoomMessagesQuery(roomId, pageNumber, pageSize);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
+
+        var query = new GetRoomMessagesQuery(
+            roomId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
+            pageNumber,
+            pageSize
+        );
+
         var result = await _mediator.Send(query);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
     [HttpGet("{roomId}/participants")]
-    public async Task<IActionResult> GetRoomParticipants(Guid roomId)
+    public async Task<ActionResult<ApiResponse<List<RoomParticipantDTO>>>> GetRoomParticipants(
+        Guid roomId
+    )
     {
-        var query = new GetRoomParticipantsQuery(roomId);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
+
+        var query = new GetRoomParticipantsQuery(
+            roomId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId
+        );
+
         var result = await _mediator.Send(query);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
     [HttpGet("direct-between")]
-    public async Task<IActionResult> GetRoomBetween(
-        [FromQuery] string user1,
-        [FromQuery] string user2,
-        [FromQuery] RoomType? type /* opcional */
+    public async Task<ActionResult<ApiResponse<RoomDTO?>>> GetRoomBetween(
+        [FromQuery] Guid customerId,
+        [FromQuery] Guid taxUserId,
+        [FromQuery] Guid companyId,
+        [FromQuery] RoomType? type = null
     )
     {
-        var caller = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-        var u1 = Guid.Parse(user1);
-        var u2 = Guid.Parse(user2);
+        var query = new GetRoomBetweenCustomerAndTaxUserQuery(
+            customerId,
+            taxUserId,
+            companyId,
+            type
+        );
+        var result = await _mediator.Send(query);
 
-        if (caller != u1 && caller != u2)
-            return Forbid();
+        if (result.Success == false)
+            return BadRequest(result);
 
-        var dto = await _mediator.Send(new GetRoomBetweenUsersQuery(u1, u2, type));
-
-        // Mantener compatibilidad con front viejo
-        return Ok(dto); // dto puede ser null
+        return Ok(result);
     }
 
     [HttpPost("{roomId}/join")]
-    public async Task<IActionResult> JoinRoom(Guid roomId)
+    public async Task<ActionResult<ApiResponse<RoomParticipantDTO>>> JoinRoom(Guid roomId)
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-        var connectionId = Guid.NewGuid().ToString(); // En producción, obtener del WebSocket
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
-        var command = new JoinRoomCommand(roomId, userId, connectionId);
+        var connectionId = Guid.NewGuid().ToString();
+
+        var command = new JoinRoomCommand(
+            roomId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
+            userInfo.CompanyId,
+            connectionId
+        );
+
         var result = await _mediator.Send(command);
 
-        if (result.Success)
-            return Ok(result);
+        if (result.Success == false)
+            return BadRequest(result);
 
-        return BadRequest(result);
+        return Ok(result);
     }
 
     [HttpPost("{roomId}/leave")]
-    public async Task<IActionResult> LeaveRoom(Guid roomId)
+    public async Task<ActionResult<ApiResponse<bool>>> LeaveRoom(Guid roomId)
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
-        var command = new LeaveRoomCommand(roomId, userId);
+        var command = new LeaveRoomCommand(
+            roomId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId
+        );
+
         var result = await _mediator.Send(command);
 
-        if (result.Success)
-            return Ok(result);
+        if (result.Success == false)
+            return BadRequest(result);
 
-        return BadRequest(result);
+        return Ok(result);
+    }
+
+    [HttpGet("{roomId}")]
+    public async Task<ActionResult<ApiResponse<RoomDTO?>>> GetRoomById(Guid roomId)
+    {
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
+
+        var query = new GetRoomByIdQuery(
+            roomId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId
+        );
+
+        var result = await _mediator.Send(query);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    [HttpGet("{roomId}/unread-count")]
+    public async Task<ActionResult<ApiResponse<int>>> GetUnreadMessageCount(Guid roomId)
+    {
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
+
+        var query = new GetUnreadMessageCountQuery(
+            roomId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId
+        );
+
+        var result = await _mediator.Send(query);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
+        return Ok(result);
     }
 
     [HttpPost("{roomId}/typing")]
-    public async Task<IActionResult> SetTypingStatus(
-        Guid roomId,
-        [FromBody] TypingStatusRequest request
-    )
+    public IActionResult SetTypingStatus(Guid roomId, [FromBody] TypingStatusRequest request)
     {
-        // Este endpoint es principalmente para fallback
-        // Normalmente se maneja via WebSocket
         return Ok(new { message = "Use WebSocket for real-time typing indicators" });
     }
 }
-
-public sealed record CreateRoomRequest(
-    string Name,
-    RoomType Type,
-    List<Guid>? ParticipantIds,
-    int? MaxParticipants
-);
-
-public sealed record TypingStatusRequest(bool IsTyping);

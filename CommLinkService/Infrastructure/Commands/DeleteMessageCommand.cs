@@ -1,8 +1,11 @@
+using Common;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record DeleteMessageCommand(Guid MessageId, Guid UserId)
-    : IRequest<DeleteMessageResult>;
-
-public sealed record DeleteMessageResult(bool Success, string? ErrorMessage);
+public record class DeleteMessageCommand(
+    Guid MessageId,
+    ParticipantType DeleterType,
+    Guid? DeleterTaxUserId,
+    Guid? DeleterCustomerId
+) : IRequest<ApiResponse<bool>>;

@@ -111,7 +111,7 @@ public static class HybridCacheServiceCollectionExtensions
     }
 
     /// <summary>
-    /// ✅ MÉTODO RESTAURADO. Mantiene la compatibilidad con el sistema anterior
+    /// MÉTODO RESTAURADO. Mantiene la compatibilidad con el sistema anterior
     /// y ahora sirve como fallback para el caché híbrido.
     /// </summary>
     public static IServiceCollection AddSessionCache(this IServiceCollection services)

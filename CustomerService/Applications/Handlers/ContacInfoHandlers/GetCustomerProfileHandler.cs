@@ -35,8 +35,8 @@ public class GetCustomerProfileHandler
                 where cu.Id == request.CustomerId
                 select new CustomerProfileDTO
                 {
-                    PreparerId = cu.CompanyId, // Mapeo del ComapanyId a PreparerId
                     CustomerId = cu.Id,
+                    CompanyId = cu.CompanyId,
                     FirstName = cu.FirstName,
                     LastName = cu.LastName,
                     MiddleName = cu.MiddleName,

@@ -1,12 +1,14 @@
+using Common;
+using DTOs.RoomDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record UpdateParticipantStatusCommand(
+public record class UpdateParticipantStatusCommand(
     Guid RoomId,
-    Guid UserId,
+    ParticipantType ParticipantType,
+    Guid? TaxUserId,
+    Guid? CustomerId,
     bool? IsMuted,
     bool? IsVideoEnabled
-) : IRequest<UpdateParticipantStatusResult>;
-
-public sealed record UpdateParticipantStatusResult(bool Success, string? ErrorMessage);
+) : IRequest<ApiResponse<RoomParticipantDTO>>;

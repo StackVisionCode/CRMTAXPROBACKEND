@@ -12,7 +12,10 @@ namespace CommLinkService.Infrastructure.WebSockets;
 public sealed class AppWebSocketManager : IWebSocketManager
 {
     private readonly ConcurrentDictionary<string, WebSocketConnection> _connections = new();
-    private readonly ConcurrentDictionary<Guid, HashSet<string>> _userConnections = new();
+
+    private readonly ConcurrentDictionary<Guid, HashSet<string>> _taxUserConnections = new();
+    private readonly ConcurrentDictionary<Guid, HashSet<string>> _customerConnections = new();
+
     private readonly ILogger<AppWebSocketManager> _logger;
     private readonly IServiceProvider _serviceProvider;
 
@@ -25,11 +28,23 @@ public sealed class AppWebSocketManager : IWebSocketManager
         _serviceProvider = serviceProvider;
     }
 
-    public async Task AddConnectionAsync(Guid userId, string connectionId, WebSocket webSocket)
+    public async Task AddConnectionAsync(
+        ParticipantType userType,
+        Guid? taxUserId,
+        Guid? customerId,
+        Guid? companyId,
+        string connectionId,
+        WebSocket webSocket,
+        string? userAgent = null,
+        string? ipAddress = null
+    )
     {
         var connection = new WebSocketConnection
         {
-            UserId = userId,
+            UserType = userType,
+            TaxUserId = taxUserId,
+            CustomerId = customerId,
+            CompanyId = companyId,
             ConnectionId = connectionId,
             WebSocket = webSocket,
             ConnectedAt = DateTime.UtcNow,
@@ -37,28 +52,57 @@ public sealed class AppWebSocketManager : IWebSocketManager
 
         _connections.TryAdd(connectionId, connection);
 
-        _userConnections.AddOrUpdate(
-            userId,
-            new HashSet<string> { connectionId },
-            (key, set) =>
-            {
-                set.Add(connectionId);
-                return set;
-            }
-        );
+        if (userType == ParticipantType.TaxUser && taxUserId.HasValue)
+        {
+            _taxUserConnections.AddOrUpdate(
+                taxUserId.Value,
+                new HashSet<string> { connectionId },
+                (key, set) =>
+                {
+                    set.Add(connectionId);
+                    return set;
+                }
+            );
+        }
+        else if (userType == ParticipantType.Customer && customerId.HasValue)
+        {
+            _customerConnections.AddOrUpdate(
+                customerId.Value,
+                new HashSet<string> { connectionId },
+                (key, set) =>
+                {
+                    set.Add(connectionId);
+                    return set;
+                }
+            );
+        }
 
-        // Store connection in database
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ICommLinkDbContext>();
 
-        var dbConnection = new Connection(userId, connectionId, null, null);
+        var dbConnection = new Connection
+        {
+            Id = Guid.NewGuid(),
+            UserType = userType,
+            TaxUserId = taxUserId,
+            CustomerId = customerId,
+            CompanyId = companyId,
+            ConnectionId = connectionId,
+            ConnectedAt = DateTime.UtcNow,
+            UserAgent = userAgent,
+            IpAddress = ipAddress,
+            IsActive = true,
+        };
+
         context.Connections.Add(dbConnection);
         await context.SaveChangesAsync();
 
         _logger.LogInformation(
-            "WebSocket connection {ConnectionId} added for user {UserId}",
+            "WebSocket connection {ConnectionId} added for {UserType} - TaxUser: {TaxUserId}, Customer: {CustomerId}",
             connectionId,
-            userId
+            userType,
+            taxUserId,
+            customerId
         );
     }
 
@@ -66,16 +110,42 @@ public sealed class AppWebSocketManager : IWebSocketManager
     {
         if (_connections.TryRemove(connectionId, out var connection))
         {
-            if (_userConnections.TryGetValue(connection.UserId, out var connections))
+            if (connection.UserType == ParticipantType.TaxUser && connection.TaxUserId.HasValue)
             {
-                connections.Remove(connectionId);
-                if (!connections.Any())
+                if (
+                    _taxUserConnections.TryGetValue(
+                        connection.TaxUserId.Value,
+                        out var taxUserConnections
+                    )
+                )
                 {
-                    _userConnections.TryRemove(connection.UserId, out _);
+                    taxUserConnections.Remove(connectionId);
+                    if (!taxUserConnections.Any())
+                    {
+                        _taxUserConnections.TryRemove(connection.TaxUserId.Value, out _);
+                    }
+                }
+            }
+            else if (
+                connection.UserType == ParticipantType.Customer
+                && connection.CustomerId.HasValue
+            )
+            {
+                if (
+                    _customerConnections.TryGetValue(
+                        connection.CustomerId.Value,
+                        out var customerConnections
+                    )
+                )
+                {
+                    customerConnections.Remove(connectionId);
+                    if (!customerConnections.Any())
+                    {
+                        _customerConnections.TryRemove(connection.CustomerId.Value, out _);
+                    }
                 }
             }
 
-            // Update database
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ICommLinkDbContext>();
 
@@ -85,7 +155,8 @@ public sealed class AppWebSocketManager : IWebSocketManager
 
             if (dbConnection != null)
             {
-                dbConnection.Disconnect();
+                dbConnection.DisconnectedAt = DateTime.UtcNow;
+                dbConnection.IsActive = false;
                 await context.SaveChangesAsync();
             }
 
@@ -93,23 +164,21 @@ public sealed class AppWebSocketManager : IWebSocketManager
         }
     }
 
-    public async Task SendToUserAsync(Guid userId, object data)
+    public async Task SendToTaxUserAsync(Guid taxUserId, object data)
     {
-        _logger.LogInformation("Attempting to send message to user {UserId}", userId);
-
-        if (_userConnections.TryGetValue(userId, out var connectionIds))
+        if (_taxUserConnections.TryGetValue(taxUserId, out var connectionIds))
         {
-            _logger.LogInformation(
-                "Found {Count} connections for user {UserId}",
-                connectionIds.Count,
-                userId
-            );
             var tasks = connectionIds.Select(connId => SendToConnectionAsync(connId, data));
             await Task.WhenAll(tasks);
         }
-        else
+    }
+
+    public async Task SendToCustomerAsync(Guid customerId, object data)
+    {
+        if (_customerConnections.TryGetValue(customerId, out var connectionIds))
         {
-            _logger.LogWarning("No connections found for user {UserId}", userId);
+            var tasks = connectionIds.Select(connId => SendToConnectionAsync(connId, data));
+            await Task.WhenAll(tasks);
         }
     }
 
@@ -145,19 +214,63 @@ public sealed class AppWebSocketManager : IWebSocketManager
         }
     }
 
-    public async Task SendToRoomAsync(Guid roomId, object data, Guid? excludeUserId = null)
+    public async Task SendToRoomAsync(
+        Guid roomId,
+        object data,
+        ParticipantType? excludeType = null,
+        Guid? excludeUserId = null
+    )
     {
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ICommLinkDbContext>();
 
         var participants = await context
             .RoomParticipants.Where(p => p.RoomId == roomId && p.IsActive)
-            .Select(p => p.UserId)
             .ToListAsync();
 
-        var tasks = participants
-            .Where(userId => userId != excludeUserId)
-            .Select(userId => SendToUserAsync(userId, data));
+        var tasks = new List<Task>();
+
+        foreach (var participant in participants)
+        {
+            bool shouldExclude = false;
+            if (excludeType.HasValue && excludeUserId.HasValue)
+            {
+                if (
+                    excludeType == ParticipantType.TaxUser
+                    && participant.ParticipantType == ParticipantType.TaxUser
+                    && participant.TaxUserId == excludeUserId
+                )
+                {
+                    shouldExclude = true;
+                }
+                else if (
+                    excludeType == ParticipantType.Customer
+                    && participant.ParticipantType == ParticipantType.Customer
+                    && participant.CustomerId == excludeUserId
+                )
+                {
+                    shouldExclude = true;
+                }
+            }
+
+            if (!shouldExclude)
+            {
+                if (
+                    participant.ParticipantType == ParticipantType.TaxUser
+                    && participant.TaxUserId.HasValue
+                )
+                {
+                    tasks.Add(SendToTaxUserAsync(participant.TaxUserId.Value, data));
+                }
+                else if (
+                    participant.ParticipantType == ParticipantType.Customer
+                    && participant.CustomerId.HasValue
+                )
+                {
+                    tasks.Add(SendToCustomerAsync(participant.CustomerId.Value, data));
+                }
+            }
+        }
 
         await Task.WhenAll(tasks);
     }
@@ -169,20 +282,33 @@ public sealed class AppWebSocketManager : IWebSocketManager
             : null;
     }
 
-    public bool IsUserOnline(Guid userId)
+    public bool IsTaxUserOnline(Guid taxUserId) => _taxUserConnections.ContainsKey(taxUserId);
+
+    public bool IsCustomerOnline(Guid customerId) => _customerConnections.ContainsKey(customerId);
+
+    public int GetOnlineUsersCount() => _taxUserConnections.Count + _customerConnections.Count;
+
+    public IEnumerable<string> GetTaxUserConnections(Guid taxUserId)
     {
-        return _userConnections.ContainsKey(userId);
+        return _taxUserConnections.TryGetValue(taxUserId, out var connections)
+            ? connections.ToList()
+            : Enumerable.Empty<string>();
     }
 
-    public int GetOnlineUsersCount()
+    public IEnumerable<string> GetCustomerConnections(Guid customerId)
     {
-        return _userConnections.Count;
+        return _customerConnections.TryGetValue(customerId, out var connections)
+            ? connections.ToList()
+            : Enumerable.Empty<string>();
     }
 }
 
 internal class WebSocketConnection
 {
-    public Guid UserId { get; set; }
+    public ParticipantType UserType { get; set; }
+    public Guid? TaxUserId { get; set; }
+    public Guid? CustomerId { get; set; }
+    public Guid? CompanyId { get; set; }
     public string ConnectionId { get; set; } = string.Empty;
     public WebSocket WebSocket { get; set; } = null!;
     public DateTime ConnectedAt { get; set; }

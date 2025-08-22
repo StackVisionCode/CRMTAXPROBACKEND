@@ -14,8 +14,7 @@ public sealed class WebSocketMiddleware
     public WebSocketMiddleware(
         RequestDelegate next,
         IWebSocketManager webSocketManager,
-        ILogger<WebSocketMiddleware> logger,
-        IConfiguration configuration
+        ILogger<WebSocketMiddleware> logger
     )
     {
         _next = next;
@@ -23,43 +22,84 @@ public sealed class WebSocketMiddleware
         _logger = logger;
     }
 
-    // *******************************************************************
-    // ** ESTE ES EL MÉTODO PÚBLICO QUE FALTABA **
-    // *******************************************************************
     public async Task InvokeAsync(HttpContext context, IServiceProvider serviceProvider)
     {
-        // Si no es una solicitud de WebSocket, pasa al siguiente middleware.
         if (!context.WebSockets.IsWebSocketRequest)
         {
             await _next(context);
             return;
         }
 
-        // Validar autenticación
-        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
+        var userIdStr = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var companyIdStr = context.User.FindFirst("companyId")?.Value;
+
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
         {
-            _logger.LogWarning("WebSocket connection attempt without authentication.");
+            _logger.LogWarning("WebSocket connection attempt without valid user authentication.");
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
 
-        var userGuid = Guid.Parse(userId);
-        var connectionId = Guid.NewGuid().ToString();
+        Guid? companyId = null;
+        if (
+            !string.IsNullOrEmpty(companyIdStr)
+            && Guid.TryParse(companyIdStr, out var tempCompanyId)
+        )
+        {
+            companyId = tempCompanyId;
+        }
 
-        // Aceptar la conexión WebSocket
+        ParticipantType userType;
+        Guid? taxUserId = null;
+        Guid? customerId = null;
+
+        if (companyId.HasValue && companyId.Value != Guid.Empty)
+        {
+            // Es un TaxUser
+            userType = ParticipantType.TaxUser;
+            taxUserId = userId;
+        }
+        else
+        {
+            // Es un Customer
+            userType = ParticipantType.Customer;
+            customerId = userId;
+            companyId = null; // Los customers no tienen companyId
+        }
+
+        var connectionId = Guid.NewGuid().ToString();
+        var userAgent = context.Request.Headers.UserAgent.ToString();
+        var ipAddress = context.Connection.RemoteIpAddress?.ToString();
+
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        await _webSocketManager.AddConnectionAsync(userGuid, connectionId, webSocket);
+
+        await _webSocketManager.AddConnectionAsync(
+            userType,
+            taxUserId,
+            customerId,
+            companyId,
+            connectionId,
+            webSocket,
+            userAgent,
+            ipAddress
+        );
 
         try
         {
-            // Llamar a la lógica de manejo de mensajes que ya teníamos
-            await HandleWebSocketAsync(context, webSocket, userGuid, connectionId, serviceProvider);
+            await HandleWebSocketAsync(
+                context,
+                webSocket,
+                userType,
+                taxUserId,
+                customerId,
+                companyId,
+                connectionId,
+                serviceProvider
+            );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "WebSocket error for connection {ConnectionId}", connectionId);
-            // Asegúrate de que la respuesta no se haya enviado ya
             if (!context.Response.HasStarted)
             {
                 context.Response.StatusCode = StatusCodes.Status500InternalServerError;
@@ -67,21 +107,22 @@ public sealed class WebSocketMiddleware
         }
         finally
         {
-            // Asegurarse de limpiar la conexión al finalizar
             await _webSocketManager.RemoveConnectionAsync(connectionId);
         }
     }
 
-    // Este método ahora es privado y es llamado por InvokeAsync
     private async Task HandleWebSocketAsync(
         HttpContext context,
         WebSocket webSocket,
-        Guid userId,
+        ParticipantType userType,
+        Guid? taxUserId,
+        Guid? customerId,
+        Guid? companyId,
         string connectionId,
         IServiceProvider serviceProvider
     )
     {
-        var buffer = new byte[1024 * 8]; // Buffer de 8KB
+        var buffer = new byte[1024 * 8];
         var messageHandler = new WebSocketMessageHandler(
             serviceProvider,
             _webSocketManager,
@@ -90,7 +131,18 @@ public sealed class WebSocketMiddleware
 
         await _webSocketManager.SendToConnectionAsync(
             connectionId,
-            new { type = "connected", data = new { connectionId, userId } }
+            new
+            {
+                type = "connected",
+                data = new
+                {
+                    connectionId,
+                    userType,
+                    taxUserId,
+                    customerId,
+                    companyId,
+                },
+            }
         );
 
         while (webSocket.State == WebSocketState.Open)
@@ -121,7 +173,15 @@ public sealed class WebSocketMiddleware
                     ms.Seek(0, SeekOrigin.Begin);
                     using var reader = new StreamReader(ms, Encoding.UTF8);
                     var fullMessage = await reader.ReadToEndAsync();
-                    await messageHandler.HandleMessageAsync(userId, connectionId, fullMessage);
+
+                    await messageHandler.HandleMessageAsync(
+                        userType,
+                        taxUserId,
+                        customerId,
+                        companyId,
+                        connectionId,
+                        fullMessage
+                    );
                 }
             }
             catch (WebSocketException ex)

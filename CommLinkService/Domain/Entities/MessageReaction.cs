@@ -1,21 +1,18 @@
+using Common;
+
 namespace CommLinkService.Domain.Entities;
 
-public sealed class MessageReaction
+public class MessageReaction : BaseEntity
 {
-    public Guid Id { get; private set; }
-    public Guid MessageId { get; private set; }
-    public Guid UserId { get; private set; }
-    public string Emoji { get; private set; }
-    public DateTime ReactedAt { get; private set; }
+    public Guid MessageId { get; set; }
+    public ParticipantType ReactorType { get; set; }
+    public Guid? ReactorTaxUserId { get; set; }
+    public Guid? ReactorCustomerId { get; set; }
+    public Guid? ReactorCompanyId { get; set; }
 
-    private MessageReaction() { } // EF Core
+    public string Emoji { get; set; } = string.Empty;
+    public DateTime ReactedAt { get; set; } = DateTime.UtcNow;
 
-    public MessageReaction(Guid messageId, Guid userId, string emoji)
-    {
-        Id = Guid.NewGuid();
-        MessageId = messageId;
-        UserId = userId;
-        Emoji = emoji;
-        ReactedAt = DateTime.UtcNow;
-    }
+    // Navigation
+    public virtual Message Message { get; set; } = null!;
 }

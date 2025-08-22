@@ -1,7 +1,11 @@
+using Common;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record LeaveRoomCommand(Guid RoomId, Guid UserId) : IRequest<LeaveRoomResult>;
-
-public sealed record LeaveRoomResult(bool Success);
+public record class LeaveRoomCommand(
+    Guid RoomId,
+    ParticipantType ParticipantType,
+    Guid? TaxUserId,
+    Guid? CustomerId
+) : IRequest<ApiResponse<bool>>;

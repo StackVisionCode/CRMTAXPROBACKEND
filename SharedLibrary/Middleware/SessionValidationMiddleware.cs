@@ -52,7 +52,7 @@ public sealed class SessionValidationMiddleware
         string cacheKey = $"sid:{sid}";
         bool? cachedResult = null;
 
-        // ✅ USAR CACHÉ HÍBRIDO SI ESTÁ DISPONIBLE
+        // USAR CACHÉ HÍBRIDO SI ESTÁ DISPONIBLE
         if (_hybridCache != null)
         {
             try

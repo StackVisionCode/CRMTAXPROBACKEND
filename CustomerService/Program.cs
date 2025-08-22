@@ -132,7 +132,7 @@ try
         if (hybridCache != null)
         {
             logger.LogInformation(
-                "✅ Customer Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                "Customer Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
                 hybridCache.CurrentCacheMode,
                 hybridCache.IsRedisAvailable
             );

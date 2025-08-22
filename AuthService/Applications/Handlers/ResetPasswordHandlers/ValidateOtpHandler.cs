@@ -43,7 +43,7 @@ public class ValidateOtpHandler : IRequestHandler<ValidateOtpCommands, ApiRespon
                 return new(false, "OTP inválido o expirado");
             }
 
-            // ✅ MARCAR OTP COMO VERIFICADO
+            // MARCAR OTP COMO VERIFICADO
             var updateResult =
                 await _db
                     .TaxUsers.Where(u => u.Id == userData.UserId)

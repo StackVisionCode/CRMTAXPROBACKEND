@@ -40,8 +40,8 @@ public sealed class AccountConfirmationLinkHandler
             {
                 DisplayName = displayName,
                 ConfirmLink = evt.ConfirmLink,
-                CompanyFullName = evt.CompanyFullName, // ✅ NUEVO: Para individuales
-                CompanyName = evt.CompanyName, // ✅ NUEVO: Para empresas
+                CompanyFullName = evt.CompanyFullName, // NUEVO: Para individuales
+                CompanyName = evt.CompanyName, // NUEVO: Para empresas
                 AdminName = evt.AdminName,
                 Domain = evt.Domain,
                 Year = DateTime.UtcNow.Year,

@@ -116,7 +116,7 @@ public sealed class EnhancedRabbitMQPersistentConnection : IRabbitMQPersistentCo
                     StopReconnectionTimer();
 
                     _logger.LogInformation(
-                        "✅ RabbitMQ conectado exitosamente a {Host}:{Port}",
+                        "RabbitMQ conectado exitosamente a {Host}:{Port}",
                         _options.HostName,
                         _options.Port
                     );
@@ -204,7 +204,7 @@ public sealed class EnhancedRabbitMQPersistentConnection : IRabbitMQPersistentCo
                 {
                     if (!IsConnected && TryConnect())
                     {
-                        _logger.LogInformation("✅ Reconexión automática exitosa");
+                        _logger.LogInformation("Reconexión automática exitosa");
                     }
                     else if (!IsConnected)
                     {
@@ -254,7 +254,7 @@ public sealed class EnhancedRabbitMQPersistentConnection : IRabbitMQPersistentCo
 
     private void OnConnectionUnblocked(object? sender, EventArgs args)
     {
-        _logger.LogInformation("✅ RabbitMQ connection unblocked");
+        _logger.LogInformation("RabbitMQ connection unblocked");
     }
 
     public event Action? OnReconnected;

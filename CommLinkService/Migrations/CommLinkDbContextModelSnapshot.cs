@@ -28,6 +28,9 @@ namespace CommLinkService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("ConnectedAt")
                         .HasColumnType("datetime2");
 
@@ -35,6 +38,17 @@ namespace CommLinkService.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DisconnectedAt")
                         .HasColumnType("datetime2");
@@ -44,22 +58,47 @@ namespace CommLinkService.Migrations
                         .HasColumnType("nvarchar(64)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("TaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserAgent")
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserType")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsActive");
+                    b.HasIndex("ConnectionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Connections_ConnectionId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("IX_Connections_CustomerId");
 
-                    b.ToTable("Connections", (string)null);
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_Connections_IsActive");
+
+                    b.HasIndex("TaxUserId")
+                        .HasDatabaseName("IX_Connections_TaxUserId");
+
+                    b.ToTable("Connections", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Connection_ValidUser", "([UserType] = 0 AND [TaxUserId] IS NOT NULL AND [CustomerId] IS NULL) OR ([UserType] = 1 AND [CustomerId] IS NOT NULL AND [TaxUserId] IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("CommLinkService.Domain.Entities.Message", b =>
@@ -73,11 +112,21 @@ namespace CommLinkService.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("EditedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Metadata")
                         .HasColumnType("nvarchar(max)");
@@ -85,8 +134,22 @@ namespace CommLinkService.Migrations
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SenderId")
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("SenderCompanyId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SenderCustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SenderTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SenderType")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
@@ -94,15 +157,30 @@ namespace CommLinkService.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("RoomId");
+                    b.HasIndex("RoomId")
+                        .HasDatabaseName("IX_Messages_RoomId");
 
-                    b.HasIndex("SenderId");
+                    b.HasIndex("SenderCustomerId")
+                        .HasDatabaseName("IX_Messages_SenderCustomerId");
 
-                    b.HasIndex("SentAt");
+                    b.HasIndex("SenderTaxUserId")
+                        .HasDatabaseName("IX_Messages_SenderTaxUserId");
 
-                    b.ToTable("Messages", (string)null);
+                    b.HasIndex("SentAt")
+                        .HasDatabaseName("IX_Messages_SentAt");
+
+                    b.HasIndex("RoomId", "SentAt")
+                        .HasDatabaseName("IX_Messages_Room_SentAt");
+
+                    b.ToTable("Messages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Message_ValidSender", "([SenderType] = 0 AND [SenderTaxUserId] IS NOT NULL AND [SenderCustomerId] IS NULL) OR ([SenderType] = 1 AND [SenderCustomerId] IS NOT NULL AND [SenderTaxUserId] IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("CommLinkService.Domain.Entities.MessageReaction", b =>
@@ -110,6 +188,14 @@ namespace CommLinkService.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Emoji")
                         .IsRequired()
@@ -122,16 +208,51 @@ namespace CommLinkService.Migrations
                     b.Property<DateTime>("ReactedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("ReactorCompanyId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReactorCustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReactorTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ReactorType")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MessageId");
+                    b.HasIndex("MessageId")
+                        .HasDatabaseName("IX_MessageReactions_MessageId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("ReactorCustomerId")
+                        .HasDatabaseName("IX_MessageReactions_ReactorCustomerId");
 
-                    b.ToTable("MessageReactions", (string)null);
+                    b.HasIndex("ReactorTaxUserId")
+                        .HasDatabaseName("IX_MessageReactions_ReactorTaxUserId");
+
+                    b.HasIndex("MessageId", "ReactorCustomerId", "Emoji")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MessageReactions_Message_Customer_Emoji")
+                        .HasFilter("[ReactorCustomerId] IS NOT NULL");
+
+                    b.HasIndex("MessageId", "ReactorTaxUserId", "Emoji")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MessageReactions_Message_TaxUser_Emoji")
+                        .HasFilter("[ReactorTaxUserId] IS NOT NULL");
+
+                    b.ToTable("MessageReactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_MessageReaction_ValidReactor", "([ReactorType] = 0 AND [ReactorTaxUserId] IS NOT NULL AND [ReactorCustomerId] IS NULL) OR ([ReactorType] = 1 AND [ReactorCustomerId] IS NOT NULL AND [ReactorTaxUserId] IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("CommLinkService.Domain.Entities.Room", b =>
@@ -141,16 +262,29 @@ namespace CommLinkService.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<Guid>("CreatedBy")
+                    b.Property<Guid>("CreatedByCompanyId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("CreatedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime?>("LastActivityAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("LastModifiedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("MaxParticipants")
                         .ValueGeneratedOnAdd()
@@ -162,14 +296,30 @@ namespace CommLinkService.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("CreatedByCompanyId")
+                        .HasDatabaseName("IX_Rooms_CreatedByCompanyId");
 
-                    b.HasIndex("LastActivityAt");
+                    b.HasIndex("CreatedByTaxUserId")
+                        .HasDatabaseName("IX_Rooms_CreatedByTaxUserId");
+
+                    b.HasIndex("LastActivityAt")
+                        .HasDatabaseName("IX_Rooms_LastActivityAt");
+
+                    b.HasIndex("Type", "IsActive")
+                        .HasDatabaseName("IX_Rooms_Type_IsActive");
 
                     b.ToTable("Rooms", (string)null);
                 });
@@ -180,17 +330,46 @@ namespace CommLinkService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("AddedByCompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AddedByTaxUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeleteAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsMuted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsVideoEnabled")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("ParticipantType")
+                        .HasColumnType("int");
 
                     b.Property<int>("Role")
                         .HasColumnType("int");
@@ -198,34 +377,67 @@ namespace CommLinkService.Migrations
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("TaxUserId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoomId");
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("IX_RoomParticipants_CompanyId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("IX_RoomParticipants_CustomerId");
 
-                    b.ToTable("RoomParticipants", (string)null);
+                    b.HasIndex("RoomId")
+                        .HasDatabaseName("IX_RoomParticipants_RoomId");
+
+                    b.HasIndex("TaxUserId")
+                        .HasDatabaseName("IX_RoomParticipants_TaxUserId");
+
+                    b.HasIndex("RoomId", "CustomerId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RoomParticipants_Room_Customer")
+                        .HasFilter("[CustomerId] IS NOT NULL");
+
+                    b.HasIndex("RoomId", "TaxUserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RoomParticipants_Room_TaxUser")
+                        .HasFilter("[TaxUserId] IS NOT NULL");
+
+                    b.ToTable("RoomParticipants", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RoomParticipant_ValidParticipant", "([ParticipantType] = 0 AND [TaxUserId] IS NOT NULL AND [CustomerId] IS NULL) OR ([ParticipantType] = 1 AND [CustomerId] IS NOT NULL AND [TaxUserId] IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("CommLinkService.Domain.Entities.Message", b =>
                 {
-                    b.HasOne("CommLinkService.Domain.Entities.Room", null)
+                    b.HasOne("CommLinkService.Domain.Entities.Room", "Room")
                         .WithMany("Messages")
                         .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Room");
                 });
 
             modelBuilder.Entity("CommLinkService.Domain.Entities.MessageReaction", b =>
                 {
-                    b.HasOne("CommLinkService.Domain.Entities.Message", null)
+                    b.HasOne("CommLinkService.Domain.Entities.Message", "Message")
                         .WithMany("Reactions")
                         .HasForeignKey("MessageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Message");
                 });
 
             modelBuilder.Entity("CommLinkService.Domain.Entities.RoomParticipant", b =>

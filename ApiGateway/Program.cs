@@ -89,7 +89,7 @@ try
             if (hybridCache != null)
             {
                 logger.LogInformation(
-                    "✅ API Gateway Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                    "API Gateway Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
                     hybridCache.CurrentCacheMode,
                     hybridCache.IsRedisAvailable
                 );

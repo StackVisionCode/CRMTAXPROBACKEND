@@ -44,8 +44,8 @@ public sealed class AccountActivatedHandler : IIntegrationEventHandler<AccountCo
                 Email = evt.Email,
                 Name = evt.Name,
                 LastName = evt.LastName,
-                CompanyFullName = evt.FullName, // ✅ NUEVO: Para individuales
-                CompanyName = evt.CompanyName, // ✅ NUEVO: Para empresas
+                CompanyFullName = evt.FullName, // NUEVO: Para individuales
+                CompanyName = evt.CompanyName, // NUEVO: Para empresas
                 Domain = evt.Domain,
                 Year = DateTime.UtcNow.Year,
                 AdminName = adminName, // Para {{AdminName}} en CompanyActivated.html

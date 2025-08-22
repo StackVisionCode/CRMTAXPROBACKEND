@@ -1,12 +1,12 @@
+using Common;
 using MediatR;
 
 namespace CommLinkService.Infrastructure.Queries;
 
-public sealed record GetActiveCallsQuery(Guid UserId) : IRequest<GetActiveCallsResult>;
+public record class GetActiveCallsQuery(ParticipantType UserType, Guid? TaxUserId, Guid? CustomerId)
+    : IRequest<ApiResponse<List<ActiveCallDto>>>;
 
-public sealed record GetActiveCallsResult(List<ActiveCallDto> Calls);
-
-public sealed record ActiveCallDto(
+public record class ActiveCallDto(
     Guid CallId,
     Guid RoomId,
     string RoomName,

@@ -105,7 +105,7 @@ public class ReactiveEmailBackgroundService : BackgroundService
                     await reactiveService.StartWatchingAsync(config);
 
                     _logger.LogInformation(
-                        "✅ Started reactive watching for {ConfigName} (Company: {CompanyId})",
+                        "Started reactive watching for {ConfigName} (Company: {CompanyId})",
                         config.Name,
                         config.CompanyId
                     );
@@ -213,6 +213,6 @@ public class ReactiveEmailBackgroundService : BackgroundService
         }
 
         await base.StopAsync(cancellationToken);
-        _logger.LogInformation("✅ Reactive email service stopped completely");
+        _logger.LogInformation("Reactive email service stopped completely");
     }
 }

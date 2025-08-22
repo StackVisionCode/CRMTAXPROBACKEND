@@ -9,21 +9,62 @@ public sealed class RoomParticipantConfiguration : IEntityTypeConfiguration<Room
     public void Configure(EntityTypeBuilder<RoomParticipant> builder)
     {
         builder.ToTable("RoomParticipants");
-
         builder.HasKey(p => p.Id);
 
+        // Properties
         builder.Property(p => p.RoomId).IsRequired();
-        builder.Property(p => p.UserId).IsRequired();
+
+        builder.Property(p => p.ParticipantType).IsRequired();
+
+        builder.Property(p => p.TaxUserId);
+        builder.Property(p => p.CustomerId);
+        builder.Property(p => p.CompanyId);
+
+        builder.Property(p => p.AddedByCompanyId).IsRequired();
+
+        builder.Property(p => p.AddedByTaxUserId).IsRequired();
+
         builder.Property(p => p.Role).IsRequired();
+
         builder.Property(p => p.JoinedAt).IsRequired();
-        builder.Property(p => p.IsActive).IsRequired();
-        builder.Property(p => p.IsMuted).IsRequired();
-        builder.Property(p => p.IsVideoEnabled).IsRequired();
 
-        builder.HasIndex(p => p.RoomId);
-        builder.HasIndex(p => p.UserId);
+        builder.Property(p => p.IsActive).IsRequired().HasDefaultValue(true);
 
-        // ✅ Relación bien definida
+        builder.Property(p => p.IsMuted).IsRequired().HasDefaultValue(false);
+
+        builder.Property(p => p.IsVideoEnabled).IsRequired().HasDefaultValue(false);
+
+        // Indexes
+        builder.HasIndex(p => p.RoomId).HasDatabaseName("IX_RoomParticipants_RoomId");
+
+        builder.HasIndex(p => p.TaxUserId).HasDatabaseName("IX_RoomParticipants_TaxUserId");
+
+        builder.HasIndex(p => p.CustomerId).HasDatabaseName("IX_RoomParticipants_CustomerId");
+
+        builder.HasIndex(p => p.CompanyId).HasDatabaseName("IX_RoomParticipants_CompanyId");
+
+        builder
+            .HasIndex(p => new { p.RoomId, p.TaxUserId })
+            .HasDatabaseName("IX_RoomParticipants_Room_TaxUser")
+            .IsUnique()
+            .HasFilter("[TaxUserId] IS NOT NULL");
+
+        builder
+            .HasIndex(p => new { p.RoomId, p.CustomerId })
+            .HasDatabaseName("IX_RoomParticipants_Room_Customer")
+            .IsUnique()
+            .HasFilter("[CustomerId] IS NOT NULL");
+
+        // Constraints
+        builder.ToTable(b =>
+            b.HasCheckConstraint(
+                "CK_RoomParticipant_ValidParticipant",
+                "([ParticipantType] = 0 AND [TaxUserId] IS NOT NULL AND [CustomerId] IS NULL) OR "
+                    + "([ParticipantType] = 1 AND [CustomerId] IS NOT NULL AND [TaxUserId] IS NULL)"
+            )
+        );
+
+        // Relationships
         builder
             .HasOne(p => p.Room)
             .WithMany(r => r.Participants)

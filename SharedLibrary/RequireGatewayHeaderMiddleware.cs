@@ -59,6 +59,8 @@ namespace SharedLibrary
             "/api/taxuser/invite",
             "/api/taxuser/validate-invitation/{token}",
             "/api/taxcompany/checkcompanyname",
+            "/api/public/company/{companyId}",
+            "/api/public/taxuser/{taxUserId}",
         };
 
         /* ------------------ RUTAS PÚBLICAS "UPSTREAM" (si las expones por gateway) ------------------ */

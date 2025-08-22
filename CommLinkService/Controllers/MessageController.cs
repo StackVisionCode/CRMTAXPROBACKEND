@@ -1,6 +1,8 @@
-using System.Security.Claims;
-using CommLinkService.Domain.Entities;
-using CommLinkService.Infrastructure.Commands;
+using CommLinkService.Application.Commands;
+using CommLinkService.Application.Common.Shared;
+using Common;
+using DTOs.MessageDTOs;
+using DTOs.RequestControllerDTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,87 +12,101 @@ namespace CommLinkService.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public sealed class MessageController : ControllerBase
+public class MessageController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<MessageController> _logger;
 
-    public MessageController(IMediator mediator, ILogger<MessageController> logger)
+    public MessageController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     [HttpPost("send")]
-    public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
+    public async Task<ActionResult<ApiResponse<MessageDTO>>> SendMessage(
+        [FromBody] SendMessageDTO request
+    )
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-        var command = new SendMessageCommand(
-            request.RoomId,
-            userId,
-            request.Content,
-            request.Type,
-            request.Metadata
-        );
-
+        var command = new SendMessageCommand(request);
         var result = await _mediator.Send(command);
+
+        if (result.Success == false)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
     [HttpPut("{messageId}/edit")]
-    public async Task<IActionResult> EditMessage(
+    public async Task<ActionResult<ApiResponse<MessageDTO>>> EditMessage(
         Guid messageId,
         [FromBody] EditMessageRequest request
     )
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
-        var command = new EditMessageCommand(messageId, userId, request.Content);
+        var command = new EditMessageCommand(
+            messageId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
+            request.Content
+        );
+
         var result = await _mediator.Send(command);
 
-        if (result.Success)
-            return Ok(result);
+        if (result.Success == false)
+            return BadRequest(result);
 
-        return BadRequest(result);
+        return Ok(result);
     }
 
     [HttpDelete("{messageId}")]
-    public async Task<IActionResult> DeleteMessage(Guid messageId)
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteMessage(Guid messageId)
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
-        var command = new DeleteMessageCommand(messageId, userId);
+        var command = new DeleteMessageCommand(
+            messageId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId
+        );
+
         var result = await _mediator.Send(command);
 
-        if (result.Success)
-            return Ok(result);
+        if (result.Success == false)
+            return BadRequest(result);
 
-        return BadRequest(result);
+        return Ok(result);
     }
 
     [HttpPost("{messageId}/react")]
-    public async Task<IActionResult> ReactToMessage(Guid messageId, [FromBody] ReactRequest request)
+    public async Task<ActionResult<ApiResponse<MessageReactionDTO>>> ReactToMessage(
+        Guid messageId,
+        [FromBody] ReactRequest request
+    )
     {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userInfo = UserTokenHelper.GetUserFromToken(User);
+        if (userInfo == null)
+            return Unauthorized();
 
-        var command = new ReactToMessageCommand(messageId, userId, request.Emoji);
+        var command = new ReactToMessageCommand(
+            messageId,
+            userInfo.UserType,
+            userInfo.TaxUserId,
+            userInfo.CustomerId,
+            userInfo.CompanyId,
+            request.Emoji
+        );
+
         var result = await _mediator.Send(command);
 
-        if (result.Success)
-            return Ok(result);
+        if (result.Success == false)
+            return BadRequest(result);
 
-        return BadRequest(result);
+        return Ok(result);
     }
 }
-
-public sealed record SendMessageRequest(
-    Guid RoomId,
-    string Content,
-    MessageType Type,
-    string? Metadata
-);
-
-public sealed record EditMessageRequest(string Content);
-
-public sealed record ReactRequest(string Emoji);

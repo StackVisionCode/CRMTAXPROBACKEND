@@ -128,7 +128,7 @@ public class CustomerLoginHandler
                 Email: data.Email,
                 Name: data.DisplayName, // ⟵ para clientes guardamos DisplayName en Name
                 LastName: null,
-                CompanyId: Guid.Empty,
+                CompanyId: data.CompanyId,
                 CompanyName: null,
                 CompanyDomain: null,
                 IsCompany: false,

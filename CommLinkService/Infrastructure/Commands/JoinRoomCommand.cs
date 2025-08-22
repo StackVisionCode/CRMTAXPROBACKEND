@@ -1,9 +1,14 @@
-using CommLinkService.Domain.Entities;
+using Common;
+using DTOs.RoomDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record JoinRoomCommand(Guid RoomId, Guid UserId, string ConnectionId)
-    : IRequest<JoinRoomResult>;
-
-public sealed record JoinRoomResult(bool Success, string? ErrorMessage, ParticipantRole? Role);
+public record class JoinRoomCommand(
+    Guid RoomId,
+    ParticipantType ParticipantType,
+    Guid? TaxUserId,
+    Guid? CustomerId,
+    Guid? CompanyId,
+    string ConnectionId
+) : IRequest<ApiResponse<RoomParticipantDTO>>;

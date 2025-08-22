@@ -78,7 +78,7 @@ public class GmailWebhookController : ControllerBase
                                     DateTime.UtcNow.AddMinutes(-5)
                                 );
                                 _logger.LogInformation(
-                                    "✅ Synced emails for {Email} (Company: {CompanyId}) due to push notification",
+                                    "Synced emails for {Email} (Company: {CompanyId}) due to push notification",
                                     gmailNotification.EmailAddress,
                                     config.CompanyId
                                 );

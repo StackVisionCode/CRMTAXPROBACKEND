@@ -1,83 +1,110 @@
+using AutoMapper;
+using CommLinkService.Application.Queries;
 using CommLinkService.Infrastructure.Persistence;
-using CommLinkService.Infrastructure.Queries;
+using Common;
+using DTOs.MessageDTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CommLinkService.Application.Handlers;
 
 public sealed class GetRoomMessagesHandler
-    : IRequestHandler<GetRoomMessagesQuery, GetRoomMessagesResult>
+    : IRequestHandler<GetRoomMessagesQuery, ApiResponse<GetRoomMessagesResult>>
 {
     private readonly ICommLinkDbContext _context;
+    private readonly IMapper _mapper;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GetRoomMessagesHandler> _logger;
 
     public GetRoomMessagesHandler(
         ICommLinkDbContext context,
+        IMapper mapper,
         IHttpClientFactory httpClientFactory,
         ILogger<GetRoomMessagesHandler> logger
     )
     {
         _context = context;
+        _mapper = mapper;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
-    public async Task<GetRoomMessagesResult> Handle(
+    public async Task<ApiResponse<GetRoomMessagesResult>> Handle(
         GetRoomMessagesQuery request,
         CancellationToken cancellationToken
     )
     {
-        var totalCount = await _context.Messages.CountAsync(
-            m => m.RoomId == request.RoomId && !m.IsDeleted,
-            cancellationToken
-        );
-
-        var messages = await _context
-            .Messages.Include(m => m.Reactions)
-            .Where(m => m.RoomId == request.RoomId && !m.IsDeleted)
-            .OrderByDescending(m => m.SentAt)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
-
-        // Obtener información de usuarios desde el servicio Auth
-        var userIds = messages.Select(m => m.SenderId).Distinct().ToList();
-        var userNames = await GetUserNamesAsync(userIds);
-
-        var messageDtos = messages
-            .Select(m => new MessageDto(
-                m.Id,
-                m.SenderId,
-                userNames.GetValueOrDefault(m.SenderId, "Unknown User"),
-                m.Content,
-                m.Type,
-                m.SentAt,
-                m.EditedAt.HasValue,
-                m.Reactions.GroupBy(r => r.Emoji)
-                    .Select(g => new ReactionDto(g.Key, g.Select(r => r.UserId).ToList()))
-                    .ToList()
-            ))
-            .ToList();
-
-        var hasMore = totalCount > request.PageNumber * request.PageSize;
-
-        return new GetRoomMessagesResult(messageDtos, totalCount, hasMore);
-    }
-
-    private async Task<Dictionary<Guid, string>> GetUserNamesAsync(List<Guid> userIds)
-    {
         try
         {
-            var client = _httpClientFactory.CreateClient("Auth");
-            // Implementar llamada al servicio Auth para obtener nombres
-            // Por ahora retornamos un diccionario vacío
-            return new Dictionary<Guid, string>();
+            // Verificar que el requester es participante del room
+            bool isParticipant = false;
+            if (request.RequesterType == ParticipantType.TaxUser)
+            {
+                isParticipant = await _context.RoomParticipants.AnyAsync(
+                    p =>
+                        p.RoomId == request.RoomId
+                        && p.ParticipantType == ParticipantType.TaxUser
+                        && p.TaxUserId == request.RequesterTaxUserId
+                        && p.IsActive,
+                    cancellationToken
+                );
+            }
+            else if (request.RequesterType == ParticipantType.Customer)
+            {
+                isParticipant = await _context.RoomParticipants.AnyAsync(
+                    p =>
+                        p.RoomId == request.RoomId
+                        && p.ParticipantType == ParticipantType.Customer
+                        && p.CustomerId == request.RequesterCustomerId
+                        && p.IsActive,
+                    cancellationToken
+                );
+            }
+
+            if (!isParticipant)
+                return new ApiResponse<GetRoomMessagesResult>(
+                    false,
+                    "You are not a participant in this room"
+                );
+
+            // Contar total de mensajes
+            var totalCount = await _context.Messages.CountAsync(
+                m => m.RoomId == request.RoomId && !m.IsDeleted,
+                cancellationToken
+            );
+
+            // Obtener mensajes paginados
+            var messages = await _context
+                .Messages.Include(m => m.Reactions)
+                .Where(m => m.RoomId == request.RoomId && !m.IsDeleted)
+                .OrderBy(m => m.SentAt)
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync(cancellationToken);
+
+            // Mapear a DTOs
+            var messageDtos = _mapper.Map<List<MessageDTO>>(messages);
+
+            // Calcular si hay más páginas
+            var hasMore = totalCount > request.PageNumber * request.PageSize;
+
+            var result = new GetRoomMessagesResult(
+                messageDtos,
+                totalCount,
+                hasMore,
+                request.PageNumber
+            );
+
+            return new ApiResponse<GetRoomMessagesResult>(
+                true,
+                "Messages retrieved successfully",
+                result
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user names from Auth service");
-            return new Dictionary<Guid, string>();
+            _logger.LogError(ex, "Error getting room messages for room {RoomId}", request.RoomId);
+            return new ApiResponse<GetRoomMessagesResult>(false, "Failed to get room messages");
         }
     }
 }

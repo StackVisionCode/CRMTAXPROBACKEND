@@ -1,8 +1,13 @@
+using Common;
+using DTOs.VideoCallDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record EndVideoCallCommand(Guid RoomId, Guid UserId, Guid CallId)
-    : IRequest<EndVideoCallResult>;
-
-public sealed record EndVideoCallResult(bool Success, DateTime EndedAt);
+public record class EndVideoCallCommand(
+    Guid RoomId,
+    ParticipantType EndedByType,
+    Guid? EndedByTaxUserId,
+    Guid? EndedByCustomerId,
+    Guid CallId
+) : IRequest<ApiResponse<VideoCallEndDTO>>;

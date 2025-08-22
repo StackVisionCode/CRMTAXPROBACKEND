@@ -84,7 +84,7 @@ public class GetSigningLayoutHandler
         }
 
         _log.LogInformation(
-            "✅ Firmante encontrado: {SignerId}, Order: {Order}, Status: {Status}",
+            "Firmante encontrado: {SignerId}, Order: {Order}, Status: {Status}",
             signerInfo.Id,
             signerInfo.Order,
             signerInfo.Status
@@ -180,7 +180,7 @@ public class GetSigningLayoutHandler
         };
 
         _log.LogInformation(
-            "✅ Layout devuelto para Request {RequestId} - Signer {SignerId} con {BoxCount} cajas",
+            "Layout devuelto para Request {RequestId} - Signer {SignerId} con {BoxCount} cajas",
             reqRow.Id,
             signerInfo.Id,
             dto.Boxes.Count

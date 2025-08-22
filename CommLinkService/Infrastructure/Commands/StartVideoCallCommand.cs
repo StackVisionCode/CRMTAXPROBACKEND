@@ -1,12 +1,13 @@
+using Common;
+using DTOs.VideoCallDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record StartVideoCallCommand(Guid RoomId, Guid InitiatorId, List<Guid> ParticipantIds)
-    : IRequest<StartVideoCallResult>;
-
-public sealed record StartVideoCallResult(
-    Guid CallId,
-    string SignalServer,
-    Dictionary<string, object> IceServers
-);
+public record class StartVideoCallCommand(
+    Guid RoomId,
+    ParticipantType InitiatorType,
+    Guid? InitiatorTaxUserId,
+    Guid? InitiatorCustomerId,
+    Guid? InitiatorCompanyId
+) : IRequest<ApiResponse<VideoCallDTO>>;

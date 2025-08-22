@@ -51,7 +51,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
         var tokenString = handler.WriteToken(token);
 
         _logger.LogInformation(
-            "✅ Token generado para SignerId: {SignerId}, RequestId: {RequestId}, Purpose: {Purpose}",
+            "Token generado para SignerId: {SignerId}, RequestId: {RequestId}, Purpose: {Purpose}",
             signerId,
             requestId,
             purpose
@@ -73,7 +73,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
             expectedPurpose
         );
 
-        // ✅ VALIDACIONES INICIALES
+        // VALIDACIONES INICIALES
         if (string.IsNullOrEmpty(token))
         {
             _logger.LogWarning("❌ [SignatureValidToken] Token es null o vacío");
@@ -104,9 +104,9 @@ public sealed class SignatureValidToken : ISignatureValidToken
 
             var principal = handler.ValidateToken(token, tokenValidationParameters, out _);
 
-            _logger.LogInformation("✅ [SignatureValidToken] Token JWT validado correctamente");
+            _logger.LogInformation("[SignatureValidToken] Token JWT validado correctamente");
 
-            // ✅ EXTRAER CLAIMS CON MÉTODOS ALTERNATIVOS
+            // EXTRAER CLAIMS CON MÉTODOS ALTERNATIVOS
             var subClaim =
                 principal.FindFirst("sub")
                 ?? principal.FindFirst(JwtRegisteredClaimNames.Sub)
@@ -120,7 +120,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
             _logger.LogInformation("  - request_id: {RequestId}", reqIdClaim?.Value ?? "NULL");
             _logger.LogInformation("  - purpose: {Purpose}", purposeClaim?.Value ?? "NULL");
 
-            // ✅ DEBUGGING: Si sub es null, mostrar todos los claims
+            // DEBUGGING: Si sub es null, mostrar todos los claims
             if (subClaim == null)
             {
                 _logger.LogWarning(
@@ -137,7 +137,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
                 return (false, Guid.Empty, Guid.Empty);
             }
 
-            // ✅ VALIDAR PURPOSE
+            // VALIDAR PURPOSE
             if (purposeClaim?.Value != expectedPurpose)
             {
                 _logger.LogWarning(
@@ -148,7 +148,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
                 return (false, Guid.Empty, Guid.Empty);
             }
 
-            // ✅ VALIDAR QUE TODOS LOS CLAIMS ESENCIALES ESTÉN PRESENTES
+            // VALIDAR QUE TODOS LOS CLAIMS ESENCIALES ESTÉN PRESENTES
             if (reqIdClaim is null)
             {
                 _logger.LogWarning(
@@ -157,7 +157,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
                 return (false, Guid.Empty, Guid.Empty);
             }
 
-            // ✅ PARSEAR Y VALIDAR GUIDs
+            // PARSEAR Y VALIDAR GUIDs
             if (!Guid.TryParse(subClaim.Value, out var signerId))
             {
                 _logger.LogWarning(
@@ -177,7 +177,7 @@ public sealed class SignatureValidToken : ISignatureValidToken
             }
 
             _logger.LogInformation(
-                "✅ [SignatureValidToken] Validación exitosa - SignerId: {SignerId}, RequestId: {RequestId}",
+                "[SignatureValidToken] Validación exitosa - SignerId: {SignerId}, RequestId: {RequestId}",
                 signerId,
                 requestId
             );

@@ -35,6 +35,7 @@ public class GetAuthInfoByEmailHandler
                 where ci.Email == req.Email
                 select new AuthInfoDTO
                 {
+                    CompanyId = c.CompanyId,
                     CustomerId = c.Id,
                     Email = ci.Email,
                     PasswordHash = ci.PasswordClient!,

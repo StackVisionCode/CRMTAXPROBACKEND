@@ -10,17 +10,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/create",
-            "UpstreamHttpMethod": [
-                "POST"
-            ],
+            "UpstreamHttpMethod": ["POST"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 1,
             "SwaggerKey": "commlink"
         },
         {
@@ -33,17 +30,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/my-rooms",
-            "UpstreamHttpMethod": [
-                "GET"
-            ],
+            "UpstreamHttpMethod": ["GET"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 1,
             "SwaggerKey": "commlink"
         },
         {
@@ -56,15 +50,34 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/direct-between",
-            "UpstreamHttpMethod": [
-                "GET"
-            ],
+            "UpstreamHttpMethod": ["GET"],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
+            "Priority": 1,
+            "SwaggerKey": "commlink"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Room/{roomId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}",
+            "UpstreamHttpMethod": ["GET"],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 10,
             "SwaggerKey": "commlink"
         },
         {
@@ -77,17 +90,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/messages",
-            "UpstreamHttpMethod": [
-                "GET"
-            ],
+            "UpstreamHttpMethod": ["GET"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 5,
             "SwaggerKey": "commlink"
         },
         {
@@ -100,17 +110,34 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/participants",
-            "UpstreamHttpMethod": [
-                "GET"
-            ],
+            "UpstreamHttpMethod": ["GET"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 5,
+            "SwaggerKey": "commlink"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Room/{roomId}/unread-count",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/unread-count",
+            "UpstreamHttpMethod": ["GET"],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 5,
             "SwaggerKey": "commlink"
         },
         {
@@ -123,17 +150,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/join",
-            "UpstreamHttpMethod": [
-                "POST"
-            ],
+            "UpstreamHttpMethod": ["POST"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 5,
             "SwaggerKey": "commlink"
         },
         {
@@ -146,19 +170,37 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/leave",
-            "UpstreamHttpMethod": [
-                "POST"
-            ],
+            "UpstreamHttpMethod": ["POST"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 5,
             "SwaggerKey": "commlink"
         },
+        {
+            "DownstreamPathTemplate": "/api/Room/{roomId}/typing",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/typing",
+            "UpstreamHttpMethod": ["POST"],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 5,
+            "SwaggerKey": "commlink"
+        },
+
         {
             "DownstreamPathTemplate": "/api/Message/send",
             "DownstreamScheme": "http",
@@ -169,17 +211,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/send",
-            "UpstreamHttpMethod": [
-                "POST"
-            ],
+            "UpstreamHttpMethod": ["POST"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 1,
             "SwaggerKey": "commlink"
         },
         {
@@ -192,40 +231,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}/edit",
-            "UpstreamHttpMethod": [
-                "PUT"
-            ],
+            "UpstreamHttpMethod": ["PUT"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
-            "SwaggerKey": "commlink"
-        },
-        {
-            "DownstreamPathTemplate": "/api/Message/{messageId}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 5007
-                }
-            ],
-            "UpstreamPathTemplate": "/api/commlink/messages/{messageId}",
-            "UpstreamHttpMethod": [
-                "DELETE"
-            ],
-            "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
-            },
-            "AddHeadersToRequest": {
-                "X-From-Gateway": "Api-Gateway"
-            },
-            "Priority": 0,
+            "Priority": 5,
             "SwaggerKey": "commlink"
         },
         {
@@ -238,19 +251,37 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}/react",
-            "UpstreamHttpMethod": [
-                "POST"
-            ],
+            "UpstreamHttpMethod": ["POST"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 5,
             "SwaggerKey": "commlink"
         },
+        {
+            "DownstreamPathTemplate": "/api/Message/{messageId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/messages/{messageId}",
+            "UpstreamHttpMethod": ["DELETE"],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 10,
+            "SwaggerKey": "commlink"
+        },
+
         {
             "DownstreamPathTemplate": "/api/VideoCall/start",
             "DownstreamScheme": "http",
@@ -261,17 +292,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/start",
-            "UpstreamHttpMethod": [
-                "POST"
-            ],
+            "UpstreamHttpMethod": ["POST"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 1,
             "SwaggerKey": "commlink"
         },
         {
@@ -284,17 +312,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/end",
-            "UpstreamHttpMethod": [
-                "POST"
-            ],
+            "UpstreamHttpMethod": ["POST"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 1,
             "SwaggerKey": "commlink"
         },
         {
@@ -307,17 +332,14 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/active",
-            "UpstreamHttpMethod": [
-                "GET"
-            ],
+            "UpstreamHttpMethod": ["GET"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 1,
             "SwaggerKey": "commlink"
         },
         {
@@ -330,19 +352,58 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/participant/status",
-            "UpstreamHttpMethod": [
-                "PUT"
-            ],
+            "UpstreamHttpMethod": ["PUT"],
             "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
+                "AuthenticationProviderKey": "Bearer"
             },
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 0,
+            "Priority": 1,
             "SwaggerKey": "commlink"
         },
+
+        {
+            "DownstreamPathTemplate": "/api/Connection/active",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/connections/active",
+            "UpstreamHttpMethod": ["GET"],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "commlink"
+        },
+        {
+            "DownstreamPathTemplate": "/api/Connection/disconnect/{connectionId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/connections/disconnect/{connectionId}",
+            "UpstreamHttpMethod": ["POST"],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer"
+            },
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 5,
+            "SwaggerKey": "commlink"
+        },
+
         {
             "DownstreamPathTemplate": "/ws",
             "DownstreamScheme": "ws",
@@ -356,7 +417,42 @@
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
-            "Priority": 1
+            "Priority": 100
+        },
+
+        {
+            "DownstreamPathTemplate": "/health",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/health",
+            "UpstreamHttpMethod": ["GET"],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "commlink"
+        },
+        {
+            "DownstreamPathTemplate": "/",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5007
+                }
+            ],
+            "UpstreamPathTemplate": "/api/commlink/info",
+            "UpstreamHttpMethod": ["GET"],
+            "AddHeadersToRequest": {
+                "X-From-Gateway": "Api-Gateway"
+            },
+            "Priority": 1,
+            "SwaggerKey": "commlink"
         }
     ]
 }

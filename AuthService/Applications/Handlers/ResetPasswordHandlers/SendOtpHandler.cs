@@ -82,7 +82,7 @@ public class SendOtpHandler : IRequestHandler<SendOtpCommands, ApiResponse<Unit>
             // 🎲 GENERAR OTP
             var (otp, exp) = _otpSrv.Generate();
 
-            // ✅ ACTUALIZAR USUARIO CON OTP
+            // ACTUALIZAR USUARIO CON OTP
             var updateResult =
                 await _db
                     .TaxUsers.Where(u => u.Id == userData.UserId)

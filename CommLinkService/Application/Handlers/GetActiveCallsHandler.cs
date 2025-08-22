@@ -1,14 +1,16 @@
 using System.Text.Json;
+using CommLinkService.Application.Queries;
 using CommLinkService.Domain.Entities;
 using CommLinkService.Infrastructure.Persistence;
-using CommLinkService.Infrastructure.Queries;
+using Common;
+using DTOs.VideoCallDTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CommLinkService.Application.Handlers;
 
 public sealed class GetActiveCallsHandler
-    : IRequestHandler<GetActiveCallsQuery, GetActiveCallsResult>
+    : IRequestHandler<GetActiveVideoCallsQuery, ApiResponse<List<ActiveVideoCallDTO>>>
 {
     private readonly ICommLinkDbContext _context;
     private readonly ILogger<GetActiveCallsHandler> _logger;
@@ -19,84 +21,122 @@ public sealed class GetActiveCallsHandler
         _logger = logger;
     }
 
-    public async Task<GetActiveCallsResult> Handle(
-        GetActiveCallsQuery request,
+    public async Task<ApiResponse<List<ActiveVideoCallDTO>>> Handle(
+        GetActiveVideoCallsQuery request,
         CancellationToken cancellationToken
     )
     {
-        // Traemos las salas donde el usuario participa (activo)
-        var userRoomIds = await _context
-            .RoomParticipants.Where(p => p.UserId == request.UserId && p.IsActive)
-            .Select(p => p.RoomId)
-            .Distinct()
-            .ToListAsync(cancellationToken);
-
-        if (userRoomIds.Count == 0)
-            return new GetActiveCallsResult(new());
-
-        // Para cada sala, obtenemos el último VideoCallStart y
-        // verificamos si después hubo un VideoCallEnd.
-        var activeCalls = new List<ActiveCallDto>();
-
-        // Cargar mensajes relevantes en batch
-        var messages = await _context
-            .Messages.Where(m =>
-                userRoomIds.Contains(m.RoomId)
-                && (m.Type == MessageType.VideoCallStart || m.Type == MessageType.VideoCallEnd)
-            )
-            .OrderBy(m => m.SentAt) // asumiendo propiedad SentAtUtc; ajusta si es diferente
-            .ToListAsync(cancellationToken);
-
-        // Agrupar por sala
-        var byRoom = messages.GroupBy(m => m.RoomId);
-
-        foreach (var group in byRoom)
+        try
         {
-            // último start
-            var lastStart = group.LastOrDefault(m => m.Type == MessageType.VideoCallStart);
-            if (lastStart is null)
-                continue;
+            // Obtener rooms donde el usuario participa (según su tipo)
+            var userRoomIds = new List<Guid>();
 
-            // ¿hay end posterior al start?
-            var anyEndAfter = group.Any(m =>
-                m.Type == MessageType.VideoCallEnd
-                && m.SentAt > lastStart.SentAt
-                && TryExtractCallId(m.Metadata, out var endCallId)
-                && TryExtractCallId(lastStart.Metadata, out var startCallId)
-                && endCallId == startCallId
-            );
+            if (request.UserType == ParticipantType.TaxUser && request.TaxUserId.HasValue)
+            {
+                userRoomIds = await _context
+                    .RoomParticipants.Where(p =>
+                        p.ParticipantType == ParticipantType.TaxUser
+                        && p.TaxUserId == request.TaxUserId
+                        && p.IsActive
+                    )
+                    .Select(p => p.RoomId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+            }
+            else if (request.UserType == ParticipantType.Customer && request.CustomerId.HasValue)
+            {
+                userRoomIds = await _context
+                    .RoomParticipants.Where(p =>
+                        p.ParticipantType == ParticipantType.Customer
+                        && p.CustomerId == request.CustomerId
+                        && p.IsActive
+                    )
+                    .Select(p => p.RoomId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+            }
 
-            if (anyEndAfter)
-                continue; // no está activa
+            if (userRoomIds.Count == 0)
+                return new ApiResponse<List<ActiveVideoCallDTO>>(
+                    true,
+                    "No rooms found",
+                    new List<ActiveVideoCallDTO>()
+                );
 
-            // Extraer callId
-            if (!TryExtractCallId(lastStart.Metadata, out var callId))
-                continue;
-
-            // Participantes (activos en sala)
-            var roomParticipants = await _context
-                .RoomParticipants.Where(p => p.RoomId == group.Key && p.IsActive)
-                .Select(p => p.UserId)
+            // Cargar mensajes de video calls
+            var messages = await _context
+                .Messages.Where(m =>
+                    userRoomIds.Contains(m.RoomId)
+                    && (m.Type == MessageType.VideoCallStart || m.Type == MessageType.VideoCallEnd)
+                )
+                .OrderBy(m => m.SentAt)
                 .ToListAsync(cancellationToken);
 
-            // Room info
-            var roomInfo = await _context
-                .Rooms.Where(r => r.Id == group.Key)
-                .Select(r => new { r.Id, r.Name })
-                .FirstAsync(cancellationToken);
+            var activeCalls = new List<ActiveVideoCallDTO>();
 
-            activeCalls.Add(
-                new ActiveCallDto(
-                    callId,
-                    roomInfo.Id,
-                    roomInfo.Name,
-                    lastStart.SentAt, // o CreatedAt si corresponde
-                    roomParticipants
-                )
+            // Agrupar por sala y verificar calls activos
+            var byRoom = messages.GroupBy(m => m.RoomId);
+
+            foreach (var group in byRoom)
+            {
+                var lastStart = group.LastOrDefault(m => m.Type == MessageType.VideoCallStart);
+                if (lastStart == null)
+                    continue;
+
+                // Verificar si hay end posterior al start
+                var anyEndAfter = group.Any(m =>
+                    m.Type == MessageType.VideoCallEnd
+                    && m.SentAt > lastStart.SentAt
+                    && TryExtractCallId(m.Metadata, out var endCallId)
+                    && TryExtractCallId(lastStart.Metadata, out var startCallId)
+                    && endCallId == startCallId
+                );
+
+                if (anyEndAfter)
+                    continue; // Call ya terminó
+
+                if (!TryExtractCallId(lastStart.Metadata, out var callId))
+                    continue;
+
+                // Obtener participantes activos
+                var roomParticipants = await _context
+                    .RoomParticipants.Where(p => p.RoomId == group.Key && p.IsActive)
+                    .Select(p =>
+                        p.ParticipantType == ParticipantType.TaxUser
+                            ? p.TaxUserId!.Value
+                            : p.CustomerId!.Value
+                    )
+                    .ToListAsync(cancellationToken);
+
+                // Obtener info del room
+                var roomInfo = await _context
+                    .Rooms.Where(r => r.Id == group.Key)
+                    .Select(r => new { r.Id, r.Name })
+                    .FirstAsync(cancellationToken);
+
+                activeCalls.Add(
+                    new ActiveVideoCallDTO
+                    {
+                        CallId = callId,
+                        RoomId = roomInfo.Id,
+                        RoomName = roomInfo.Name,
+                        StartedAt = lastStart.SentAt,
+                        ParticipantIds = roomParticipants,
+                    }
+                );
+            }
+
+            return new ApiResponse<List<ActiveVideoCallDTO>>(
+                true,
+                "Active calls retrieved successfully",
+                activeCalls
             );
         }
-
-        return new GetActiveCallsResult(activeCalls);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting active calls");
+            return new ApiResponse<List<ActiveVideoCallDTO>>(false, "Failed to get active calls");
+        }
     }
 
     private static bool TryExtractCallId(string? json, out Guid callId)
@@ -104,6 +144,7 @@ public sealed class GetActiveCallsHandler
         callId = Guid.Empty;
         if (string.IsNullOrWhiteSpace(json))
             return false;
+
         try
         {
             using var doc = JsonDocument.Parse(json);

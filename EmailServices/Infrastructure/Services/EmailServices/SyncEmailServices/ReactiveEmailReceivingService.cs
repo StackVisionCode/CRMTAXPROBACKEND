@@ -153,7 +153,7 @@ public class ReactiveEmailReceivingService : IReactiveEmailReceivingService
                                 );
 
                                 _logger.LogInformation(
-                                    "✅ Sync completed for {ConfigName} (Company: {CompanyId}): {Message}",
+                                    "Sync completed for {ConfigName} (Company: {CompanyId}): {Message}",
                                     config.Name,
                                     config.CompanyId,
                                     result.Message

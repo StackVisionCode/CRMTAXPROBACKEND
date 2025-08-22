@@ -144,7 +144,7 @@ try
         if (hybridCache != null)
         {
             logger.LogInformation(
-                "✅ Signature Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                "Signature Service Cache initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
                 hybridCache.CurrentCacheMode,
                 hybridCache.IsRedisAvailable
             );

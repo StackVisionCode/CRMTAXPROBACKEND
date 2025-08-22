@@ -172,7 +172,7 @@ try
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogInformation("Customer subscribed to all integration events");
 
-        // ✅ MOSTRAR INFORMACIÓN DEL SISTEMA DE CACHÉ
+        // MOSTRAR INFORMACIÓN DEL SISTEMA DE CACHÉ
         try
         {
             var hybridCache =
@@ -180,7 +180,7 @@ try
             if (hybridCache != null)
             {
                 logger.LogInformation(
-                    "✅ Cache system initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
+                    "Cache system initialized - Mode: {CacheMode}, Redis Available: {RedisAvailable}",
                     hybridCache.CurrentCacheMode,
                     hybridCache.IsRedisAvailable
                 );

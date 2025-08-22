@@ -53,7 +53,7 @@ public sealed class PermissionHandler : AuthorizationHandler<PermissionRequireme
         var cacheKey = $"perms:{userId}";
         HashSet<string>? perms = null;
 
-        // ✅ INTENTAR OBTENER DEL CACHÉ HÍBRIDO
+        // INTENTAR OBTENER DEL CACHÉ HÍBRIDO
         if (_hybridCache != null)
         {
             try
@@ -96,7 +96,7 @@ public sealed class PermissionHandler : AuthorizationHandler<PermissionRequireme
 
                 perms = list?.ToHashSet(StringComparer.Ordinal) ?? new();
 
-                // ✅ GUARDAR EN CACHÉ HÍBRIDO
+                // GUARDAR EN CACHÉ HÍBRIDO
                 if (_hybridCache != null)
                 {
                     try

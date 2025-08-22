@@ -1,14 +1,7 @@
-using CommLinkService.Domain.Entities;
+using Common;
+using DTOs.RoomDTOs;
 using MediatR;
 
-namespace CommLinkService.Infrastructure.Commands;
+namespace CommLinkService.Application.Commands;
 
-public sealed record CreateRoomCommand(
-    string Name,
-    RoomType Type,
-    Guid CreatorId,
-    List<Guid>? ParticipantIds = null,
-    int MaxParticipants = 10
-) : IRequest<CreateRoomResult>;
-
-public sealed record CreateRoomResult(Guid RoomId, string Name, RoomType Type, DateTime CreatedAt);
+public record class CreateRoomCommand(CreateRoomDTO RoomData) : IRequest<ApiResponse<RoomDTO>>;

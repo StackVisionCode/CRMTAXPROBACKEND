@@ -35,7 +35,7 @@ public class CheckAvailablePreviewHandler
             request.SignerId
         );
 
-        // ✅ DEBUGGING: Verificar qué hay en la base de datos para este SignerId
+        // DEBUGGING: Verificar qué hay en la base de datos para este SignerId
         var allPreviewsForSigner = await _db
             .SignPreviewDocuments.Where(p => p.SignerId == request.SignerId)
             .Select(p => new
@@ -71,7 +71,7 @@ public class CheckAvailablePreviewHandler
             );
         }
 
-        // ✅ DEBUGGING: Verificar información del Signer
+        // DEBUGGING: Verificar información del Signer
         var signerInfo = await _db
             .Signers.Where(s => s.Id == request.SignerId)
             .Select(s => new
@@ -121,7 +121,7 @@ public class CheckAvailablePreviewHandler
                 request.SignerId
             );
 
-            // ✅ DEBUGGING: Verificar por qué no hay preview disponible
+            // DEBUGGING: Verificar por qué no hay preview disponible
             var anyPreview = await _db
                 .SignPreviewDocuments.Where(p => p.SignerId == request.SignerId)
                 .FirstOrDefaultAsync(ct);
@@ -163,9 +163,9 @@ public class CheckAvailablePreviewHandler
             );
         }
 
-        // ✅ DEBUGGING: Log del preview encontrado
+        // DEBUGGING: Log del preview encontrado
         _log.LogInformation(
-            "✅ DEBUGGING - Preview encontrado: "
+            "DEBUGGING - Preview encontrado: "
                 + "Id={Id}, SignerId={SignerId}, AccessToken={AccessToken}, SessionId={SessionId}, "
                 + "IsActive={IsActive}, ExpiresAt={ExpiresAt}, AccessCount={AccessCount}",
             preview.Id,
@@ -184,7 +184,7 @@ public class CheckAvailablePreviewHandler
             $"{baseUrl}/signature/preview?accessToken={Uri.EscapeDataString(preview.AccessToken)}&sessionId={Uri.EscapeDataString(preview.SessionId)}";
 
         _log.LogInformation(
-            "✅ Preview disponible para SignerId {SignerId} - URL generada: {PreviewUrl}",
+            "Preview disponible para SignerId {SignerId} - URL generada: {PreviewUrl}",
             request.SignerId,
             previewUrl
         );

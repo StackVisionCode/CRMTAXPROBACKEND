@@ -92,7 +92,7 @@ public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommands, ApiRe
             // 🔒 HASHEAR NUEVA CONTRASEÑA
             var hashedPassword = _passwordHash.HashPassword(r.NewPassword);
 
-            // ✅ ACTUALIZAR CONTRASEÑA Y LIMPIAR TOKENS
+            // ACTUALIZAR CONTRASEÑA Y LIMPIAR TOKENS
             var updateResult =
                 await _db
                     .TaxUsers.Where(u => u.Id == userData.UserId)
