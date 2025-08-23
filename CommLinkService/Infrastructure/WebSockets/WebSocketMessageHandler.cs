@@ -312,80 +312,170 @@ public sealed class WebSocketMessageHandler
         JsonElement data
     )
     {
-        var roomId = data.GetProperty("roomId").GetGuid();
-        var targetUserType = Enum.Parse<ParticipantType>(
-            data.GetProperty("targetUserType").GetString() ?? "TaxUser"
-        );
-        var targetTaxUserId = data.TryGetProperty("targetTaxUserId", out var taxUserProp)
-            ? taxUserProp.GetGuid()
-            : (Guid?)null;
-        var targetCustomerId = data.TryGetProperty("targetCustomerId", out var customerProp)
-            ? customerProp.GetGuid()
-            : (Guid?)null;
-        var signal = data.GetProperty("signal");
-
-        var responseData = new
+        try
         {
-            type = "video_signal",
-            data = new
+            var roomId = data.GetProperty("roomId").GetGuid();
+
+            // Manejar tanto string como number para ParticipantType
+            ParticipantType targetUserType;
+            if (data.TryGetProperty("targetUserType", out var targetTypeElement))
             {
-                fromUserType = userType,
-                fromTaxUserId = taxUserId,
-                fromCustomerId = customerId,
-                roomId,
-                signal,
-            },
-        };
+                if (targetTypeElement.ValueKind == JsonValueKind.String)
+                {
+                    targetUserType = Enum.Parse<ParticipantType>(
+                        targetTypeElement.GetString() ?? "TaxUser"
+                    );
+                }
+                else if (targetTypeElement.ValueKind == JsonValueKind.Number)
+                {
+                    targetUserType = (ParticipantType)targetTypeElement.GetInt32();
+                }
+                else
+                {
+                    targetUserType = ParticipantType.TaxUser; // default
+                }
+            }
+            else
+            {
+                targetUserType = ParticipantType.TaxUser; // default
+            }
 
-        if (targetUserType == ParticipantType.TaxUser && targetTaxUserId.HasValue)
-        {
-            await _webSocketManager.SendToTaxUserAsync(targetTaxUserId.Value, responseData);
+            // Manejar GUIDs que pueden venir como string o null
+            Guid? targetTaxUserId = null;
+            Guid? targetCustomerId = null;
+
+            if (
+                data.TryGetProperty("targetTaxUserId", out var taxUserElement)
+                && taxUserElement.ValueKind == JsonValueKind.String
+                && Guid.TryParse(taxUserElement.GetString(), out var parsedTaxUserId)
+            )
+            {
+                targetTaxUserId = parsedTaxUserId;
+            }
+
+            if (
+                data.TryGetProperty("targetCustomerId", out var customerElement)
+                && customerElement.ValueKind == JsonValueKind.String
+                && Guid.TryParse(customerElement.GetString(), out var parsedCustomerId)
+            )
+            {
+                targetCustomerId = parsedCustomerId;
+            }
+
+            var signal = data.GetProperty("signal");
+
+            var responseData = new
+            {
+                type = "video_signal",
+                data = new
+                {
+                    fromUserType = userType,
+                    fromTaxUserId = taxUserId,
+                    fromCustomerId = customerId,
+                    roomId,
+                    signal,
+                },
+            };
+
+            if (targetUserType == ParticipantType.TaxUser && targetTaxUserId.HasValue)
+            {
+                await _webSocketManager.SendToTaxUserAsync(targetTaxUserId.Value, responseData);
+            }
+            else if (targetUserType == ParticipantType.Customer && targetCustomerId.HasValue)
+            {
+                await _webSocketManager.SendToCustomerAsync(targetCustomerId.Value, responseData);
+            }
         }
-        else if (targetUserType == ParticipantType.Customer && targetCustomerId.HasValue)
+        catch (Exception ex)
         {
-            await _webSocketManager.SendToCustomerAsync(targetCustomerId.Value, responseData);
+            _logger.LogError(ex, "Error handling video signal: {Data}", data.ToString());
         }
     }
 
     private async Task HandleIceCandidate(
         ParticipantType userType,
-        Guid? taxUserId,
-        Guid? customerId,
+        Nullable<Guid> taxUserId,
+        Nullable<Guid> customerId,
         JsonElement data
     )
     {
-        var roomId = data.GetProperty("roomId").GetGuid();
-        var targetUserType = Enum.Parse<ParticipantType>(
-            data.GetProperty("targetUserType").GetString() ?? "TaxUser"
-        );
-        var targetTaxUserId = data.TryGetProperty("targetTaxUserId", out var taxUserProp)
-            ? taxUserProp.GetGuid()
-            : (Guid?)null;
-        var targetCustomerId = data.TryGetProperty("targetCustomerId", out var customerProp)
-            ? customerProp.GetGuid()
-            : (Guid?)null;
-        var candidate = data.GetProperty("candidate");
-
-        var responseData = new
+        try
         {
-            type = "ice_candidate",
-            data = new
+            var roomId = data.GetProperty("roomId").GetGuid();
+
+            // CORECCIÓN: Manejar tanto string como number para ParticipantType
+            ParticipantType targetUserType;
+            if (data.TryGetProperty("targetUserType", out var targetTypeElement))
             {
-                fromUserType = userType,
-                fromTaxUserId = taxUserId,
-                fromCustomerId = customerId,
-                roomId,
-                candidate,
-            },
-        };
+                if (targetTypeElement.ValueKind == JsonValueKind.String)
+                {
+                    targetUserType = Enum.Parse<ParticipantType>(
+                        targetTypeElement.GetString() ?? "TaxUser"
+                    );
+                }
+                else if (targetTypeElement.ValueKind == JsonValueKind.Number)
+                {
+                    targetUserType = (ParticipantType)targetTypeElement.GetInt32();
+                }
+                else
+                {
+                    targetUserType = ParticipantType.TaxUser; // default
+                }
+            }
+            else
+            {
+                targetUserType = ParticipantType.TaxUser; // default
+            }
 
-        if (targetUserType == ParticipantType.TaxUser && targetTaxUserId.HasValue)
-        {
-            await _webSocketManager.SendToTaxUserAsync(targetTaxUserId.Value, responseData);
+            // CORECCIÓN: Manejar GUIDs que pueden venir como string o null
+            Guid? targetTaxUserId = null;
+            Guid? targetCustomerId = null;
+
+            if (
+                data.TryGetProperty("targetTaxUserId", out var taxUserElement)
+                && taxUserElement.ValueKind == JsonValueKind.String
+                && Guid.TryParse(taxUserElement.GetString(), out var parsedTaxUserId)
+            )
+            {
+                targetTaxUserId = parsedTaxUserId;
+            }
+
+            if (
+                data.TryGetProperty("targetCustomerId", out var customerElement)
+                && customerElement.ValueKind == JsonValueKind.String
+                && Guid.TryParse(customerElement.GetString(), out var parsedCustomerId)
+            )
+            {
+                targetCustomerId = parsedCustomerId;
+            }
+
+            var candidate = data.GetProperty("candidate");
+
+            var responseData = new
+            {
+                type = "ice_candidate",
+                data = new
+                {
+                    fromUserType = userType,
+                    fromTaxUserId = taxUserId,
+                    fromCustomerId = customerId,
+                    roomId,
+                    candidate,
+                },
+            };
+
+            if (targetUserType == ParticipantType.TaxUser && targetTaxUserId.HasValue)
+            {
+                await _webSocketManager.SendToTaxUserAsync(targetTaxUserId.Value, responseData);
+            }
+            else if (targetUserType == ParticipantType.Customer && targetCustomerId.HasValue)
+            {
+                await _webSocketManager.SendToCustomerAsync(targetCustomerId.Value, responseData);
+            }
         }
-        else if (targetUserType == ParticipantType.Customer && targetCustomerId.HasValue)
+        catch (Exception ex)
         {
-            await _webSocketManager.SendToCustomerAsync(targetCustomerId.Value, responseData);
+            _logger.LogError(ex, "Error handling ice candidate: {Data}", data.ToString());
         }
     }
 
@@ -396,38 +486,89 @@ public sealed class WebSocketMessageHandler
         JsonElement data
     )
     {
-        var roomId = data.GetProperty("roomId").GetGuid();
-        var targetUserType = Enum.Parse<ParticipantType>(
-            data.GetProperty("targetUserType").GetString() ?? "TaxUser"
-        );
-        var targetTaxUserId = data.TryGetProperty("targetTaxUserId", out var taxUserProp)
-            ? taxUserProp.GetGuid()
-            : (Guid?)null;
-        var targetCustomerId = data.TryGetProperty("targetCustomerId", out var customerProp)
-            ? customerProp.GetGuid()
-            : (Guid?)null;
-        var callId = data.GetProperty("callId").GetGuid();
-
-        var responseData = new
+        try
         {
-            type = "video_call_declined",
-            data = new
+            var roomId = data.GetProperty("roomId").GetGuid();
+            var callId = data.GetProperty("callId").GetGuid();
+
+            // Manejar tanto string como number para ParticipantType
+            ParticipantType targetUserType;
+            if (data.TryGetProperty("targetUserType", out var targetTypeElement))
             {
-                roomId,
-                callId,
-                declinedByUserType = userType,
-                declinedByTaxUserId = taxUserId,
-                declinedByCustomerId = customerId,
-            },
-        };
+                if (targetTypeElement.ValueKind == JsonValueKind.String)
+                {
+                    targetUserType = Enum.Parse<ParticipantType>(
+                        targetTypeElement.GetString() ?? "TaxUser"
+                    );
+                }
+                else if (targetTypeElement.ValueKind == JsonValueKind.Number)
+                {
+                    targetUserType = (ParticipantType)targetTypeElement.GetInt32();
+                }
+                else
+                {
+                    targetUserType = ParticipantType.TaxUser; // default
+                }
+            }
+            else
+            {
+                targetUserType = ParticipantType.TaxUser; // default
+            }
 
-        if (targetUserType == ParticipantType.TaxUser && targetTaxUserId.HasValue)
-        {
-            await _webSocketManager.SendToTaxUserAsync(targetTaxUserId.Value, responseData);
+            // Manejar GUIDs que pueden venir como string o null
+            Guid? targetTaxUserId = null;
+            Guid? targetCustomerId = null;
+
+            if (
+                data.TryGetProperty("targetTaxUserId", out var taxUserElement)
+                && taxUserElement.ValueKind == JsonValueKind.String
+                && Guid.TryParse(taxUserElement.GetString(), out var parsedTaxUserId)
+            )
+            {
+                targetTaxUserId = parsedTaxUserId;
+            }
+
+            if (
+                data.TryGetProperty("targetCustomerId", out var customerElement)
+                && customerElement.ValueKind == JsonValueKind.String
+                && Guid.TryParse(customerElement.GetString(), out var parsedCustomerId)
+            )
+            {
+                targetCustomerId = parsedCustomerId;
+            }
+
+            var responseData = new
+            {
+                type = "video_call_declined",
+                data = new
+                {
+                    roomId,
+                    callId,
+                    declinedByUserType = userType,
+                    declinedByTaxUserId = taxUserId,
+                    declinedByCustomerId = customerId,
+                },
+            };
+
+            if (targetUserType == ParticipantType.TaxUser && targetTaxUserId.HasValue)
+            {
+                await _webSocketManager.SendToTaxUserAsync(targetTaxUserId.Value, responseData);
+            }
+            else if (targetUserType == ParticipantType.Customer && targetCustomerId.HasValue)
+            {
+                await _webSocketManager.SendToCustomerAsync(targetCustomerId.Value, responseData);
+            }
+
+            _logger.LogInformation(
+                "Video call declined by {UserType} {UserId} in room {RoomId}",
+                userType,
+                userType == ParticipantType.TaxUser ? taxUserId : customerId,
+                roomId
+            );
         }
-        else if (targetUserType == ParticipantType.Customer && targetCustomerId.HasValue)
+        catch (Exception ex)
         {
-            await _webSocketManager.SendToCustomerAsync(targetCustomerId.Value, responseData);
+            _logger.LogError(ex, "Error handling video call declined: {Data}", data.ToString());
         }
     }
 }
