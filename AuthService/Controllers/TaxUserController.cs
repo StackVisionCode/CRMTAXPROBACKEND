@@ -2,10 +2,12 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using AuthService.Applications.DTOs.CompanyDTOs;
 using AuthService.Commands.InvitationCommands;
+using AuthService.DTOs.InvitationDTOs;
 using AuthService.DTOs.RoleDTOs;
 using AuthService.DTOs.UserDTOs;
 using Commands.UserCommands;
 using Common;
+using Infraestructure.Queries.InvitationsQueries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Queries.UserQueries;
@@ -40,15 +42,31 @@ namespace AuthService.Controllers
         }
 
         /// <summary>
-        /// Envía una invitación a un email para unirse como UserCompany
+        /// Envía una invitación a un email para unirse como TaxUser
         /// </summary>
         [HttpPost("invite")]
-        public async Task<ActionResult<ApiResponse<bool>>> SendInvitation(
-            [FromBody] SendInvitationDTO invitation,
+        public async Task<ActionResult<ApiResponse<InvitationDTO>>> SendInvitation(
+            [FromBody] NewInvitationDTO invitation,
             [FromHeader(Name = "Origin")] string origin = ""
         )
         {
-            var command = new SendUserInvitationCommand(invitation, origin);
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized();
+
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+            var userAgent = Request.Headers["User-Agent"].ToString();
+
+            var command = new SendUserInvitationCommand(
+                invitation,
+                userId,
+                origin,
+                ipAddress,
+                userAgent
+            );
             var result = await _mediator.Send(command);
 
             if (result.Success == false)
@@ -90,6 +108,237 @@ namespace AuthService.Controllers
                 return BadRequest(result);
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene todas las invitaciones de la company del usuario actual
+        /// </summary>
+        [HttpGet("invitations")]
+        public async Task<
+            ActionResult<ApiResponse<PagedResult<InvitationDTO>>>
+        > GetCompanyInvitations(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] InvitationStatus? status = null,
+            [FromQuery] string? email = null,
+            [FromQuery] Guid? invitedByUserId = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            [FromQuery] bool includeExpired = true
+        )
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized();
+
+            var companyIdRaw = User.FindFirst("companyId")?.Value;
+            if (!Guid.TryParse(companyIdRaw, out var companyId))
+                return Unauthorized();
+
+            var query = new GetCompanyInvitationsQuery(
+                companyId,
+                page,
+                pageSize,
+                status,
+                email,
+                invitedByUserId,
+                dateFrom,
+                dateTo,
+                includeExpired
+            );
+
+            var result = await _mediator.Send(query);
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Obtiene una invitación específica por ID
+        /// </summary>
+        [HttpGet("invitations/{invitationId:guid}")]
+        public async Task<ActionResult<ApiResponse<InvitationDTO>>> GetInvitationById(
+            Guid invitationId
+        )
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized();
+
+            var query = new GetInvitationByIdQuery(invitationId, userId);
+            var result = await _mediator.Send(query);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Obtiene invitación por token (para validación pública)
+        /// </summary>
+        [HttpGet("invitations/by-token/{token}")]
+        public async Task<ActionResult<ApiResponse<InvitationDTO>>> GetInvitationByToken(
+            string token
+        )
+        {
+            var query = new GetInvitationByTokenQuery(token);
+            var result = await _mediator.Send(query);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Cancela una invitación específica
+        /// </summary>
+        [HttpPut("invitations/{invitationId:guid}/cancel")]
+        public async Task<ActionResult<ApiResponse<bool>>> CancelInvitation(
+            Guid invitationId,
+            [FromBody] CancelInvitationDTO cancelRequest
+        )
+        {
+            if (cancelRequest.InvitationId != invitationId)
+                return BadRequest("Invitation ID mismatch");
+
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized();
+
+            var command = new CancelInvitationCommand(cancelRequest, userId);
+            var result = await _mediator.Send(command);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Cancela múltiples invitaciones
+        /// </summary>
+        [HttpPut("invitations/cancel-bulk")]
+        public async Task<ActionResult<ApiResponse<int>>> CancelBulkInvitations(
+            [FromBody] CancelBulkInvitationsDTO cancelRequest
+        )
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized();
+
+            var command = new CancelBulkInvitationsCommand(cancelRequest, userId);
+            var result = await _mediator.Send(command);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Obtiene estadísticas de invitaciones de la company
+        /// </summary>
+        [HttpGet("invitations/stats")]
+        public async Task<ActionResult<ApiResponse<InvitationStatsDTO>>> GetInvitationStats(
+            [FromQuery] int daysBack = 30
+        )
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized();
+
+            var companyIdRaw = User.FindFirst("companyId")?.Value;
+            if (!Guid.TryParse(companyIdRaw, out var companyId))
+                return Unauthorized();
+
+            var query = new GetInvitationStatsQuery(companyId, daysBack);
+            var result = await _mediator.Send(query);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Verifica si la company puede enviar más invitaciones
+        /// </summary>
+        [HttpGet("invitations/can-send-more")]
+        public async Task<
+            ActionResult<ApiResponse<InvitationLimitCheckDTO>>
+        > CanSendMoreInvitations()
+        {
+            var idRaw =
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(idRaw, out var userId))
+                return Unauthorized();
+
+            var companyIdRaw = User.FindFirst("companyId")?.Value;
+            if (!Guid.TryParse(companyIdRaw, out var companyId))
+                return Unauthorized();
+
+            var query = new CanSendMoreInvitationsQuery(companyId);
+            var result = await _mediator.Send(query);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Marca invitaciones expiradas (job manual - solo Developer)
+        /// </summary>
+        [HttpPost("invitations/mark-expired")]
+        public async Task<ActionResult<ApiResponse<int>>> MarkExpiredInvitations()
+        {
+            var command = new MarkExpiredInvitationsCommand();
+            var result = await _mediator.Send(command);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Obtiene todas las invitaciones del sistema (solo Developer)
+        /// </summary>
+        [HttpGet("admin/invitations")]
+        public async Task<ActionResult<ApiResponse<PagedResult<InvitationDTO>>>> GetAllInvitations(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] Guid? companyId = null,
+            [FromQuery] InvitationStatus? status = null,
+            [FromQuery] string? email = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            [FromQuery] bool includeExpired = true
+        )
+        {
+            var query = new GetAllInvitationsQuery(
+                page,
+                pageSize,
+                companyId,
+                status,
+                email,
+                dateFrom,
+                dateTo,
+                includeExpired
+            );
+            var result = await _mediator.Send(query);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Obtiene estadísticas globales de invitaciones (solo Developer)
+        /// </summary>
+        [HttpGet("admin/invitations/global-stats")]
+        public async Task<
+            ActionResult<ApiResponse<List<InvitationStatsDTO>>>
+        > GetGlobalInvitationStats([FromQuery] int daysBack = 30)
+        {
+            var query = new GetGlobalInvitationStatsQuery(daysBack);
+            var result = await _mediator.Send(query);
+
+            return result.Success ?? false ? Ok(result) : BadRequest(result);
         }
 
         // Actualizar Usuario de Compañia

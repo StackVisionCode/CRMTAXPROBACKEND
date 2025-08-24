@@ -3,6 +3,7 @@ using System.Text.Json;
 using Applications.Common;
 using Applications.EventHandlers.CustomerEventHandlers;
 using AuthService.Applications.Services;
+using AuthService.BackgroundServices;
 using AuthService.Infraestructure.Services;
 using Infraestructure.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -129,6 +130,7 @@ try
 
     builder.Services.AddScoped<IPasswordHash, PasswordHash>();
     builder.Services.AddScoped<IGeolocationService, GeolocationService>();
+    builder.Services.AddHostedService<InvitationCleanupService>();
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddSingleton<LinkBuilder>();
 

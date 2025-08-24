@@ -61,6 +61,7 @@ namespace SharedLibrary
             "/api/taxcompany/checkcompanyname",
             "/api/public/company/{companyId}",
             "/api/public/taxuser/{taxUserId}",
+            "/api/taxuser/invitations/by-token/{token}",
         };
 
         /* ------------------ RUTAS PÚBLICAS "UPSTREAM" (si las expones por gateway) ------------------ */

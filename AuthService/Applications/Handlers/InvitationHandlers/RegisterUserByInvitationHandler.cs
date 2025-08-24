@@ -1,5 +1,6 @@
 using AuthService.Commands.InvitationCommands;
 using AuthService.Domains.Addresses;
+using AuthService.Domains.Invitations;
 using AuthService.Domains.Permissions;
 using AuthService.Domains.Users;
 using AuthService.Infraestructure.Services;
@@ -49,90 +50,124 @@ public class RegisterUserByInvitationHandler
         {
             var registration = request.Registration;
 
-            // 1. Validar token de invitación
-            var (isValid, companyId, email, roleIds, errorMessage) =
-                _invitationTokenService.ValidateInvitation(registration.InvitationToken);
-            if (!isValid)
+            // 1. Validar token de invitación y obtener registro de invitación
+            var invitationQuery =
+                from i in _dbContext.Invitations
+                join c in _dbContext.Companies on i.CompanyId equals c.Id
+                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
+                where i.Token == registration.InvitationToken
+                select new
+                {
+                    InvitationId = i.Id,
+                    i.CompanyId,
+                    i.Email,
+                    i.Status,
+                    i.ExpiresAt,
+                    i.RoleIds,
+                    CompanyName = c.CompanyName,
+                    CompanyFullName = c.FullName,
+                    CompanyDomain = c.Domain,
+                    CompanyIsCompany = c.IsCompany,
+                    CustomPlanIsActive = cp.IsActive,
+                    UserLimit = cp.UserLimit,
+                    CurrentActiveUserCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == i.CompanyId && u.IsActive
+                    ),
+                    OwnerCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == i.CompanyId && u.IsOwner && u.IsActive
+                    ),
+                };
+
+            var invitationData = await invitationQuery.FirstOrDefaultAsync(cancellationToken);
+            if (invitationData == null)
             {
-                _logger.LogWarning("Invalid invitation token: {Error}", errorMessage);
+                _logger.LogWarning("Invalid invitation token during registration");
+                return new ApiResponse<bool>(false, "Invalid invitation token", false);
+            }
+
+            // 2. Verificar estado de la invitación
+            if (invitationData.Status != InvitationStatus.Pending)
+            {
+                _logger.LogWarning(
+                    "Invitation is not pending: {InvitationId}, Status: {Status}",
+                    invitationData.InvitationId,
+                    invitationData.Status
+                );
                 return new ApiResponse<bool>(
                     false,
-                    errorMessage ?? "Invalid invitation token",
+                    $"Invitation is no longer valid. Status: {invitationData.Status}",
                     false
                 );
             }
 
-            // 2. Verificar que la company aún existe y obtener límites + información del Administrator
-            var companyQuery =
-                from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
-                where c.Id == companyId
-                select new
-                {
-                    c.Id,
-                    c.CompanyName,
-                    c.FullName,
-                    c.Domain,
-                    c.IsCompany,
-                    CustomPlanId = cp.Id,
-                    CustomPlanIsActive = cp.IsActive,
-                    UserLimit = cp.UserLimit,
-                    CurrentActiveUserCount = _dbContext.TaxUsers.Count(u =>
-                        u.CompanyId == companyId && u.IsActive
-                    ),
-                    OwnerCount = _dbContext.TaxUsers.Count(u =>
-                        u.CompanyId == companyId && u.IsOwner && u.IsActive
-                    ),
-                };
-
-            var company = await companyQuery.FirstOrDefaultAsync(cancellationToken);
-            if (company == null)
+            if (invitationData.ExpiresAt <= DateTime.UtcNow)
             {
-                _logger.LogWarning("Company not found during registration: {CompanyId}", companyId);
-                return new ApiResponse<bool>(false, "Company no longer exists", false);
+                // Marcar como expirada
+                await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $@"
+                    UPDATE Invitations 
+                    SET Status = {(int)InvitationStatus.Expired}, UpdatedAt = {DateTime.UtcNow}
+                    WHERE Id = {invitationData.InvitationId}
+                ",
+                    cancellationToken
+                );
+
+                _logger.LogWarning(
+                    "Invitation has expired: {InvitationId}",
+                    invitationData.InvitationId
+                );
+                return new ApiResponse<bool>(false, "Invitation has expired", false);
             }
 
-            if (!company.CustomPlanIsActive)
+            // 3. Verificar estado de la company
+            if (!invitationData.CustomPlanIsActive)
             {
-                _logger.LogWarning("Company plan is inactive: {CompanyId}", companyId);
+                _logger.LogWarning(
+                    "Company plan is inactive during registration: {CompanyId}",
+                    invitationData.CompanyId
+                );
                 return new ApiResponse<bool>(false, "Company plan is inactive", false);
             }
 
-            // 3. Verificar que el email no esté registrado
+            // 4. Verificar límites de usuarios
+            if (invitationData.CurrentActiveUserCount >= invitationData.UserLimit)
+            {
+                _logger.LogWarning(
+                    "User limit exceeded during registration for company: {CompanyId}. "
+                        + "Current active users: {Current}, CustomPlan limit: {Limit}",
+                    invitationData.CompanyId,
+                    invitationData.CurrentActiveUserCount,
+                    invitationData.UserLimit
+                );
+                return new ApiResponse<bool>(
+                    false,
+                    $"User limit exceeded. Current: {invitationData.CurrentActiveUserCount}, Limit: {invitationData.UserLimit}",
+                    false
+                );
+            }
+
+            if (invitationData.OwnerCount == 0)
+            {
+                _logger.LogError(
+                    "Company {CompanyId} has no active Owner",
+                    invitationData.CompanyId
+                );
+                return new ApiResponse<bool>(false, "Company has no active administrator", false);
+            }
+
+            // 5. Verificar que el email no esté registrado
             var emailExists = await _dbContext.TaxUsers.AnyAsync(
-                u => u.Email == email,
+                u => u.Email == invitationData.Email,
                 cancellationToken
             );
 
             if (emailExists)
             {
-                _logger.LogWarning("Email already registered: {Email}", email);
+                _logger.LogWarning("Email already registered: {Email}", invitationData.Email);
                 return new ApiResponse<bool>(false, "Email already registered", false);
             }
 
-            if (company.CurrentActiveUserCount >= company.UserLimit)
-            {
-                _logger.LogWarning(
-                    "User limit exceeded during registration for company: {CompanyId}. "
-                        + "Current active users: {Current}, CustomPlan limit: {Limit}",
-                    companyId,
-                    company.CurrentActiveUserCount,
-                    company.UserLimit
-                );
-                return new ApiResponse<bool>(
-                    false,
-                    $"User limit exceeded. Current: {company.CurrentActiveUserCount}, Limit: {company.UserLimit}",
-                    false
-                );
-            }
-
-            if (company.OwnerCount == 0)
-            {
-                _logger.LogError("Company {CompanyId} has no active Owner", companyId);
-                return new ApiResponse<bool>(false, "Company has no active administrator", false);
-            }
-
-            // 4. Obtener todos los permisos del Administrator de la company (Owner)
+            // 6. Obtener permisos del Administrator para heredar
             var adminPermissionsQuery =
                 from adminUser in _dbContext.TaxUsers
                 join userRole in _dbContext.UserRoles on adminUser.Id equals userRole.TaxUserId
@@ -142,10 +177,10 @@ public class RegisterUserByInvitationHandler
                 join permission in _dbContext.Permissions
                     on rolePermission.PermissionId equals permission.Id
                 where
-                    adminUser.CompanyId == companyId
+                    adminUser.CompanyId == invitationData.CompanyId
                     && adminUser.IsOwner == true
                     && adminUser.IsActive == true
-                    && role.Name.Contains("Administrator") // Administrator Basic, Standard, Pro
+                    && role.Name.Contains("Administrator")
                     && permission.IsGranted == true
                 select new
                 {
@@ -158,22 +193,13 @@ public class RegisterUserByInvitationHandler
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            if (!adminPermissions.Any())
-            {
-                _logger.LogWarning(
-                    "No administrator permissions found for company {CompanyId}. "
-                        + "This might indicate a data integrity issue.",
-                    companyId
-                );
-            }
-
             _logger.LogDebug(
                 "Found {PermissionCount} administrator permissions to inherit for company {CompanyId}",
                 adminPermissions.Count,
-                companyId
+                invitationData.CompanyId
             );
 
-            // 5. Crear dirección si se proporciona
+            // 7. Crear dirección si se proporciona
             Address? userAddressEntity = null;
             if (registration.Address != null)
             {
@@ -206,12 +232,12 @@ public class RegisterUserByInvitationHandler
                 _logger.LogDebug("Created address for TaxUser: {AddressId}", userAddressEntity.Id);
             }
 
-            // 6. Crear TaxUser - ACTIVO, CONFIRMADO y NO OWNER
+            // 8. Crear TaxUser - ACTIVO, CONFIRMADO y NO OWNER
             var taxUser = new TaxUser
             {
                 Id = Guid.NewGuid(),
-                CompanyId = companyId,
-                Email = email,
+                CompanyId = invitationData.CompanyId,
+                Email = invitationData.Email,
                 Password = _passwordHash.HashPassword(registration.Password),
                 Name = registration.Name,
                 LastName = registration.LastName,
@@ -227,25 +253,16 @@ public class RegisterUserByInvitationHandler
 
             await _dbContext.TaxUsers.AddAsync(taxUser, cancellationToken);
 
-            // 7. Asignar roles
+            // 9. Asignar roles
             var rolesToAssign = new List<Guid>();
 
-            // Rol User por defecto si no se especificaron roles
-            if (roleIds?.Any() != true)
-            {
-                var userRoleQuery = from r in _dbContext.Roles where r.Name == "User" select r.Id;
-                var userRoleId = await userRoleQuery.FirstOrDefaultAsync(cancellationToken);
-                if (userRoleId != Guid.Empty)
-                {
-                    rolesToAssign.Add(userRoleId);
-                }
-            }
-            else
+            // Si la invitación especifica roles, usarlos; sino, asignar User por defecto
+            if (invitationData.RoleIds?.Any() == true)
             {
                 // Validar que los roles especificados existen y no incluyen roles de Administrator
                 var validRoles = await _dbContext
                     .Roles.Where(r =>
-                        roleIds.Contains(r.Id)
+                        invitationData.RoleIds.Contains(r.Id)
                         && !r.Name.Contains("Administrator")
                         && !r.Name.Contains("Developer")
                     )
@@ -253,19 +270,16 @@ public class RegisterUserByInvitationHandler
                     .ToListAsync(cancellationToken);
 
                 rolesToAssign.AddRange(validRoles);
+            }
 
-                // Si no hay roles válidos, asignar User por defecto
-                if (!rolesToAssign.Any())
+            // Si no hay roles válidos, asignar User por defecto
+            if (!rolesToAssign.Any())
+            {
+                var userRoleQuery = from r in _dbContext.Roles where r.Name == "User" select r.Id;
+                var userRoleId = await userRoleQuery.FirstOrDefaultAsync(cancellationToken);
+                if (userRoleId != Guid.Empty)
                 {
-                    var userRoleQuery =
-                        from r in _dbContext.Roles
-                        where r.Name == "User"
-                        select r.Id;
-                    var userRoleId = await userRoleQuery.FirstOrDefaultAsync(cancellationToken);
-                    if (userRoleId != Guid.Empty)
-                    {
-                        rolesToAssign.Add(userRoleId);
-                    }
+                    rolesToAssign.Add(userRoleId);
                 }
             }
 
@@ -283,7 +297,7 @@ public class RegisterUserByInvitationHandler
                 await _dbContext.UserRoles.AddAsync(userRole, cancellationToken);
             }
 
-            // 8. HEREDAR PERMISOS DEL ADMINISTRATOR A COMPANYPERMISSIONS
+            // 10. HEREDAR PERMISOS DEL ADMINISTRATOR A COMPANYPERMISSIONS
             var companyPermissionsToAdd = new List<CompanyPermission>();
 
             foreach (var adminPermission in adminPermissions)
@@ -315,32 +329,69 @@ public class RegisterUserByInvitationHandler
                         + "in company {CompanyId}",
                     companyPermissionsToAdd.Count,
                     taxUser.Id,
-                    companyId
+                    invitationData.CompanyId
                 );
             }
 
-            // 9. Guardar todo
-            var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
-            if (!result)
+            // 🔧 PRIMERA PARTE: Guardar TaxUser y dependencias SIN actualizar invitación
+            var firstSaveResult = await _dbContext.SaveChangesAsync(cancellationToken);
+            if (firstSaveResult <= 0)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError("Failed to create TaxUser by invitation");
+                _logger.LogError("Failed to create TaxUser by invitation - first save failed");
                 return new ApiResponse<bool>(false, "Failed to create user account", false);
+            }
+
+            _logger.LogInformation("TaxUser created successfully with ID: {TaxUserId}", taxUser.Id);
+
+            //  Actualizar invitación DESPUÉS de que TaxUser existe
+            var invitation = await _dbContext.Invitations.FirstOrDefaultAsync(
+                i => i.Id == invitationData.InvitationId,
+                cancellationToken
+            );
+
+            if (invitation == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(
+                    "Invitation not found for update: {InvitationId}",
+                    invitationData.InvitationId
+                );
+                return new ApiResponse<bool>(false, "Invitation not found", false);
+            }
+
+            // Actualizar invitación
+            invitation.Status = InvitationStatus.Accepted;
+            invitation.AcceptedAt = DateTime.UtcNow;
+            invitation.RegisteredUserId = taxUser.Id;
+            invitation.UpdatedAt = DateTime.UtcNow;
+
+            _dbContext.Invitations.Update(invitation);
+
+            // Guardar la actualización de la invitación
+            var secondSaveResult = await _dbContext.SaveChangesAsync(cancellationToken);
+            if (secondSaveResult <= 0)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError("Failed to update invitation status after user creation");
+                return new ApiResponse<bool>(false, "Failed to update invitation status", false);
             }
 
             await transaction.CommitAsync(cancellationToken);
 
             _logger.LogInformation(
                 "TaxUser registered successfully by invitation: {TaxUserId} for company {CompanyId}. "
+                    + "Invitation {InvitationId} marked as accepted. "
                     + "Users: {Current}/{Limit}. Inherited permissions: {PermissionCount}",
                 taxUser.Id,
-                companyId,
-                company.CurrentActiveUserCount + 1, // +1 porque acabamos de crear uno
-                company.UserLimit,
+                invitationData.CompanyId,
+                invitationData.InvitationId,
+                invitationData.CurrentActiveUserCount + 1, // +1 porque acabamos de crear uno
+                invitationData.UserLimit,
                 companyPermissionsToAdd.Count
             );
 
-            // 10. Publicar evento de registro completado
+            // 13. Publicar evento de registro completado
             _eventBus.Publish(
                 new UserRegisteredEvent(
                     Id: Guid.NewGuid(),
@@ -349,11 +400,11 @@ public class RegisterUserByInvitationHandler
                     Email: taxUser.Email,
                     Name: taxUser.Name,
                     LastName: taxUser.LastName,
-                    CompanyId: companyId,
-                    CompanyName: company.CompanyName,
-                    CompanyFullName: company.FullName,
-                    CompanyDomain: company.Domain,
-                    IsCompany: company.IsCompany
+                    CompanyId: invitationData.CompanyId,
+                    CompanyName: invitationData.CompanyName,
+                    CompanyFullName: invitationData.CompanyFullName,
+                    CompanyDomain: invitationData.CompanyDomain,
+                    IsCompany: invitationData.CompanyIsCompany
                 )
             );
 

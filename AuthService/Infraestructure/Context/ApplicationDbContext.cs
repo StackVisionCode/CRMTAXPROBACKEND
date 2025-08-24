@@ -4,6 +4,7 @@ using AuthService.Domains.Addresses;
 using AuthService.Domains.Companies;
 using AuthService.Domains.CustomPlans;
 using AuthService.Domains.Geography;
+using AuthService.Domains.Invitations;
 using AuthService.Domains.Modules;
 using AuthService.Domains.Permissions;
 using AuthService.Domains.Roles;
@@ -38,6 +39,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CustomModule> CustomModules { get; set; }
     public DbSet<CustomPlan> CustomPlans { get; set; }
     public DbSet<CompanyPermission> CompanyPermissions { get; set; }
+    public DbSet<Invitation> Invitations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -82,6 +84,12 @@ public class ApplicationDbContext : DbContext
         ConfigureUpdatedTables(modelBuilder);
         ConfigureUpdatedRelationships(modelBuilder);
         ConfigureUpdatedIndexes(modelBuilder);
+
+        // Configuraciones de invitaciones
+        ConfigureInvitationTable(modelBuilder);
+        ConfigureInvitationRelationships(modelBuilder);
+        ConfigureInvitationIndexes(modelBuilder);
+        ConfigureInvitationConstraints(modelBuilder);
 
         // Precisión decimal
         ConfigureDecimalPrecision(modelBuilder);
@@ -425,6 +433,143 @@ public class ApplicationDbContext : DbContext
                 b.HasCheckConstraint(
                     "CK_TaxUser_OneOwnerPerCompany",
                     "([IsOwner] = 0) OR ([IsOwner] = 1)"
+                )
+            );
+    }
+
+    private void ConfigureInvitationTable(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Invitation>().ToTable("Invitations");
+
+        // Propiedades requeridas y longitudes
+        modelBuilder.Entity<Invitation>().Property(i => i.Email).IsRequired().HasMaxLength(256);
+
+        modelBuilder.Entity<Invitation>().Property(i => i.Token).IsRequired().HasMaxLength(512);
+
+        modelBuilder.Entity<Invitation>().Property(i => i.PersonalMessage).HasMaxLength(1000);
+
+        modelBuilder.Entity<Invitation>().Property(i => i.CancellationReason).HasMaxLength(500);
+
+        modelBuilder.Entity<Invitation>().Property(i => i.InvitationLink).HasMaxLength(2000);
+
+        modelBuilder.Entity<Invitation>().Property(i => i.IpAddress).HasMaxLength(45);
+
+        modelBuilder.Entity<Invitation>().Property(i => i.UserAgent).HasMaxLength(500);
+
+        // Configuración de RoleIds como JSON
+        modelBuilder
+            .Entity<Invitation>()
+            .Property(i => i.RoleIds)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v =>
+                    JsonSerializer.Deserialize<List<Guid>>(v, (JsonSerializerOptions?)null)
+                    ?? new List<Guid>()
+            )
+            .Metadata.SetValueComparer(
+                new ValueComparer<List<Guid>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList()
+                )
+            );
+    }
+
+    private void ConfigureInvitationRelationships(ModelBuilder modelBuilder)
+    {
+        // Invitation -> Company (N:1)
+        modelBuilder
+            .Entity<Invitation>()
+            .HasOne(i => i.Company)
+            .WithMany()
+            .HasForeignKey(i => i.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Invitation -> InvitedByUser (N:1)
+        modelBuilder
+            .Entity<Invitation>()
+            .HasOne(i => i.InvitedByUser)
+            .WithMany()
+            .HasForeignKey(i => i.InvitedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Invitation -> CancelledByUser (N:1, opcional)
+        modelBuilder
+            .Entity<Invitation>()
+            .HasOne(i => i.CancelledByUser)
+            .WithMany()
+            .HasForeignKey(i => i.CancelledByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Invitation -> RegisteredUser (N:1, opcional)
+        modelBuilder
+            .Entity<Invitation>()
+            .HasOne(i => i.RegisteredUser)
+            .WithMany()
+            .HasForeignKey(i => i.RegisteredUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+    }
+
+    private void ConfigureInvitationIndexes(ModelBuilder modelBuilder)
+    {
+        // Índice único para token
+        modelBuilder.Entity<Invitation>().HasIndex(i => i.Token).IsUnique();
+
+        // Índices para consultas frecuentes
+        modelBuilder.Entity<Invitation>().HasIndex(i => i.CompanyId);
+
+        modelBuilder.Entity<Invitation>().HasIndex(i => i.Email);
+
+        modelBuilder.Entity<Invitation>().HasIndex(i => i.Status);
+
+        modelBuilder.Entity<Invitation>().HasIndex(i => i.InvitedByUserId);
+
+        modelBuilder.Entity<Invitation>().HasIndex(i => i.ExpiresAt);
+
+        modelBuilder.Entity<Invitation>().HasIndex(i => i.CreatedAt);
+
+        // Índice compuesto para consultas de company + estado
+        modelBuilder.Entity<Invitation>().HasIndex(i => new { i.CompanyId, i.Status });
+
+        // Índice compuesto para consultas de company + email
+        modelBuilder.Entity<Invitation>().HasIndex(i => new { i.CompanyId, i.Email });
+
+        // Índice compuesto para limpiar invitaciones expiradas
+        modelBuilder.Entity<Invitation>().HasIndex(i => new { i.Status, i.ExpiresAt });
+    }
+
+    private void ConfigureInvitationConstraints(ModelBuilder modelBuilder)
+    {
+        // Check constraints
+        modelBuilder
+            .Entity<Invitation>()
+            .ToTable(b =>
+                b.HasCheckConstraint("CK_Invitations_ExpiresAt", "[ExpiresAt] > [CreatedAt]")
+            );
+
+        modelBuilder
+            .Entity<Invitation>()
+            .ToTable(b =>
+                b.HasCheckConstraint("CK_Invitations_ValidStatus", "[Status] IN (1,2,3,4,5)")
+            );
+
+        // Si está cancelada, debe tener fecha de cancelación
+        modelBuilder
+            .Entity<Invitation>()
+            .ToTable(b =>
+                b.HasCheckConstraint(
+                    "CK_Invitations_CancelledData",
+                    "([Status] != 3) OR ([Status] = 3 AND [CancelledAt] IS NOT NULL AND [CancelledByUserId] IS NOT NULL)"
+                )
+            );
+
+        // Si está aceptada, debe tener fecha de aceptación y usuario registrado
+        modelBuilder
+            .Entity<Invitation>()
+            .ToTable(b =>
+                b.HasCheckConstraint(
+                    "CK_Invitations_AcceptedData",
+                    "([Status] != 2) OR ([Status] = 2 AND [AcceptedAt] IS NOT NULL AND [RegisteredUserId] IS NOT NULL)"
                 )
             );
     }

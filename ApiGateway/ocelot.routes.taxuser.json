@@ -342,6 +342,232 @@
       "SwaggerKey": "auth"
     },
     {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 1,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations/{invitationId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations/{invitationId}",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 2,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations/by-token/{token}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations/by-token/{token}",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 3,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations/{invitationId}/cancel",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations/{invitationId}/cancel",
+      "UpstreamHttpMethod": [
+        "PUT"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 4,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations/cancel-bulk",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations/cancel-bulk",
+      "UpstreamHttpMethod": [
+        "PUT"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 5,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations/stats",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations/stats",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 6,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations/can-send-more",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations/can-send-more",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 7,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/invitations/mark-expired",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/invitations/mark-expired",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 8,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/admin/invitations",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/admin/invitations",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 9,
+      "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/TaxUser/admin/invitations/global-stats",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/taxuser/admin/invitations/global-stats",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      },
+      "AddHeadersToRequest": {
+        "X-From-Gateway": "Api-Gateway"
+      },
+      "Priority": 10,
+      "SwaggerKey": "auth"
+    },
+    {
       "DownstreamPathTemplate": "/api/TaxUser/UpdateUser",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
