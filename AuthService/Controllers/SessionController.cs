@@ -21,6 +21,16 @@ namespace AuthService.Controllers
             _mediator = mediator;
         }
 
+        private Guid GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var userId))
+            {
+                return userId;
+            }
+            throw new UnauthorizedAccessException("Invalid user token");
+        }
+
         [HttpPost("Login")]
         public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login(
             [FromBody] LoginRequestDTO dto
@@ -145,6 +155,126 @@ namespace AuthService.Controllers
                 ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             return Guid.TryParse(raw, out var g) ? g : null;
+        }
+
+        // <summary>
+        /// Obtiene todas las sesiones activas de la empresa del usuario autenticado
+        /// </summary>
+        [HttpGet("CompanyActiveSessions")]
+        [ProducesResponseType(
+            typeof(ApiResponse<List<SessionWithUserDTO>>),
+            StatusCodes.Status200OK
+        )]
+        [ProducesResponseType(
+            typeof(ApiResponse<List<SessionWithUserDTO>>),
+            StatusCodes.Status400BadRequest
+        )]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetCompanyActiveSessions()
+        {
+            var userId = GetCurrentUserId();
+            var query = new GetCompanyActiveSessionsQuery(userId);
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene todas las sesiones (últimas 30 días) de la empresa del usuario autenticado
+        /// </summary>
+        [HttpGet("CompanyAllSessions")]
+        [ProducesResponseType(
+            typeof(ApiResponse<List<SessionWithUserDTO>>),
+            StatusCodes.Status200OK
+        )]
+        public async Task<IActionResult> GetCompanyAllSessions()
+        {
+            var userId = GetCurrentUserId();
+            var query = new GetCompanyAllSessionsQuery(userId);
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene las sesiones de un usuario específico (debe pertenecer a la misma empresa)
+        /// </summary>
+        [HttpGet("UserSessions")]
+        [ProducesResponseType(
+            typeof(ApiResponse<List<SessionWithUserDTO>>),
+            StatusCodes.Status200OK
+        )]
+        public async Task<IActionResult> GetUserSessions([FromQuery] Guid targetUserId)
+        {
+            var requestingUserId = GetCurrentUserId();
+            var query = new GetUserSessionsQuery(requestingUserId, targetUserId);
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene estadísticas de sesiones de la empresa
+        /// </summary>
+        [HttpGet("CompanySessionStats")]
+        [ProducesResponseType(typeof(ApiResponse<CompanySessionStatsDTO>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCompanySessionStats([FromQuery] string timeRange = "7d")
+        {
+            var userId = GetCurrentUserId();
+            var query = new GetCompanySessionStatsQuery(userId, timeRange);
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Revoca una sesión específica
+        /// </summary>
+        [HttpPost("RevokeSession")]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> RevokeSession([FromBody] RevokeSessionRequest request)
+        {
+            var userId = GetCurrentUserId();
+            var command = new RevokeSessionCommand(userId, request.SessionId, request.Reason);
+            var result = await _mediator.Send(command);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Revoca múltiples sesiones
+        /// </summary>
+        [HttpPost("RevokeBulkSessions")]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> RevokeBulkSessions(
+            [FromBody] RevokeBulkSessionsRequest request
+        )
+        {
+            var userId = GetCurrentUserId();
+            var command = new RevokeBulkSessionsCommand(userId, request.SessionIds, request.Reason);
+            var result = await _mediator.Send(command);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Revoca todas las sesiones de un usuario
+        /// </summary>
+        [HttpPost("RevokeUserSessions")]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> RevokeUserSessions(
+            [FromBody] RevokeUserSessionsRequest request
+        )
+        {
+            var userId = GetCurrentUserId();
+            var command = new RevokeUserSessionsCommand(
+                userId,
+                request.TargetUserId,
+                request.Reason
+            );
+            var result = await _mediator.Send(command);
+
+            return Ok(result);
         }
     }
 }
