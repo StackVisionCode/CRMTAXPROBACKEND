@@ -8,7 +8,7 @@ using Queries.SessionQueries;
 namespace Handlers.SessionHandlers;
 
 public class GetUserSessionsHandler
-    : IRequestHandler<GetUserSessionsQuery, ApiResponse<List<SessionDTO>>>
+    : IRequestHandler<GetUserSessionsQuery, ApiResponse<List<SessionWithUserDTO>>>
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<GetUserSessionsHandler> _logger;
@@ -22,7 +22,7 @@ public class GetUserSessionsHandler
         _logger = logger;
     }
 
-    public async Task<ApiResponse<List<SessionDTO>>> Handle(
+    public async Task<ApiResponse<List<SessionWithUserDTO>>> Handle(
         GetUserSessionsQuery request,
         CancellationToken cancellationToken
     )
@@ -31,35 +31,84 @@ public class GetUserSessionsHandler
         {
             // 1. Verificar que ambos usuarios pertenecen a la misma empresa
             var usersCompanyQuery =
-                from u1 in _context.TaxUsers
-                join u2 in _context.TaxUsers on u1.CompanyId equals u2.CompanyId
-                where u1.Id == request.RequestingUserId && u2.Id == request.TargetUserId
-                select new { RequestingUser = u1, TargetUser = u2 };
+                from u in _context.TaxUsers
+                where
+                    (u.Id == request.RequestingUserId || u.Id == request.TargetUserId) && u.IsActive
+                select new { u.Id, u.CompanyId };
 
-            var usersInfo = await usersCompanyQuery.FirstOrDefaultAsync(cancellationToken);
+            var usersCompany = await usersCompanyQuery.ToListAsync(cancellationToken);
 
-            if (usersInfo == null)
+            if (usersCompany.Count != 2)
             {
                 _logger.LogWarning(
-                    "Users not found or don't belong to same company: Requesting={RequestingUserId}, Target={TargetUserId}",
+                    "One or both users not found: Requesting={RequestingUserId}, Target={TargetUserId}",
                     request.RequestingUserId,
                     request.TargetUserId
                 );
-                return new ApiResponse<List<SessionDTO>>(
+                return new ApiResponse<List<SessionWithUserDTO>>(
                     false,
-                    "Users not found or don't belong to the same company",
-                    new List<SessionDTO>()
+                    "One or both users not found or inactive",
+                    new List<SessionWithUserDTO>()
                 );
             }
 
-            // 2. Obtener sesiones del usuario específico (últimas 30 días)
+            var requestingUserCompany = usersCompany
+                .First(x => x.Id == request.RequestingUserId)
+                .CompanyId;
+            var targetUserCompany = usersCompany.First(x => x.Id == request.TargetUserId).CompanyId;
+
+            if (requestingUserCompany != targetUserCompany)
+            {
+                _logger.LogWarning(
+                    "Users belong to different companies: Requesting={RequestingCompany}, Target={TargetCompany}",
+                    requestingUserCompany,
+                    targetUserCompany
+                );
+                return new ApiResponse<List<SessionWithUserDTO>>(
+                    false,
+                    "Access denied: Users belong to different companies",
+                    new List<SessionWithUserDTO>()
+                );
+            }
+
+            // 2. Obtener sesiones del usuario objetivo (últimos 30 días)
             var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
 
             var userSessionsQuery =
                 from s in _context.Sessions
-                where s.TaxUserId == request.TargetUserId && s.CreatedAt >= thirtyDaysAgo
+                join u in _context.TaxUsers on s.TaxUserId equals u.Id
+                where
+                    s.TaxUserId == request.TargetUserId
+                    && u.IsActive
+                    && s.CreatedAt >= thirtyDaysAgo
                 orderby s.CreatedAt descending
-                select new SessionDTO
+                select new
+                {
+                    s.Id,
+                    s.TaxUserId,
+                    s.ExpireTokenRequest,
+                    s.TokenRefresh,
+                    s.IpAddress,
+                    s.Latitude,
+                    s.Longitude,
+                    s.Device,
+                    s.IsRevoke,
+                    s.CreatedAt,
+                    u.Email,
+                    u.Name,
+                    u.LastName,
+                    u.PhotoUrl,
+                    u.IsActive,
+                    u.IsOwner,
+                    s.City,
+                    s.Country,
+                    s.Region,
+                };
+
+            var userSessionsRaw = await userSessionsQuery.ToListAsync(cancellationToken);
+
+            var userSessions = userSessionsRaw
+                .Select(s => new SessionWithUserDTO
                 {
                     Id = s.Id,
                     TaxUserId = s.TaxUserId,
@@ -73,20 +122,41 @@ public class GetUserSessionsHandler
                             : null,
                     Device = s.Device,
                     IsRevoke = s.IsRevoke,
-                };
+                    CreatedAt = s.CreatedAt,
 
-            var userSessions = await userSessionsQuery
-                .Take(100) // Limitar a las últimas 100 sesiones
-                .ToListAsync(cancellationToken);
+                    // Información del usuario
+                    UserEmail = s.Email,
+                    UserName = s.Name,
+                    UserLastName = s.LastName,
+                    UserPhotoUrl = s.PhotoUrl,
+                    UserIsActive = s.IsActive,
+                    UserIsOwner = s.IsOwner,
+
+                    // Información de geolocalización
+                    Latitude =
+                        s.Latitude != null && double.TryParse(s.Latitude, out var lat)
+                            ? lat
+                            : (double?)null,
+                    Longitude =
+                        s.Longitude != null && double.TryParse(s.Longitude, out var lng)
+                            ? lng
+                            : (double?)null,
+
+                    // Campos adicionales
+                    City = s.City,
+                    Country = s.Country,
+                    Region = s.Region,
+                })
+                .ToList();
 
             _logger.LogInformation(
-                "Retrieved {Count} sessions for target user {TargetUserId} by requesting user {RequestingUserId}",
+                "Retrieved {Count} sessions for target user {TargetUserId} requested by {RequestingUserId}",
                 userSessions.Count,
                 request.TargetUserId,
                 request.RequestingUserId
             );
 
-            return new ApiResponse<List<SessionDTO>>(
+            return new ApiResponse<List<SessionWithUserDTO>>(
                 true,
                 "User sessions retrieved successfully",
                 userSessions
@@ -96,14 +166,14 @@ public class GetUserSessionsHandler
         {
             _logger.LogError(
                 ex,
-                "Error retrieving user sessions: Requesting={RequestingUserId}, Target={TargetUserId}",
-                request.RequestingUserId,
-                request.TargetUserId
+                "Error retrieving sessions for target user {TargetUserId} requested by {RequestingUserId}",
+                request.TargetUserId,
+                request.RequestingUserId
             );
-            return new ApiResponse<List<SessionDTO>>(
+            return new ApiResponse<List<SessionWithUserDTO>>(
                 false,
                 "An error occurred while retrieving user sessions",
-                new List<SessionDTO>()
+                new List<SessionWithUserDTO>()
             );
         }
     }

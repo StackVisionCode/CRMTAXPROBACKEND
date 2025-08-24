@@ -1,3 +1,4 @@
+using AuthService.Applications.Services;
 using AuthService.Domains.Sessions;
 using AuthService.DTOs.SessionDTOs;
 using AuthService.Infraestructure.Services;
@@ -18,13 +19,15 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     private readonly ITokenService _tokenService;
     private readonly ILogger<LoginHandler> _logger;
     private readonly IEventBus _eventBus;
+    private readonly IGeolocationService _geolocationService;
 
     public LoginHandler(
         ApplicationDbContext context,
         IPasswordHash passwordHasher,
         ITokenService tokenService,
         ILogger<LoginHandler> logger,
-        IEventBus eventBus
+        IEventBus eventBus,
+        IGeolocationService geolocationService
     )
     {
         _context = context;
@@ -32,6 +35,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         _tokenService = tokenService;
         _logger = logger;
         _eventBus = eventBus;
+        _geolocationService = geolocationService;
     }
 
     public async Task<ApiResponse<LoginResponseDTO>> Handle(
@@ -336,6 +340,35 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         CancellationToken ct
     )
     {
+        // 🆕 OBTENER GEOLOCALIZACIÓN USANDO TU SERVICIO EXISTENTE
+        GeolocationInfo? geoInfo = null;
+        string? displayLocation = null;
+
+        try
+        {
+            geoInfo = await _geolocationService.GetLocationInfoAsync(request.IpAddress ?? "");
+            displayLocation = await _geolocationService.GetLocationDisplayAsync(
+                request.IpAddress ?? ""
+            );
+
+            _logger.LogDebug(
+                "Geolocation for IP {IpAddress}: {DisplayLocation} (Country: {Country}, City: {City})",
+                request.IpAddress,
+                displayLocation,
+                geoInfo?.Country,
+                geoInfo?.City
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to get geolocation for IP: {IpAddress}",
+                request.IpAddress
+            );
+            displayLocation = "Unknown Location";
+        }
+
         var session = new Session
         {
             Id = sessionId,
@@ -347,6 +380,12 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             Device = request.Device,
             IsRevoke = false,
             CreatedAt = DateTime.UtcNow,
+            Country = geoInfo?.Country,
+            City = geoInfo?.City,
+            Region = geoInfo?.Region,
+            Latitude = geoInfo?.Latitude?.ToString("F6"),
+            Longitude = geoInfo?.Longitude?.ToString("F6"),
+            Location = displayLocation,
         };
 
         _context.Sessions.Add(session);

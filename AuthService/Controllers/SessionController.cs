@@ -21,16 +21,6 @@ namespace AuthService.Controllers
             _mediator = mediator;
         }
 
-        private Guid GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(userIdClaim, out var userId))
-            {
-                return userId;
-            }
-            throw new UnauthorizedAccessException("Invalid user token");
-        }
-
         [HttpPost("Login")]
         public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login(
             [FromBody] LoginRequestDTO dto
@@ -66,7 +56,6 @@ namespace AuthService.Controllers
             }
         }
 
-        [Authorize]
         [HttpPost("Logout")]
         public async Task<ActionResult<ApiResponse<bool>>> Logout()
         {
@@ -85,7 +74,6 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpPost("LogoutAll")]
         public async Task<ActionResult<ApiResponse<bool>>> LogoutAll()
         {
@@ -98,7 +86,6 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpGet("Active")]
         public async Task<ActionResult<ApiResponse<List<SessionDTO>>>> GetActiveSessions()
         {
@@ -113,7 +100,6 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpGet("GetSessionById")]
         public async Task<ActionResult<ApiResponse<SessionDTO>>> GetSessionById(Guid id)
         {
@@ -122,7 +108,6 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpGet("GetAllSessions")]
         public async Task<ActionResult<ApiResponse<SessionDTO>>> GetAllSessions()
         {
@@ -148,15 +133,6 @@ namespace AuthService.Controllers
                 : Unauthorized(new { Success = false, Message = "Session is invalid or expired" });
         }
 
-        private static Guid? GetUserId(ClaimsPrincipal user)
-        {
-            var raw =
-                user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            return Guid.TryParse(raw, out var g) ? g : null;
-        }
-
         // <summary>
         /// Obtiene todas las sesiones activas de la empresa del usuario autenticado
         /// </summary>
@@ -172,8 +148,11 @@ namespace AuthService.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetCompanyActiveSessions()
         {
-            var userId = GetCurrentUserId();
-            var query = new GetCompanyActiveSessionsQuery(userId);
+            var userId = GetUserId(User);
+            if (userId is null)
+                return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+
+            var query = new GetCompanyActiveSessionsQuery(userId.Value);
             var result = await _mediator.Send(query);
 
             return Ok(result);
@@ -189,8 +168,11 @@ namespace AuthService.Controllers
         )]
         public async Task<IActionResult> GetCompanyAllSessions()
         {
-            var userId = GetCurrentUserId();
-            var query = new GetCompanyAllSessionsQuery(userId);
+            var userId = GetUserId(User);
+            if (userId is null)
+                return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+
+            var query = new GetCompanyAllSessionsQuery(userId.Value);
             var result = await _mediator.Send(query);
 
             return Ok(result);
@@ -206,8 +188,11 @@ namespace AuthService.Controllers
         )]
         public async Task<IActionResult> GetUserSessions([FromQuery] Guid targetUserId)
         {
-            var requestingUserId = GetCurrentUserId();
-            var query = new GetUserSessionsQuery(requestingUserId, targetUserId);
+            var requestingUserId = GetUserId(User);
+            if (requestingUserId is null)
+                return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+
+            var query = new GetUserSessionsQuery(requestingUserId.Value, targetUserId);
             var result = await _mediator.Send(query);
 
             return Ok(result);
@@ -220,8 +205,11 @@ namespace AuthService.Controllers
         [ProducesResponseType(typeof(ApiResponse<CompanySessionStatsDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCompanySessionStats([FromQuery] string timeRange = "7d")
         {
-            var userId = GetCurrentUserId();
-            var query = new GetCompanySessionStatsQuery(userId, timeRange);
+            var userId = GetUserId(User);
+            if (userId is null)
+                return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+
+            var query = new GetCompanySessionStatsQuery(userId.Value, timeRange);
             var result = await _mediator.Send(query);
 
             return Ok(result);
@@ -234,8 +222,11 @@ namespace AuthService.Controllers
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         public async Task<IActionResult> RevokeSession([FromBody] RevokeSessionRequest request)
         {
-            var userId = GetCurrentUserId();
-            var command = new RevokeSessionCommand(userId, request.SessionId, request.Reason);
+            var userId = GetUserId(User);
+            if (userId is null)
+                return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+
+            var command = new RevokeSessionCommand(userId.Value, request.SessionId, request.Reason);
             var result = await _mediator.Send(command);
 
             return Ok(result);
@@ -250,8 +241,15 @@ namespace AuthService.Controllers
             [FromBody] RevokeBulkSessionsRequest request
         )
         {
-            var userId = GetCurrentUserId();
-            var command = new RevokeBulkSessionsCommand(userId, request.SessionIds, request.Reason);
+            var userId = GetUserId(User);
+            if (userId is null)
+                return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+
+            var command = new RevokeBulkSessionsCommand(
+                userId.Value,
+                request.SessionIds,
+                request.Reason
+            );
             var result = await _mediator.Send(command);
 
             return Ok(result);
@@ -266,15 +264,27 @@ namespace AuthService.Controllers
             [FromBody] RevokeUserSessionsRequest request
         )
         {
-            var userId = GetCurrentUserId();
+            var userId = GetUserId(User);
+            if (userId is null)
+                return BadRequest(new ApiResponse<bool>(false, "Invalid user identity"));
+
             var command = new RevokeUserSessionsCommand(
-                userId,
+                userId.Value,
                 request.TargetUserId,
                 request.Reason
             );
             var result = await _mediator.Send(command);
 
             return Ok(result);
+        }
+
+        private static Guid? GetUserId(ClaimsPrincipal user)
+        {
+            var raw =
+                user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            return Guid.TryParse(raw, out var g) ? g : null;
         }
     }
 }

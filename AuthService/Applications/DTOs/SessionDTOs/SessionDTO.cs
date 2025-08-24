@@ -12,6 +12,11 @@ public class SessionDTO
     public string? TokenRefresh { get; set; }
     public string? IpAddress { get; set; }
     public string? Location { get; set; }
+    public string? Country { get; set; }
+    public string? City { get; set; }
+    public string? Region { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public string? Device { get; set; }
     public bool IsRevoke { get; set; } = false;
     public DateTime CreatedAt { get; set; }
@@ -29,13 +34,6 @@ public class SessionWithUserDTO : SessionDTO
     public string? UserPhotoUrl { get; set; }
     public bool UserIsActive { get; set; }
     public bool UserIsOwner { get; set; }
-
-    // Información de geolocalización
-    public string? Country { get; set; }
-    public string? City { get; set; }
-    public string? Region { get; set; }
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
 
     // Estado de la sesión
     public bool IsActive => !IsRevoke && ExpireTokenRequest > DateTime.UtcNow;

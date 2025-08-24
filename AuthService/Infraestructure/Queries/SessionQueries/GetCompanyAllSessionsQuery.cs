@@ -8,4 +8,4 @@ namespace Queries.SessionQueries;
 /// Query para obtener todas las sesiones de usuarios de la empresa del solicitante
 /// </summary>
 public record class GetCompanyAllSessionsQuery(Guid RequestingUserId)
-    : IRequest<ApiResponse<List<SessionDTO>>>;
+    : IRequest<ApiResponse<List<SessionWithUserDTO>>>;

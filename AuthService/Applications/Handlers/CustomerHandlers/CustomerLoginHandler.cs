@@ -1,3 +1,4 @@
+using AuthService.Applications.Services;
 using AuthService.Domains.Sessions;
 using AuthService.DTOs.SessionDTOs;
 using Commands.CustomerCommands;
@@ -20,6 +21,7 @@ public class CustomerLoginHandler
     private readonly ApplicationDbContext _db;
     private readonly ILogger<CustomerLoginHandler> _log;
     private readonly IEventBus _bus;
+    private readonly AuthService.Infraestructure.Services.IGeolocationService _geolocationService;
 
     public CustomerLoginHandler(
         IHttpClientFactory http,
@@ -27,7 +29,8 @@ public class CustomerLoginHandler
         ITokenService token,
         ApplicationDbContext db,
         ILogger<CustomerLoginHandler> log,
-        IEventBus bus
+        IEventBus bus,
+        AuthService.Infraestructure.Services.IGeolocationService geolocationService
     )
     {
         _http = http;
@@ -36,6 +39,7 @@ public class CustomerLoginHandler
         _db = db;
         _log = log;
         _bus = bus;
+        _geolocationService = geolocationService;
     }
 
     public async Task<ApiResponse<LoginResponseDTO>> Handle(
@@ -146,6 +150,34 @@ public class CustomerLoginHandler
                 new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromDays(3))
             );
 
+            GeolocationInfo? geoInfo = null;
+            string? displayLocation = null;
+
+            try
+            {
+                geoInfo = await _geolocationService.GetLocationInfoAsync(req.IpAddress ?? "");
+                displayLocation = await _geolocationService.GetLocationDisplayAsync(
+                    req.IpAddress ?? ""
+                );
+
+                _log.LogDebug(
+                    "Customer geolocation for IP {IpAddress}: {DisplayLocation} (Country: {Country}, City: {City})",
+                    req.IpAddress,
+                    displayLocation,
+                    geoInfo?.Country,
+                    geoInfo?.City
+                );
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(
+                    ex,
+                    "Failed to get customer geolocation for IP: {IpAddress}",
+                    req.IpAddress
+                );
+                displayLocation = "Unknown Location";
+            }
+
             // 4) persistir sesión
             var s = new CustomerSession
             {
@@ -158,6 +190,12 @@ public class CustomerLoginHandler
                 Device = req.Device,
                 IsRevoke = false,
                 CreatedAt = DateTime.UtcNow,
+                Country = geoInfo?.Country,
+                City = geoInfo?.City,
+                Region = geoInfo?.Region,
+                Latitude = geoInfo?.Latitude?.ToString("F6"),
+                Longitude = geoInfo?.Longitude?.ToString("F6"),
+                Location = displayLocation,
             };
 
             _db.CustomerSessions.Add(s);
@@ -170,7 +208,12 @@ public class CustomerLoginHandler
                 TokenRefresh = refresh.AccessToken,
             };
 
-            _log.LogInformation("Login correcto: {Email}", req.Petition.Email);
+            _log.LogInformation(
+                "{Email} from {IpAddress} ({Location})",
+                req.Petition.Email,
+                req.IpAddress,
+                displayLocation ?? "Unknown Location"
+            );
 
             return new ApiResponse<LoginResponseDTO>(true, "Login correcto", result);
         }

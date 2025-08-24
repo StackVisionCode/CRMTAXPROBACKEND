@@ -43,6 +43,32 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Session>(entity =>
+        {
+            entity.Property(e => e.TokenRequest).IsRequired();
+            entity.Property(e => e.IpAddress).HasMaxLength(45);
+            entity.Property(e => e.Location).HasMaxLength(255);
+            entity.Property(e => e.Device).HasMaxLength(500);
+            entity.Property(e => e.Country).HasMaxLength(100);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.Region).HasMaxLength(100);
+            entity.Property(e => e.Latitude).HasMaxLength(20);
+            entity.Property(e => e.Longitude).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<CustomerSession>(entity =>
+        {
+            entity.Property(e => e.TokenRequest).IsRequired();
+            entity.Property(e => e.IpAddress).HasMaxLength(45);
+            entity.Property(e => e.Location).HasMaxLength(255);
+            entity.Property(e => e.Device).HasMaxLength(500);
+            entity.Property(e => e.Country).HasMaxLength(100);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.Region).HasMaxLength(100);
+            entity.Property(e => e.Latitude).HasMaxLength(20);
+            entity.Property(e => e.Longitude).HasMaxLength(20);
+        });
+
         // Configuraciones existentes de BaseEntity
         ApplyBaseEntityConventions(modelBuilder);
 

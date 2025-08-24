@@ -9,7 +9,7 @@ using Queries.SessionQueries;
 namespace Handlers.SessionHandlers;
 
 public class GetCompanyAllSessionsHandler
-    : IRequestHandler<GetCompanyAllSessionsQuery, ApiResponse<List<SessionDTO>>>
+    : IRequestHandler<GetCompanyAllSessionsQuery, ApiResponse<List<SessionWithUserDTO>>>
 {
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
@@ -26,7 +26,7 @@ public class GetCompanyAllSessionsHandler
         _logger = logger;
     }
 
-    public async Task<ApiResponse<List<SessionDTO>>> Handle(
+    public async Task<ApiResponse<List<SessionWithUserDTO>>> Handle(
         GetCompanyAllSessionsQuery request,
         CancellationToken cancellationToken
     )
@@ -49,22 +49,50 @@ public class GetCompanyAllSessionsHandler
                     "Requesting user not found or inactive: {UserId}",
                     request.RequestingUserId
                 );
-                return new ApiResponse<List<SessionDTO>>(
+                return new ApiResponse<List<SessionWithUserDTO>>(
                     false,
                     "User not found or inactive",
-                    new List<SessionDTO>()
+                    new List<SessionWithUserDTO>()
                 );
             }
 
-            // 2. Obtener todas las sesiones de usuarios de la empresa (últimas 30 días para performance)
+            // 2. Obtener sesiones de los últimos 30 días de todos los usuarios de la misma empresa
             var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
 
-            var companySessionsQuery =
+            var allSessionsRaw = await (
                 from s in _context.Sessions
                 join u in _context.TaxUsers on s.TaxUserId equals u.Id
-                where u.CompanyId == requestingUserCompanyId && s.CreatedAt >= thirtyDaysAgo
+                where
+                    u.CompanyId == requestingUserCompanyId
+                    && u.IsActive
+                    && s.CreatedAt >= thirtyDaysAgo
                 orderby s.CreatedAt descending
-                select new SessionDTO
+                select new
+                {
+                    s.Id,
+                    s.TaxUserId,
+                    s.ExpireTokenRequest,
+                    s.TokenRefresh,
+                    s.IpAddress,
+                    s.Latitude,
+                    s.Longitude,
+                    s.Device,
+                    s.IsRevoke,
+                    s.CreatedAt,
+                    u.Email,
+                    u.Name,
+                    u.LastName,
+                    u.PhotoUrl,
+                    u.IsActive,
+                    u.IsOwner,
+                    s.City,
+                    s.Country,
+                    s.Region,
+                }
+            ).ToListAsync(cancellationToken);
+
+            var allSessions = allSessionsRaw
+                .Select(s => new SessionWithUserDTO
                 {
                     Id = s.Id,
                     TaxUserId = s.TaxUserId,
@@ -78,23 +106,44 @@ public class GetCompanyAllSessionsHandler
                             : null,
                     Device = s.Device,
                     IsRevoke = s.IsRevoke,
-                };
+                    CreatedAt = s.CreatedAt,
 
-            var companySessions = await companySessionsQuery
-                .Take(500) // Limitar para performance
-                .ToListAsync(cancellationToken);
+                    // Información del usuario
+                    UserEmail = s.Email,
+                    UserName = s.Name,
+                    UserLastName = s.LastName,
+                    UserPhotoUrl = s.PhotoUrl,
+                    UserIsActive = s.IsActive,
+                    UserIsOwner = s.IsOwner,
+
+                    // Información de geolocalización
+                    Latitude =
+                        s.Latitude != null && double.TryParse(s.Latitude, out var lat)
+                            ? lat
+                            : (double?)null,
+                    Longitude =
+                        s.Longitude != null && double.TryParse(s.Longitude, out var lng)
+                            ? lng
+                            : (double?)null,
+
+                    // Campos adicionales
+                    City = s.City,
+                    Country = s.Country,
+                    Region = s.Region,
+                })
+                .ToList();
 
             _logger.LogInformation(
-                "Retrieved {Count} company sessions for user {UserId} company {CompanyId}",
-                companySessions.Count,
+                "Retrieved {Count} company sessions (last 30 days) for user {UserId} company {CompanyId}",
+                allSessions.Count,
                 request.RequestingUserId,
                 requestingUserCompanyId
             );
 
-            return new ApiResponse<List<SessionDTO>>(
+            return new ApiResponse<List<SessionWithUserDTO>>(
                 true,
                 "Company sessions retrieved successfully",
-                companySessions
+                allSessions
             );
         }
         catch (Exception ex)
@@ -104,10 +153,10 @@ public class GetCompanyAllSessionsHandler
                 "Error retrieving company sessions for user {UserId}",
                 request.RequestingUserId
             );
-            return new ApiResponse<List<SessionDTO>>(
+            return new ApiResponse<List<SessionWithUserDTO>>(
                 false,
                 "An error occurred while retrieving company sessions",
-                new List<SessionDTO>()
+                new List<SessionWithUserDTO>()
             );
         }
     }
