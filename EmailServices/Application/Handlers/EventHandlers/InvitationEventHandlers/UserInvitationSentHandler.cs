@@ -28,8 +28,21 @@ public sealed class UserInvitationSentHandler : IIntegrationEventHandler<UserInv
         try
         {
             string template = "Invitations/TeamInvitation.html";
-
             string companyDisplayName = DetermineCompanyDisplayName(evt);
+
+            // Crear sección de mensaje personal si existe
+            string personalMessageSection = "";
+            if (!string.IsNullOrWhiteSpace(evt.PersonalMessage))
+            {
+                personalMessageSection =
+                    $@"
+                <div style=""background: rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 15px; margin: 20px 0;"">
+                  <p style=""margin: 0; color: #166534; font-size: 14px; font-style: italic;"">
+                    <strong>Personal Message:</strong><br>
+                    ""{evt.PersonalMessage}""
+                  </p>
+                </div>";
+            }
 
             var model = new
             {
@@ -40,7 +53,8 @@ public sealed class UserInvitationSentHandler : IIntegrationEventHandler<UserInv
                 CompanyDomain = evt.CompanyDomain,
                 InvitationLink = evt.InvitationLink,
                 ExpiresAt = evt.ExpiresAt,
-                PersonalMessage = evt.PersonalMessage,
+                PersonalMessage = evt.PersonalMessage ?? "",
+                PersonalMessageSection = personalMessageSection,
                 IsCompany = evt.IsCompany,
                 CompanyType = evt.IsCompany ? "Tax Firm" : "Individual Tax Preparer",
                 ExpirationInfo = $"This invitation expires on {evt.ExpiresAt:MMM dd, yyyy 'at' h:mm tt}",

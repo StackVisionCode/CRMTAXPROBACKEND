@@ -2,7 +2,7 @@ using AuthService.DTOs.PermissionDTOs;
 using Commands.PermissionCommands;
 using Common;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
+//using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Queries.PermissionQueries;
 using SharedLibrary.Authorizations;
@@ -97,7 +97,7 @@ namespace AuthService.Controllers
         /// <summary>
         /// Obtener todos los permisos
         /// </summary>
-        [HasPermission("Permission.Read")]
+        // [HasPermission("Permission.Read")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<List<PermissionDTO>>>> GetAll()
         {
@@ -110,7 +110,7 @@ namespace AuthService.Controllers
         /// <summary>
         /// Obtener un permiso por ID
         /// </summary>
-        [HasPermission("Permission.Read")]
+        // [HasPermission("Permission.Read")]
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<ApiResponse<PermissionDTO>>> GetById(Guid id)
         {
@@ -123,7 +123,6 @@ namespace AuthService.Controllers
         /// <summary>
         /// Obtener permisos efectivos de un usuario (roles + custom permissions)
         /// </summary>
-        [Authorize]
         [HttpGet("user/{userId:guid}/effective")]
         public async Task<
             ActionResult<ApiResponse<UserPermissionsDTO>>
@@ -156,7 +155,7 @@ namespace AuthService.Controllers
         /// <summary>
         /// Obtener permisos por categoría/módulo
         /// </summary>
-        [HasPermission("Permission.Read")]
+        // [HasPermission("Permission.Read")]
         [HttpGet("by-category/{category}")]
         public async Task<ActionResult<ApiResponse<List<PermissionDTO>>>> GetByCategory(
             string category
@@ -189,7 +188,7 @@ namespace AuthService.Controllers
         /// Obtener permisos disponibles para asignación personalizada
         /// Excluye permisos del sistema que no deberían ser asignados manualmente
         /// </summary>
-        [HasPermission("Permission.Read")]
+        // [HasPermission("Permission.Read")]
         [HttpGet("assignable")]
         public async Task<ActionResult<ApiResponse<List<PermissionDTO>>>> GetAssignablePermissions()
         {

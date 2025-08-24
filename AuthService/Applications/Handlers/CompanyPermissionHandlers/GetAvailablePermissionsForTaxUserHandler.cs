@@ -48,17 +48,32 @@ public class GetAvailablePermissionsForTaxUserHandler
                 );
             }
 
-            // Obtener permisos que ya tiene asignados (custom permissions)
+            // Obtener solo permisos que están en uso en CompanyPermissions
+            // Esto asegura que solo mostramos permisos gestionables a nivel company
+            var manageablePermissionIds = await (
+                from cp in _dbContext.CompanyPermissions
+                select cp.PermissionId
+            )
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            // Obtener permisos que ya tiene asignados este usuario específico
             var assignedPermissionIds = await (
                 from cp in _dbContext.CompanyPermissions
                 where cp.TaxUserId == request.TaxUserId
                 select cp.PermissionId
             ).ToListAsync(cancellationToken);
 
-            // Obtener todos los permisos activos que no están asignados
+            // Solo devolver permisos que:
+            // 1. Son gestionables (están en uso en CompanyPermissions)
+            // 2. Están activos
+            // 3. NO están asignados a este usuario específico
             var availablePermissions = await (
                 from p in _dbContext.Permissions
-                where p.IsGranted && !assignedPermissionIds.Contains(p.Id)
+                where
+                    p.IsGranted
+                    && manageablePermissionIds.Contains(p.Id)
+                    && !assignedPermissionIds.Contains(p.Id)
                 orderby p.Name
                 select new PermissionDTO
                 {
@@ -69,6 +84,14 @@ public class GetAvailablePermissionsForTaxUserHandler
                     IsGranted = p.IsGranted,
                 }
             ).ToListAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Available permissions for TaxUser {TaxUserId}: Total manageable={ManageableCount}, Already assigned={AssignedCount}, Available={AvailableCount}",
+                request.TaxUserId,
+                manageablePermissionIds.Count,
+                assignedPermissionIds.Count,
+                availablePermissions.Count
+            );
 
             return new ApiResponse<IEnumerable<PermissionDTO>>(
                 true,

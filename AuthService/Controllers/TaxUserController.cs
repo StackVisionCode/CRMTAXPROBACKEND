@@ -180,6 +180,45 @@ namespace AuthService.Controllers
             return Ok(result);
         }
 
+        /// Elimina un usuario de la compañía (solo Users regulares, no Owners)
+        [HttpDelete("DeleteUser/{userId}")]
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteUser(Guid userId)
+        {
+            var command = new DeleteTaxUserCommands(userId);
+            var result = await _mediator.Send(command);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        /// Habilita un usuario desactivado de la compañía
+        [HttpPut("EnableUser/{userId}")]
+        public async Task<ActionResult<ApiResponse<bool>>> EnableUser(Guid userId)
+        {
+            var command = new EnableUserCommand(userId);
+            var result = await _mediator.Send(command);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        /// Deshabilita un usuario de la compañía (revoca sesiones activas)
+        [HttpPut("DisableUser/{userId}")]
+        public async Task<ActionResult<ApiResponse<bool>>> DisableUser(Guid userId)
+        {
+            var command = new DisableUserCommand(userId);
+            var result = await _mediator.Send(command);
+
+            if (result.Success == false)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
         // Obtener Perfil de Usuario de Compañia
         [HttpGet("Profile")]
         public async Task<ActionResult<ApiResponse<UserProfileDTO>>> GetProfile()

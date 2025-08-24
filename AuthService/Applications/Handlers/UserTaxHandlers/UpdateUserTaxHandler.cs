@@ -2,7 +2,6 @@ using Applications.DTOs.CompanyDTOs;
 using AuthService.Domains.Addresses;
 using AuthService.Domains.Users;
 using AuthService.Infraestructure.Services;
-using AutoMapper;
 using Commands.UserCommands;
 using Common;
 using Infraestructure.Context;
@@ -14,7 +13,6 @@ namespace Handlers.UserTaxHandlers;
 public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiResponse<bool>>
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IMapper _mapper;
     private readonly ILogger<UpdateUserTaxHandler> _logger;
     private readonly IPasswordHash _passwordHash;
 
@@ -22,13 +20,11 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
     public UpdateUserTaxHandler(
         ApplicationDbContext dbContext,
-        IMapper mapper,
         ILogger<UpdateUserTaxHandler> logger,
         IPasswordHash passwordHash
     )
     {
         _dbContext = dbContext;
-        _mapper = mapper;
         _logger = logger;
         _passwordHash = passwordHash;
     }
@@ -113,21 +109,75 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 }
             }
 
-            // Guardar valores actuales
-            var currentAddressId = user.AddressId;
+            // 🔧 GUARDAR VALORES INMUTABLES AL INICIO
             var currentPassword = user.Password;
             var currentIsOwner = user.IsOwner;
             var currentCompanyId = user.CompanyId;
 
-            // Actualizar campos del usuario
-            _mapper.Map(request.UserTax, user);
+            // ⭐ MAPEO MANUAL SELECTIVO ⭐
 
-            // Restaurar campos que NO se pueden cambiar via DTO
-            user.AddressId = currentAddressId;
-            user.IsOwner = currentIsOwner; // No se puede cambiar via UpdateUserDTO
-            user.CompanyId = currentCompanyId; // No se puede cambiar via UpdateUserDTO
+            // Email - SOLO si viene en el DTO y no es nulo/vacío
+            if (!string.IsNullOrEmpty(request.UserTax.Email))
+            {
+                user.Email = request.UserTax.Email;
+                _logger.LogDebug(
+                    "Updated email for user: {UserId} to {Email}",
+                    user.Id,
+                    user.Email
+                );
+            }
 
-            // Manejar contraseña
+            // Nombre - Solo si viene en el DTO (permitir vacío pero no null)
+            if (request.UserTax.Name != null)
+            {
+                user.Name = string.IsNullOrWhiteSpace(request.UserTax.Name)
+                    ? null
+                    : request.UserTax.Name.Trim();
+                _logger.LogDebug("Updated name for user: {UserId} to {Name}", user.Id, user.Name);
+            }
+
+            // Apellido - Solo si viene en el DTO (permitir vacío pero no null)
+            if (request.UserTax.LastName != null)
+            {
+                user.LastName = string.IsNullOrWhiteSpace(request.UserTax.LastName)
+                    ? null
+                    : request.UserTax.LastName.Trim();
+                _logger.LogDebug(
+                    "Updated last name for user: {UserId} to {LastName}",
+                    user.Id,
+                    user.LastName
+                );
+            }
+
+            // Teléfono - Solo si viene en el DTO (permitir vacío pero no null)
+            if (request.UserTax.PhoneNumber != null)
+            {
+                user.PhoneNumber = string.IsNullOrWhiteSpace(request.UserTax.PhoneNumber)
+                    ? null
+                    : request.UserTax.PhoneNumber.Trim();
+                _logger.LogDebug(
+                    "Updated phone for user: {UserId} to {Phone}",
+                    user.Id,
+                    user.PhoneNumber
+                );
+            }
+
+            // Estado activo - Solo si viene en el DTO
+            if (request.UserTax.IsActive.HasValue)
+            {
+                user.IsActive = request.UserTax.IsActive.Value;
+                _logger.LogDebug(
+                    "Updated active status for user: {UserId} to {IsActive}",
+                    user.Id,
+                    user.IsActive
+                );
+            }
+
+            // RESTAURAR VALORES INMUTABLES (sin AddressId)
+            user.IsOwner = currentIsOwner;
+            user.CompanyId = currentCompanyId;
+
+            // Manejar contraseña - Solo si viene en el DTO
             if (!string.IsNullOrWhiteSpace(request.UserTax.Password))
             {
                 user.Password = _passwordHash.HashPassword(request.UserTax.Password);
@@ -135,139 +185,13 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             }
             else
             {
-                user.Password = currentPassword;
+                user.Password = currentPassword; // Mantener contraseña actual
             }
 
             user.UpdatedAt = DateTime.UtcNow;
 
-            // Manejar dirección
-            if (request.UserTax.Address is not null)
-            {
-                var addrDto = request.UserTax.Address;
-                var validateResult = await ValidateAddressAsync(
-                    addrDto.CountryId,
-                    addrDto.StateId,
-                    cancellationToken
-                );
-                if (!validateResult.Success)
-                    return new ApiResponse<bool>(false, validateResult.Message, false);
-
-                if (user.AddressId.HasValue)
-                {
-                    var addressQuery =
-                        from a in _dbContext.Addresses
-                        where a.Id == user.AddressId.Value
-                        select a;
-
-                    var existingAddress = await addressQuery.FirstOrDefaultAsync(cancellationToken);
-                    if (existingAddress != null)
-                    {
-                        existingAddress.CountryId = addrDto.CountryId;
-                        existingAddress.StateId = addrDto.StateId;
-                        existingAddress.City = addrDto.City?.Trim();
-                        existingAddress.Street = addrDto.Street?.Trim();
-                        existingAddress.Line = addrDto.Line?.Trim();
-                        existingAddress.ZipCode = addrDto.ZipCode?.Trim();
-                        existingAddress.UpdatedAt = DateTime.UtcNow;
-
-                        _logger.LogDebug(
-                            "Updated existing address: {AddressId} for tax user: {UserId}",
-                            existingAddress.Id,
-                            user.Id
-                        );
-                    }
-                    else
-                    {
-                        await CreateNewAddressAsync(user, addrDto, cancellationToken);
-                    }
-                }
-                else
-                {
-                    await CreateNewAddressAsync(user, addrDto, cancellationToken);
-                }
-            }
-            else if (user.AddressId.HasValue)
-            {
-                var addressToDeleteQuery =
-                    from a in _dbContext.Addresses
-                    where a.Id == user.AddressId.Value
-                    select a;
-
-                var addressToDelete = await addressToDeleteQuery.FirstOrDefaultAsync(
-                    cancellationToken
-                );
-                if (addressToDelete != null)
-                {
-                    _dbContext.Addresses.Remove(addressToDelete);
-                    _logger.LogDebug(
-                        "Removed address: {AddressId} for tax user: {UserId}",
-                        addressToDelete.Id,
-                        user.Id
-                    );
-                }
-                user.AddressId = null;
-            }
-
-            // Actualizar roles con validaciones especiales para Owner
-            if (request.UserTax.RoleIds?.Any() == true)
-            {
-                // Validación especial para Owner
-                if (user.IsOwner)
-                {
-                    // Verificar que el Owner mantenga al menos un rol Administrator
-                    var newRoleNamesQuery =
-                        from r in _dbContext.Roles
-                        where request.UserTax.RoleIds.Contains(r.Id)
-                        select r.Name;
-
-                    var newRoleNames = await newRoleNamesQuery.ToListAsync(cancellationToken);
-                    var hasAdminRole = newRoleNames.Any(name =>
-                        name.Contains("Administrator") || name == "Developer"
-                    );
-
-                    if (!hasAdminRole)
-                    {
-                        _logger.LogWarning(
-                            "Owner must have at least one Administrator role: {UserId}",
-                            user.Id
-                        );
-                        return new ApiResponse<bool>(
-                            false,
-                            "Company owner must maintain at least one Administrator role",
-                            false
-                        );
-                    }
-                }
-
-                // Actualizar roles
-                var existingRolesQuery =
-                    from ur in _dbContext.UserRoles
-                    where ur.TaxUserId == user.Id
-                    select ur;
-
-                var existingRoles = await existingRolesQuery.ToListAsync(cancellationToken);
-                _dbContext.UserRoles.RemoveRange(existingRoles);
-
-                foreach (var roleId in request.UserTax.RoleIds.Distinct())
-                {
-                    await _dbContext.UserRoles.AddAsync(
-                        new UserRole
-                        {
-                            Id = Guid.NewGuid(),
-                            TaxUserId = user.Id,
-                            RoleId = roleId,
-                            CreatedAt = DateTime.UtcNow,
-                        },
-                        cancellationToken
-                    );
-                }
-
-                _logger.LogDebug(
-                    "Updated roles for tax user: {UserId}, RoleCount: {RoleCount}",
-                    user.Id,
-                    request.UserTax.RoleIds.Count()
-                );
-            }
+            // MANEJAR DIRECCIÓN
+            await HandleAddressUpdateAsync(user, request.UserTax.Address, cancellationToken);
 
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
@@ -300,36 +224,163 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
     }
 
     /// <summary>
+    /// Maneja la actualización de dirección sin perder referencia
+    /// </summary>
+    private async Task HandleAddressUpdateAsync(
+        TaxUser user,
+        AddressDTO? addressDto,
+        CancellationToken cancellationToken
+    )
+    {
+        // Caso 1: No se envía información de dirección - NO TOCAR NADA
+        if (addressDto == null)
+        {
+            _logger.LogDebug(
+                "No address data provided - keeping current address for user: {UserId}",
+                user.Id
+            );
+            return; // Mantener dirección actual tal como está
+        }
+
+        // Validar dirección si se proporciona
+        var validateResult = await ValidateAddressAsync(
+            addressDto.CountryId,
+            addressDto.StateId,
+            cancellationToken
+        );
+        if (!validateResult.Success)
+        {
+            throw new InvalidOperationException(validateResult.Message);
+        }
+
+        // Caso 2: Se envía dirección vacía - ELIMINAR dirección existente
+        if (IsAddressEmpty(addressDto))
+        {
+            _logger.LogDebug(
+                "Empty address provided - removing address for user: {UserId}",
+                user.Id
+            );
+
+            if (user.AddressId.HasValue)
+            {
+                // Buscar y eliminar la dirección actual
+                var addressToDelete = await _dbContext.Addresses.FirstOrDefaultAsync(
+                    a => a.Id == user.AddressId.Value,
+                    cancellationToken
+                );
+
+                if (addressToDelete != null)
+                {
+                    _dbContext.Addresses.Remove(addressToDelete);
+                    _logger.LogDebug(
+                        "Removed address: {AddressId} for user: {UserId}",
+                        addressToDelete.Id,
+                        user.Id
+                    );
+                }
+
+                // Limpiar la referencia
+                user.AddressId = null;
+            }
+            return;
+        }
+
+        // Caso 3: Se envía dirección con datos - CREAR/ACTUALIZAR
+        if (user.AddressId.HasValue)
+        {
+            // Usuario tiene dirección - ACTUALIZAR la existente
+            var existingAddress = await _dbContext.Addresses.FirstOrDefaultAsync(
+                a => a.Id == user.AddressId.Value,
+                cancellationToken
+            );
+
+            if (existingAddress != null)
+            {
+                // Actualizar dirección existente
+                UpdateAddressFields(existingAddress, addressDto);
+                _logger.LogDebug(
+                    "Updated existing address: {AddressId} for user: {UserId}",
+                    existingAddress.Id,
+                    user.Id
+                );
+            }
+            else
+            {
+                // La dirección referenciada no existe - crear nueva
+                await CreateNewAddressAndAssignAsync(user, addressDto, cancellationToken);
+            }
+        }
+        else
+        {
+            // Usuario NO tiene dirección - CREAR nueva
+            await CreateNewAddressAndAssignAsync(user, addressDto, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Actualiza los campos de una dirección existente
+    /// </summary>
+    private void UpdateAddressFields(Address address, AddressDTO addressDto)
+    {
+        address.CountryId = addressDto.CountryId;
+        address.StateId = addressDto.StateId;
+        address.City = string.IsNullOrWhiteSpace(addressDto.City) ? null : addressDto.City.Trim();
+        address.Street = string.IsNullOrWhiteSpace(addressDto.Street)
+            ? null
+            : addressDto.Street.Trim();
+        address.Line = string.IsNullOrWhiteSpace(addressDto.Line) ? null : addressDto.Line.Trim();
+        address.ZipCode = string.IsNullOrWhiteSpace(addressDto.ZipCode)
+            ? null
+            : addressDto.ZipCode.Trim();
+        address.UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// Crea una nueva dirección y la asigna al usuario
     /// </summary>
-    private async Task CreateNewAddressAsync(
+    private async Task CreateNewAddressAndAssignAsync(
         TaxUser user,
-        AddressDTO addrDto,
+        AddressDTO addressDto,
         CancellationToken cancellationToken
     )
     {
         var newAddress = new Address
         {
             Id = Guid.NewGuid(),
-            CountryId = addrDto.CountryId,
-            StateId = addrDto.StateId,
-            City = addrDto.City?.Trim(),
-            Street = addrDto.Street?.Trim(),
-            Line = addrDto.Line?.Trim(),
-            ZipCode = addrDto.ZipCode?.Trim(),
+            CountryId = addressDto.CountryId,
+            StateId = addressDto.StateId,
+            City = string.IsNullOrWhiteSpace(addressDto.City) ? null : addressDto.City.Trim(),
+            Street = string.IsNullOrWhiteSpace(addressDto.Street) ? null : addressDto.Street.Trim(),
+            Line = string.IsNullOrWhiteSpace(addressDto.Line) ? null : addressDto.Line.Trim(),
+            ZipCode = string.IsNullOrWhiteSpace(addressDto.ZipCode)
+                ? null
+                : addressDto.ZipCode.Trim(),
             CreatedAt = DateTime.UtcNow,
         };
 
         await _dbContext.Addresses.AddAsync(newAddress, cancellationToken);
+
+        // ASIGNAR la nueva dirección al usuario
         user.AddressId = newAddress.Id;
 
         _logger.LogDebug(
-            "Created new address: {AddressId} for tax user: {UserId}",
+            "Created new address: {AddressId} for user: {UserId}",
             newAddress.Id,
             user.Id
         );
     }
 
+    /// <summary>
+    /// Determina si una dirección está vacía (solo StateId requerido)
+    /// </summary>
+    private bool IsAddressEmpty(AddressDTO addressDto)
+    {
+        return addressDto.StateId <= 0;
+    }
+
+    /// <summary>
+    /// Valida que la dirección sea válida (solo USA soportado)
+    /// </summary>
     private async Task<(bool Success, string Message)> ValidateAddressAsync(
         int countryId,
         int stateId,

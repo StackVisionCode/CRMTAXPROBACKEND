@@ -10,14 +10,34 @@ public class UserProfile : Profile
     public UserProfile()
     {
         CreateMap<UpdateUserDTO, TaxUser>()
+            .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.Company, o => o.Ignore())
-            .ForMember(d => d.IsOwner, o => o.Ignore()) // NUEVO: No se puede cambiar por DTO
+            .ForMember(d => d.IsOwner, o => o.Ignore())
+            .ForMember(d => d.Password, o => o.Ignore()) // Se maneja manualmente con hash
             .ForMember(d => d.AddressId, o => o.Ignore())
             .ForMember(d => d.Address, o => o.Ignore())
             .ForMember(d => d.Sessions, o => o.Ignore())
             .ForMember(d => d.UserRoles, o => o.Ignore())
-            .ForMember(d => d.CompanyPermissions, o => o.Ignore()); // NUEVO
+            .ForMember(d => d.CompanyPermissions, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
+            .ForMember(d => d.UpdatedAt, o => o.Ignore())
+            .ForMember(d => d.DeleteAt, o => o.Ignore())
+            .ForMember(d => d.Confirm, o => o.Ignore())
+            .ForMember(d => d.ConfirmToken, o => o.Ignore())
+            .ForMember(d => d.ResetPasswordToken, o => o.Ignore())
+            .ForMember(d => d.ResetPasswordExpires, o => o.Ignore())
+            .ForMember(d => d.Factor2, o => o.Ignore())
+            .ForMember(d => d.Otp, o => o.Ignore())
+            .ForMember(d => d.OtpVerified, o => o.Ignore())
+            .ForMember(d => d.OtpExpires, o => o.Ignore())
+            // Campos que SÍ se mapean SOLO si no son nulos en el DTO
+            .ForMember(d => d.Email, o => o.Condition(src => !string.IsNullOrEmpty(src.Email)))
+            .ForMember(d => d.Name, o => o.Condition(src => src.Name != null))
+            .ForMember(d => d.LastName, o => o.Condition(src => src.LastName != null))
+            .ForMember(d => d.PhoneNumber, o => o.Condition(src => src.PhoneNumber != null))
+            .ForMember(d => d.PhotoUrl, o => o.Condition(src => src.PhotoUrl != null))
+            .ForMember(d => d.IsActive, o => o.Condition(src => src.IsActive.HasValue));
 
         CreateMap<TaxUser, UserGetDTO>()
             .ForMember(d => d.Address, o => o.MapFrom(s => s.Address))

@@ -22,5 +22,4 @@ public class UpdateUserDTO
     public string? PhotoUrl { get; set; }
 
     public bool? IsActive { get; set; }
-    public ICollection<Guid>? RoleIds { get; set; }
 }

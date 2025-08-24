@@ -85,7 +85,7 @@ public class RoleController : ControllerBase
     /// <summary>
     /// Obtener todos los roles
     /// </summary>
-    [HasPermission("Role.Read")]
+    // [HasPermission("Role.Read")]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<RoleDTO>>>> GetAll()
     {
@@ -98,7 +98,7 @@ public class RoleController : ControllerBase
     /// <summary>
     /// Obtener un rol por ID
     /// </summary>
-    [HasPermission("Role.Read")]
+    // [HasPermission("Role.Read")]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<RoleDTO>>> GetById(Guid id)
     {
@@ -111,7 +111,7 @@ public class RoleController : ControllerBase
     /// <summary>
     /// Obtener roles filtrados por ServiceLevel
     /// </summary>
-    [HasPermission("Role.Read")]
+    // [HasPermission("Role.Read")]
     [HttpGet("by-service-level/{serviceLevel}")]
     public async Task<ActionResult<ApiResponse<List<RoleDTO>>>> GetByServiceLevel(int serviceLevel)
     {
@@ -139,7 +139,7 @@ public class RoleController : ControllerBase
     /// <summary>
     ///  Obtener roles disponibles para Owners vs Users regulares
     /// </summary>
-    [HasPermission("Role.Read")]
+    // [HasPermission("Role.Read")]
     [HttpGet("available-for/{userType}")]
     public async Task<ActionResult<ApiResponse<List<RoleDTO>>>> GetAvailableRoles(string userType)
     {

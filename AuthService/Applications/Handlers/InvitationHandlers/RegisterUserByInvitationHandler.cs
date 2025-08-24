@@ -1,5 +1,6 @@
 using AuthService.Commands.InvitationCommands;
 using AuthService.Domains.Addresses;
+using AuthService.Domains.Permissions;
 using AuthService.Domains.Users;
 using AuthService.Infraestructure.Services;
 using Common;
@@ -61,7 +62,7 @@ public class RegisterUserByInvitationHandler
                 );
             }
 
-            // 2. Verificar que la company aún existe y obtener límites
+            // 2. Verificar que la company aún existe y obtener límites + información del Administrator
             var companyQuery =
                 from c in _dbContext.Companies
                 join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
@@ -130,6 +131,47 @@ public class RegisterUserByInvitationHandler
                 _logger.LogError("Company {CompanyId} has no active Owner", companyId);
                 return new ApiResponse<bool>(false, "Company has no active administrator", false);
             }
+
+            // 4. Obtener todos los permisos del Administrator de la company (Owner)
+            var adminPermissionsQuery =
+                from adminUser in _dbContext.TaxUsers
+                join userRole in _dbContext.UserRoles on adminUser.Id equals userRole.TaxUserId
+                join role in _dbContext.Roles on userRole.RoleId equals role.Id
+                join rolePermission in _dbContext.RolePermissions
+                    on role.Id equals rolePermission.RoleId
+                join permission in _dbContext.Permissions
+                    on rolePermission.PermissionId equals permission.Id
+                where
+                    adminUser.CompanyId == companyId
+                    && adminUser.IsOwner == true
+                    && adminUser.IsActive == true
+                    && role.Name.Contains("Administrator") // Administrator Basic, Standard, Pro
+                    && permission.IsGranted == true
+                select new
+                {
+                    PermissionId = permission.Id,
+                    PermissionCode = permission.Code,
+                    PermissionName = permission.Name,
+                };
+
+            var adminPermissions = await adminPermissionsQuery
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            if (!adminPermissions.Any())
+            {
+                _logger.LogWarning(
+                    "No administrator permissions found for company {CompanyId}. "
+                        + "This might indicate a data integrity issue.",
+                    companyId
+                );
+            }
+
+            _logger.LogDebug(
+                "Found {PermissionCount} administrator permissions to inherit for company {CompanyId}",
+                adminPermissions.Count,
+                companyId
+            );
 
             // 5. Crear dirección si se proporciona
             Address? userAddressEntity = null;
@@ -241,7 +283,43 @@ public class RegisterUserByInvitationHandler
                 await _dbContext.UserRoles.AddAsync(userRole, cancellationToken);
             }
 
-            // 8. Guardar todo
+            // 8. HEREDAR PERMISOS DEL ADMINISTRATOR A COMPANYPERMISSIONS
+            var companyPermissionsToAdd = new List<CompanyPermission>();
+
+            foreach (var adminPermission in adminPermissions)
+            {
+                var companyPermission = new CompanyPermission
+                {
+                    Id = Guid.NewGuid(),
+                    TaxUserId = taxUser.Id,
+                    PermissionId = adminPermission.PermissionId,
+                    IsGranted = true, // Heredamos como granted
+                    Description =
+                        $"Inherited from Administrator role on registration - {adminPermission.PermissionCode}",
+                    CreatedAt = DateTime.UtcNow,
+                };
+
+                companyPermissionsToAdd.Add(companyPermission);
+            }
+
+            // Bulk insert para mejor performance
+            if (companyPermissionsToAdd.Any())
+            {
+                await _dbContext.CompanyPermissions.AddRangeAsync(
+                    companyPermissionsToAdd,
+                    cancellationToken
+                );
+
+                _logger.LogInformation(
+                    "Inherited {PermissionCount} administrator permissions for new user {TaxUserId} "
+                        + "in company {CompanyId}",
+                    companyPermissionsToAdd.Count,
+                    taxUser.Id,
+                    companyId
+                );
+            }
+
+            // 9. Guardar todo
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
             if (!result)
             {
@@ -254,14 +332,15 @@ public class RegisterUserByInvitationHandler
 
             _logger.LogInformation(
                 "TaxUser registered successfully by invitation: {TaxUserId} for company {CompanyId}. "
-                    + "Users: {Current}/{Limit}",
+                    + "Users: {Current}/{Limit}. Inherited permissions: {PermissionCount}",
                 taxUser.Id,
                 companyId,
                 company.CurrentActiveUserCount + 1, // +1 porque acabamos de crear uno
-                company.UserLimit
+                company.UserLimit,
+                companyPermissionsToAdd.Count
             );
 
-            // 9. Publicar evento de registro completado
+            // 10. Publicar evento de registro completado
             _eventBus.Publish(
                 new UserRegisteredEvent(
                     Id: Guid.NewGuid(),
