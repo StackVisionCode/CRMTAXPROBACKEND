@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Infrastructure.Commands;
 
-public record class CreateCalendarEventCommand (CalendarEventDto EventDto) : IRequest<Guid>;
+public sealed record CreateCalendarEventCommand(CalendarEventDto EventDto) : IRequest<Guid>;
