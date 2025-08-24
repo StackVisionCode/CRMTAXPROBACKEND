@@ -4,6 +4,7 @@ using EmailServices.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
 using EmailServices.Services.EmailNotificationsServices;
 using Handlers.EventHandlers.InvitationEventHandlers;
+using Handlers.EventHandlers.ReminderEventsHandlers;
 using Handlers.EventHandlers.SignatureEventHandlers;
 using Handlers.EventHandlers.UserEventHandlers;
 using Infrastructure.Context;
@@ -18,6 +19,7 @@ using SharedLibrary.DTOs;
 using SharedLibrary.DTOs.AuthEvents;
 using SharedLibrary.DTOs.CustomerEventsDTO;
 using SharedLibrary.DTOs.InvitationEvents;
+using SharedLibrary.DTOs.ReminderEvents;
 using SharedLibrary.DTOs.SignatureEvents;
 using SharedLibrary.Extensions;
 
@@ -196,7 +198,11 @@ builder.Services.AddScoped<
     IIntegrationEventHandler<SignatureRequestRejectedEvent>,
     SignatureRequestRejectedHandler
 >();
-
+builder.Services.AddScoped<
+    IIntegrationEventHandler<ReminderDueEvent>,
+    ReminderDueEventsHandler
+>();
+builder.Services.AddScoped<ReminderDueEventsHandler>();
 builder.Services.AddScoped<UserLoginEventsHandler>();
 builder.Services.AddScoped<PasswordResetEventHandler>();
 builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
@@ -247,6 +253,7 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<SecureDownloadSignedDocument, SecureDocumentDownloadHandler>();
     bus.Subscribe<CustomerLoginEnabledEvent, CustomerLoginEnabledEventHandler>();
     bus.Subscribe<CustomerLoginDisabledEvent, CustomerLoginDisabledEventHandler>();
+    bus.Subscribe<ReminderDueEvent, ReminderDueEventsHandler>();
 
     // Log successful subscriptions
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();

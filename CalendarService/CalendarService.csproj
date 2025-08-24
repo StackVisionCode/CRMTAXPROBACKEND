@@ -24,8 +24,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\SharedLibrary\SharedLibrary.csproj" />
-  </ItemGroup>
+<ItemGroup>
+  <ProjectReference Include="..\SharedLibrary\SharedLibrary.csproj" />
+</ItemGroup>
 
 </Project>

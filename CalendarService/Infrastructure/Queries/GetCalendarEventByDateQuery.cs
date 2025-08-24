@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Infrastructure.Queries;
 
-public record class GetCalendarEventByDateQuery(DateTime date) : IRequest<List<CalendarEventDto>>;
+public sealed record GetCalendarEventByDateQuery(DateTimeOffset Date) : IRequest<List<CalendarEventDto>>;

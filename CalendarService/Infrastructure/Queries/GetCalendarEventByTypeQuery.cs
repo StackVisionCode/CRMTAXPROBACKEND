@@ -3,5 +3,5 @@ using MediatR;
 
 namespace Infrastructure.Queries;
 
-public record class GetCalendarEventByTypeQuery (string type) : IRequest<List<CalendarEventDto>>;
+public sealed record GetCalendarEventByTypeQuery(string Type) : IRequest<List<CalendarEventDto>>;
 

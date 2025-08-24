@@ -3,4 +3,4 @@ using Applications.DTO;
 using MediatR;
 
 namespace Infrastructure.Commands;
-public record class UpdateCalendarEventCommand (CalendarEventDtoGeneral EventDto) : IRequest<bool>;
+public sealed record UpdateCalendarEventCommand(CalendarEventUpdateDto EventDto) : IRequest<bool>;
