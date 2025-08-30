@@ -1,8 +1,13 @@
-using AuthService.DTOs.UserDTOs;
+using AuthService.DTOs.InvitationDTOs;
 using Common;
 using MediatR;
 
 namespace AuthService.Commands.InvitationCommands;
 
-public record SendUserInvitationCommand(SendInvitationDTO Invitation, string Origin)
-    : IRequest<ApiResponse<bool>>;
+public record class SendUserInvitationCommand(
+    NewInvitationDTO Invitation,
+    Guid InvitedByUserId,
+    string Origin,
+    string? IpAddress = null,
+    string? UserAgent = null
+) : IRequest<ApiResponse<InvitationDTO>>;

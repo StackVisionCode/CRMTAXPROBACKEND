@@ -38,6 +38,12 @@ public class GetCustomerSessionsHandler
                     LoginAt = s.CreatedAt,
                     ExpireAt = s.ExpireTokenRequest,
                     Ip = s.IpAddress,
+                    Country = s.Country,
+                    City = s.City,
+                    Region = s.Region,
+                    Latitude = s.Latitude,
+                    Longitude = s.Longitude,
+                    Location = s.Location,
                     Device = s.Device,
                     IsRevoke = s.IsRevoke,
                 })
