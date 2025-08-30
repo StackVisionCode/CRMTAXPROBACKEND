@@ -1,32 +1,32 @@
 services:
   # --- SQL Server 2022 -------------------------------------------------------
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sqlserver
-    ports:
-      - "1433:1433"
-    environment:
-      ACCEPT_EULA: "Y"
-      SA_PASSWORD: "Brittany040238."
-      MSSQL_PID: "Developer"
-      MSSQL_MEMORY_LIMIT_MB: "2048"
-      MSSQL_TCP_PORT: "1433"
-    networks: [backend]
-    volumes:
-      - sqlserver_data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Brittany040238.' -C -Q 'SELECT 1' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
+  # sqlserver:
+  #   image: mcr.microsoft.com/mssql/server:2022-latest
+  #   container_name: sqlserver
+  #   ports:
+  #     - "1433:1433"
+  #   environment:
+  #     ACCEPT_EULA: "Y"
+  #     SA_PASSWORD: "Brittany040238."
+  #     MSSQL_PID: "Developer"
+  #     MSSQL_MEMORY_LIMIT_MB: "2048"
+  #     MSSQL_TCP_PORT: "1433"
+  #   networks: [backend]
+  #   volumes:
+  #     - sqlserver_data:/var/opt/mssql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Brittany040238.' -C -Q 'SELECT 1' || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 10
+  #     start_period: 60s
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 2G
+  #       reservations:
+  #         memory: 1G
 
   # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
@@ -57,7 +57,7 @@ services:
       "redis-server",
       "--appendonly", "yes",
       "--appendfsync", "everysec",
-      "--maxmemory", "512mb",
+      "--maxmemory", "2048mb",
       "--maxmemory-policy", "allkeys-lru",
       "--tcp-keepalive", "60",
       "--timeout", "300",
@@ -149,9 +149,7 @@ services:
       HybridCache__Redis__Database: "1"
     depends_on:
       rabbitmq:
-        condition: service_healthy
-      sqlserver:
-        condition: service_healthy
+        condition: service_healthy     
       redis:
         condition: service_healthy
     networks: [backend]
@@ -178,7 +176,7 @@ services:
       DB_SERVER: sqlserver
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."    
-    depends_on: [sqlserver]
+    depends_on: 
     networks: [backend]
 
   # --- Customer Service ------------------------------------------------------
@@ -199,8 +197,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      sqlserver:
-        condition: service_started
+    
       redis:
         condition: service_healthy
     networks: [backend]
@@ -230,8 +227,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      sqlserver:
-        condition: service_started
+     
       redis:
         condition: service_healthy
     networks: [backend]
@@ -258,7 +254,7 @@ services:
       HybridCache__Redis__ConnectionString: "redis:6379"
       HybridCache__Redis__KeyPrefix: "signature"
       HybridCache__Redis__Database: "9"
-    depends_on: [rabbitmq, sqlserver]
+    depends_on: [rabbitmq]
     networks: [backend]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -271,9 +267,7 @@ services:
   # --- Migrators (Usan imágenes dedicadas) -----------------------------------
   auth-migrator:
     image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+  
     environment:
       DB_SERVER: sqlserver
       DB_USER: sa
@@ -282,9 +276,7 @@ services:
 
   customer-migrator:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+   
     environment:
       DB_SERVER: sqlserver
       DB_USER: sa
@@ -293,9 +285,7 @@ services:
 
   calendar-migrator:
     image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+
     environment:
       DB_SERVER: sqlserver
       DB_USER: sa
@@ -305,9 +295,8 @@ services:
 
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+   
+ 
     environment:
       DB_SERVER: sqlserver
       DB_USER: sa
@@ -316,9 +305,7 @@ services:
 
   signature-migrator:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+ 
     environment:
       DB_SERVER: sqlserver
       DB_USER: sa
@@ -330,7 +317,7 @@ volumes:
   redisdata:
   redisinsight_data:
   rabbitmq_data:
-  sqlserver_data:
+
 
 networks:
   backend:
