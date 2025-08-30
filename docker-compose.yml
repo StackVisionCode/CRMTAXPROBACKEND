@@ -1,8 +1,8 @@
 services:
   # --- SQL Server 2022 -------------------------------------------------------
-  # sqlserver:
+  # 10.128.3.20:
   #   image: mcr.microsoft.com/mssql/server:2022-latest
-  #   container_name: sqlserver
+  #   container_name: 10.128.3.20
   #   ports:
   #     - "1433:1433"
   #   environment:
@@ -13,7 +13,7 @@ services:
   #     MSSQL_TCP_PORT: "1433"
   #   networks: [backend]
   #   volumes:
-  #     - sqlserver_data:/var/opt/mssql
+  #     - 10.128.3.20_data:/var/opt/mssql
   #   healthcheck:
   #     test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Brittany040238.' -C -Q 'SELECT 1' || exit 1"]
   #     interval: 30s
@@ -138,7 +138,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -175,7 +175,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."  
     networks: [backend]
@@ -187,7 +187,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."    
     networks: [backend]
@@ -199,7 +199,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."    
    
@@ -210,7 +210,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -240,7 +240,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -270,7 +270,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -294,7 +294,7 @@ services:
     image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
   
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -303,7 +303,7 @@ services:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
    
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -312,7 +312,7 @@ services:
     image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
 
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -323,7 +323,7 @@ services:
    
  
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -332,7 +332,7 @@ services:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
  
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -341,7 +341,7 @@ services:
     image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
  
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -349,7 +349,7 @@ services:
   sms-migrator:
     image: ${REGISTRY_PREFIX}-sms-migrator:${TAG} 
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
