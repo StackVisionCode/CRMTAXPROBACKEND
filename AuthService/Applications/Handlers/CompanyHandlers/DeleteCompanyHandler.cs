@@ -29,39 +29,28 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
 
         try
         {
-            // Solo TaxUsers ahora, no UserCompanies
+            // Análisis simplificado - solo datos de AuthService
             var companyAnalysisQuery =
                 from c in _dbContext.Companies
                 where c.Id == request.Id
                 select new
                 {
                     Company = c,
-                    CustomPlanId = c.CustomPlanId,
                     AddressId = c.AddressId,
-                    // Solo conteo de TaxUsers
                     TaxUsersCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
                     OwnerCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id && u.IsOwner),
                     RegularUsersCount = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == c.Id && !u.IsOwner
                     ),
-                    // Solo sesiones de TaxUsers
                     ActiveSessionsCount = (
                         from s in _dbContext.Sessions
                         join u in _dbContext.TaxUsers on s.TaxUserId equals u.Id
                         where u.CompanyId == c.Id && !s.IsRevoke
                         select s.Id
                     ).Count(),
-                    // CompanyPermissions ahora apunta directamente a TaxUser
                     CompanyPermissionsCount = _dbContext.CompanyPermissions.Count(cp =>
                         _dbContext.TaxUsers.Any(u => u.Id == cp.TaxUserId && u.CompanyId == c.Id)
                     ),
-                    // CustomModules del CustomPlan
-                    CustomModulesCount = (
-                        from cm in _dbContext.CustomModules
-                        join cplan in _dbContext.CustomPlans on cm.CustomPlanId equals cplan.Id
-                        where cplan.CompanyId == c.Id
-                        select cm.Id
-                    ).Count(),
                 };
 
             var analysis = await companyAnalysisQuery.FirstOrDefaultAsync(cancellationToken);
@@ -74,18 +63,18 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             var company = analysis.Company;
 
             _logger.LogInformation(
-                "Analyzing company for deletion: {CompanyId}, TaxUsers: {TaxUsers} (Owner: {Owner}, Regular: {Regular}), "
-                    + "ActiveSessions: {Sessions}, Permissions: {Permissions}, Modules: {Modules}",
+                "Analyzing company for deletion: {CompanyId}, ServiceLevel: {ServiceLevel}, "
+                    + "TaxUsers: {TaxUsers} (Owner: {Owner}, Regular: {Regular}), ActiveSessions: {Sessions}, Permissions: {Permissions}",
                 request.Id,
+                company.ServiceLevel,
                 analysis.TaxUsersCount,
                 analysis.OwnerCount,
                 analysis.RegularUsersCount,
                 analysis.ActiveSessionsCount,
-                analysis.CompanyPermissionsCount,
-                analysis.CustomModulesCount
+                analysis.CompanyPermissionsCount
             );
 
-            // Validaciones actualizadas para nueva estructura
+            // Validaciones para AuthService
             var validationResult = ValidateCompanyDeletion(analysis);
             if (!validationResult.CanDelete)
             {
@@ -97,9 +86,10 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
                 return new ApiResponse<bool>(false, validationResult.Reason, false);
             }
 
-            // Eliminar en orden correcto para nueva estructura
+            // IMPORTANTE: El frontend debe eliminar primero la suscripción en SubscriptionsService
+            // Aquí solo eliminamos datos de AuthService
 
-            // 1. Eliminar CompanyPermissions (ahora directamente de TaxUsers)
+            // 1. Eliminar CompanyPermissions
             if (analysis.CompanyPermissionsCount > 0)
             {
                 await DeleteCompanyPermissionsAsync(request.Id, cancellationToken);
@@ -111,7 +101,7 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
                 await DeleteTaxUserSessionsAsync(request.Id, cancellationToken);
             }
 
-            // 3. Eliminar UserRoles (dependen de TaxUsers)
+            // 3. Eliminar UserRoles
             await DeleteUserRolesAsync(request.Id, cancellationToken);
 
             // 4. Eliminar TaxUsers
@@ -120,42 +110,32 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
                 await DeleteTaxUsersAsync(request.Id, cancellationToken);
             }
 
-            // 5. Eliminar CustomModules (dependen de CustomPlan)
-            if (analysis.CustomModulesCount > 0)
-            {
-                await DeleteCustomModulesAsync(analysis.CustomPlanId, cancellationToken);
-            }
-
-            // 6. Eliminar CustomPlan
-            await DeleteCustomPlanAsync(analysis.CustomPlanId, cancellationToken);
-
-            // 7. Eliminar Address si existe
+            // 5. Eliminar Address si existe
             if (analysis.AddressId.HasValue)
             {
                 await DeleteAddressAsync(analysis.AddressId.Value, cancellationToken);
             }
 
-            // 8. Finalmente eliminar la Company
+            // 6. Eliminar la Company
             _dbContext.Companies.Remove(company);
 
-            // Guardar todos los cambios
+            // Guardar cambios
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
 
             if (result)
             {
                 await transaction.CommitAsync(cancellationToken);
                 _logger.LogInformation(
-                    "Company deleted successfully: {CompanyId} with all dependencies "
-                        + "(TaxUsers: {TaxUsers}, Modules: {Modules}, Address: {HasAddress})",
+                    "Company deleted successfully: {CompanyId} with all AuthService dependencies "
+                        + "(TaxUsers: {TaxUsers}, Address: {HasAddress})",
                     request.Id,
                     analysis.TaxUsersCount,
-                    analysis.CustomModulesCount,
                     analysis.AddressId.HasValue
                 );
 
                 return new ApiResponse<bool>(
                     true,
-                    "Company and all related data deleted successfully",
+                    "Company deleted successfully from AuthService",
                     true
                 );
             }
@@ -183,14 +163,12 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
         }
     }
 
-    /// <summary>
-    /// Valida si la company puede ser eliminada
-    /// </summary>
+    #region Validation and Deletion Methods
+
     private (bool CanDelete, string Reason) ValidateCompanyDeletion(dynamic analysis)
     {
-        // Solo verificar TaxUsers ahora
         var totalUsers = analysis.TaxUsersCount;
-        if (totalUsers > 1) // Más que solo el Owner
+        if (totalUsers > 1)
         {
             return (
                 false,
@@ -198,7 +176,6 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             );
         }
 
-        // Verificar sesiones activas
         var activeSessions = analysis.ActiveSessionsCount;
         if (activeSessions > 0)
         {
@@ -208,22 +185,14 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             );
         }
 
-        // Verificar si es una empresa con datos críticos
-        if (analysis.CustomModulesCount > 10) // Ejemplo: muchos módulos personalizados
-        {
-            return (
-                false,
-                "Cannot delete company with extensive customization. Please contact support."
-            );
-        }
-
-        return (true, "Company can be safely deleted");
+        // El frontend debe validar que no hay suscripción activa en SubscriptionsService
+        return (true, "Company can be safely deleted from AuthService");
     }
 
-    /// <summary>
-    /// Elimina permisos personalizados (ahora directamente de TaxUsers)
-    /// </summary>
-    private async Task DeleteCompanyPermissionsAsync(Guid companyId, CancellationToken ct)
+    private async Task DeleteCompanyPermissionsAsync(
+        Guid companyId,
+        CancellationToken cancellationToken
+    )
     {
         var permissionsQuery =
             from cp in _dbContext.CompanyPermissions
@@ -231,7 +200,7 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             where u.CompanyId == companyId
             select cp;
 
-        var permissions = await permissionsQuery.ToListAsync(ct);
+        var permissions = await permissionsQuery.ToListAsync(cancellationToken);
         if (permissions.Any())
         {
             _dbContext.CompanyPermissions.RemoveRange(permissions);
@@ -239,10 +208,10 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
         }
     }
 
-    /// <summary>
-    /// Elimina sesiones de TaxUsers
-    /// </summary>
-    private async Task DeleteTaxUserSessionsAsync(Guid companyId, CancellationToken ct)
+    private async Task DeleteTaxUserSessionsAsync(
+        Guid companyId,
+        CancellationToken cancellationToken
+    )
     {
         var sessionsQuery =
             from s in _dbContext.Sessions
@@ -250,7 +219,7 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             where u.CompanyId == companyId
             select s;
 
-        var sessions = await sessionsQuery.ToListAsync(ct);
+        var sessions = await sessionsQuery.ToListAsync(cancellationToken);
         if (sessions.Any())
         {
             _dbContext.Sessions.RemoveRange(sessions);
@@ -258,10 +227,7 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
         }
     }
 
-    /// <summary>
-    /// Elimina roles de TaxUsers
-    /// </summary>
-    private async Task DeleteUserRolesAsync(Guid companyId, CancellationToken ct)
+    private async Task DeleteUserRolesAsync(Guid companyId, CancellationToken cancellationToken)
     {
         var rolesQuery =
             from ur in _dbContext.UserRoles
@@ -269,7 +235,7 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
             where u.CompanyId == companyId
             select ur;
 
-        var roles = await rolesQuery.ToListAsync(ct);
+        var roles = await rolesQuery.ToListAsync(cancellationToken);
         if (roles.Any())
         {
             _dbContext.UserRoles.RemoveRange(roles);
@@ -277,14 +243,12 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
         }
     }
 
-    /// <summary>
-    /// Elimina TaxUsers
-    /// </summary>
-    private async Task DeleteTaxUsersAsync(Guid companyId, CancellationToken ct)
+    private async Task DeleteTaxUsersAsync(Guid companyId, CancellationToken cancellationToken)
     {
-        var usersQuery = from u in _dbContext.TaxUsers where u.CompanyId == companyId select u;
+        var users = await _dbContext
+            .TaxUsers.Where(u => u.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
 
-        var users = await usersQuery.ToListAsync(ct);
         if (users.Any())
         {
             _dbContext.TaxUsers.RemoveRange(users);
@@ -292,51 +256,19 @@ public class DeleteCompanyHandler : IRequestHandler<DeleteCompanyCommand, ApiRes
         }
     }
 
-    /// <summary>
-    /// Elimina módulos personalizados del CustomPlan
-    /// </summary>
-    private async Task DeleteCustomModulesAsync(Guid customPlanId, CancellationToken ct)
+    private async Task DeleteAddressAsync(Guid addressId, CancellationToken cancellationToken)
     {
-        var modulesQuery =
-            from cm in _dbContext.CustomModules
-            where cm.CustomPlanId == customPlanId
-            select cm;
+        var address = await _dbContext.Addresses.FirstOrDefaultAsync(
+            a => a.Id == addressId,
+            cancellationToken
+        );
 
-        var modules = await modulesQuery.ToListAsync(ct);
-        if (modules.Any())
-        {
-            _dbContext.CustomModules.RemoveRange(modules);
-            _logger.LogDebug("Marked {Count} custom modules for deletion", modules.Count);
-        }
-    }
-
-    /// <summary>
-    /// Elimina el CustomPlan
-    /// </summary>
-    private async Task DeleteCustomPlanAsync(Guid customPlanId, CancellationToken ct)
-    {
-        var planQuery = from cp in _dbContext.CustomPlans where cp.Id == customPlanId select cp;
-
-        var customPlan = await planQuery.FirstOrDefaultAsync(ct);
-        if (customPlan != null)
-        {
-            _dbContext.CustomPlans.Remove(customPlan);
-            _logger.LogDebug("Marked custom plan for deletion: {CustomPlanId}", customPlanId);
-        }
-    }
-
-    /// <summary>
-    /// Elimina la dirección si existe
-    /// </summary>
-    private async Task DeleteAddressAsync(Guid addressId, CancellationToken ct)
-    {
-        var addressQuery = from a in _dbContext.Addresses where a.Id == addressId select a;
-
-        var address = await addressQuery.FirstOrDefaultAsync(ct);
         if (address != null)
         {
             _dbContext.Addresses.Remove(address);
             _logger.LogDebug("Marked address for deletion: {AddressId}", addressId);
         }
     }
+
+    #endregion
 }

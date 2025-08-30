@@ -22,7 +22,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     private readonly IGeolocationService _geolocationService;
 
     // Configuración para notificaciones inteligentes
-    private static readonly TimeSpan NotificationGracePeriod = TimeSpan.FromDays(3); // 3 dias sin notificar desde mismo lugar/device
+    private static readonly TimeSpan NotificationGracePeriod = TimeSpan.FromDays(3); // 3 días sin notificar desde mismo lugar/device
 
     public LoginHandler(
         ApplicationDbContext context,
@@ -95,16 +95,18 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 );
             }
 
-            // PASO 4: Verificar estado de la Company
-            if (!userResult.CompanyIsActive)
+            // PASO 4: Verificar estado de la Company (SIN CustomPlans)
+            if (!userResult.CompanyIsOperational)
             {
                 _logger.LogWarning(
-                    "Login failed for {Email}: Company plan is inactive",
-                    request.Petition.Email
+                    "Login failed for {Email}: Company is not operational (ServiceLevel: {ServiceLevel}, OwnerCount: {OwnerCount})",
+                    request.Petition.Email,
+                    userResult.CompanyServiceLevel,
+                    userResult.CompanyOwnerCount
                 );
                 return new ApiResponse<LoginResponseDTO>(
                     false,
-                    "Company subscription is inactive. Please contact your administrator."
+                    "Company is not operational. Please contact your administrator."
                 );
             }
 
@@ -127,9 +129,10 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             if (!allowed)
             {
                 _logger.LogWarning(
-                    "Login failed for {Email}: Not authorized for Staff portal. IsOwner: {IsOwner}, Roles: {Roles}",
+                    "Login failed for {Email}: Not authorized for Staff portal. IsOwner: {IsOwner}, ServiceLevel: {ServiceLevel}, Roles: {Roles}",
                     request.Petition.Email,
                     userResult.IsOwner,
+                    userResult.CompanyServiceLevel,
                     string.Join(",", rolesAndPermissions.Roles.Select(r => r.Name))
                 );
                 return new ApiResponse<LoginResponseDTO>(
@@ -141,10 +144,10 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 };
             }
 
-            // 🔒 PASO 7: NUEVA LÓGICA - Revocar sesiones existentes (una sola sesión activa)
+            // 🔒 PASO 7: Revocar sesiones existentes (una sola sesión activa)
             await RevokeExistingSessionsAsync(userResult.UserId, cancellationToken);
 
-            // 🌍 PASO 8: NUEVA LÓGICA - Verificar si debe enviar notificación
+            // 🌍 PASO 8: Verificar si debe enviar notificación
             var shouldSendNotification = await ShouldSendLoginNotificationAsync(
                 userResult.UserId,
                 request.IpAddress ?? "",
@@ -186,7 +189,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 new TokenGenerationRequest(userInfo, sessionInfo, refreshTokenLifetime)
             );
 
-            //  PASO 11: Crear sesión
+            // PASO 11: Crear sesión
             await CreateTaxUserSessionAsync(
                 userResult.UserId,
                 sessionId,
@@ -241,9 +244,11 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             };
 
             _logger.LogInformation(
-                "TaxUser {UserId} (IsOwner: {IsOwner}) logged in successfully. Session {SessionId} created. Notification sent: {NotificationSent}",
+                "TaxUser {UserId} (IsOwner: {IsOwner}, ServiceLevel: {ServiceLevel}) logged in successfully. "
+                    + "Session {SessionId} created. Notification sent: {NotificationSent}",
                 userResult.UserId,
                 userResult.IsOwner,
+                userResult.CompanyServiceLevel,
                 sessionId,
                 shouldSendNotification
             );
@@ -378,27 +383,15 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         if (string.IsNullOrWhiteSpace(ipAddress))
             return true;
 
-        var localIndicators = new[]
-        {
-            "::1", // IPv6 localhost
-            "127.0.0.1", // IPv4 localhost
-            "localhost", // hostname
-            "0.0.0.0", // All interfaces
-            "unknown", // Valor por defecto cuando no se puede obtener IP
-        };
+        var localIndicators = new[] { "::1", "127.0.0.1", "localhost", "0.0.0.0", "unknown" };
 
-        // Verificar direcciones locales exactas
         if (localIndicators.Contains(ipAddress, StringComparer.OrdinalIgnoreCase))
             return true;
 
-        // Verificar rangos privados
         return ipAddress.StartsWith("192.168.")
-            || // Private network
-            ipAddress.StartsWith("10.")
-            || // Private network
-            ipAddress.StartsWith("172.16.")
-            || // Private network range
-            ipAddress.StartsWith("172.17.")
+            || ipAddress.StartsWith("10.")
+            || ipAddress.StartsWith("172.16.")
+            || ipAddress.StartsWith("172.17.")
             || ipAddress.StartsWith("172.18.")
             || ipAddress.StartsWith("172.19.")
             || ipAddress.StartsWith("172.20.")
@@ -424,10 +417,8 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             return "local-dev";
 
         var parts = new List<string>();
-
         if (!string.IsNullOrEmpty(geoInfo.Country))
             parts.Add(geoInfo.Country.ToLowerInvariant());
-
         if (!string.IsNullOrEmpty(geoInfo.City))
             parts.Add(geoInfo.City.ToLowerInvariant());
 
@@ -442,10 +433,8 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         if (string.IsNullOrWhiteSpace(device))
             return "unknown-device";
 
-        // Normalizar user agent para detectar navegadores similares
         var deviceLower = device.ToLowerInvariant();
 
-        // Detectar navegadores comunes
         if (deviceLower.Contains("chrome"))
             return "chrome-browser";
         if (deviceLower.Contains("firefox"))
@@ -459,12 +448,11 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         if (deviceLower.Contains("insomnia"))
             return "insomnia-client";
 
-        // Para otros casos, usar hash para consistencia pero privacidad
         return $"device-{Math.Abs(device.GetHashCode() % 10000)}";
     }
 
     /// <summary>
-    /// Busca TaxUser por email con información de Company
+    /// Busca TaxUser por email sin CustomPlans
     /// </summary>
     private async Task<TaxUserLoginResult?> FindTaxUserByEmailAsync(
         string email,
@@ -474,10 +462,10 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         var query =
             from u in _context.TaxUsers
             join c in _context.Companies on u.CompanyId equals c.Id
-            join cp in _context.CustomPlans on c.CustomPlanId equals cp.Id
             where u.Email == email
-            select new TaxUserLoginResult
+            select new
             {
+                // Datos del usuario
                 UserId = u.Id,
                 Email = u.Email,
                 HashedPassword = u.Password,
@@ -486,15 +474,45 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 IsActive = u.IsActive,
                 IsConfirmed = u.Confirm ?? false,
                 IsOwner = u.IsOwner,
+
+                // Datos de la company
                 CompanyId = c.Id,
                 CompanyName = c.CompanyName,
                 CompanyFullName = c.FullName,
                 CompanyDomain = c.Domain,
                 IsCompany = c.IsCompany,
-                CompanyIsActive = cp.IsActive,
+                CompanyServiceLevel = c.ServiceLevel,
+
+                // Calcular si la company está operacional
+                CompanyOwnerCount = _context.TaxUsers.Count(owner =>
+                    owner.CompanyId == c.Id && owner.IsOwner && owner.IsActive
+                ),
             };
 
-        return await query.FirstOrDefaultAsync(ct);
+        var result = await query.FirstOrDefaultAsync(ct);
+
+        if (result == null)
+            return null;
+
+        return new TaxUserLoginResult
+        {
+            UserId = result.UserId,
+            Email = result.Email,
+            HashedPassword = result.HashedPassword,
+            Name = result.Name,
+            LastName = result.LastName,
+            IsActive = result.IsActive,
+            IsConfirmed = result.IsConfirmed,
+            IsOwner = result.IsOwner,
+            CompanyId = result.CompanyId,
+            CompanyName = result.CompanyName,
+            CompanyFullName = result.CompanyFullName,
+            CompanyDomain = result.CompanyDomain,
+            IsCompany = result.IsCompany,
+            CompanyServiceLevel = result.CompanyServiceLevel,
+            CompanyOwnerCount = result.CompanyOwnerCount,
+            CompanyIsOperational = result.CompanyOwnerCount > 0, // Company operacional si tiene owners activos
+        };
     }
 
     /// <summary>
@@ -633,19 +651,13 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     private static string DetermineDisplayName(TaxUserLoginResult user)
     {
         if (user.IsCompany && !string.IsNullOrWhiteSpace(user.CompanyName))
-        {
             return user.CompanyName;
-        }
 
         if (!user.IsCompany && !string.IsNullOrWhiteSpace(user.CompanyFullName))
-        {
             return user.CompanyFullName;
-        }
 
         if (!string.IsNullOrWhiteSpace(user.Name) || !string.IsNullOrWhiteSpace(user.LastName))
-        {
             return $"{user.Name} {user.LastName}".Trim();
-        }
 
         return user.Email;
     }

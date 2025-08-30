@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 
 namespace AuthService.DTOs.UserDTOs;
 

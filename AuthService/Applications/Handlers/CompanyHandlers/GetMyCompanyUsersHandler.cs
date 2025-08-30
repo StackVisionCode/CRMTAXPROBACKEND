@@ -1,3 +1,4 @@
+using Applications.DTOs.AddressDTOs;
 using AuthService.DTOs.CompanyDTOs;
 using AuthService.DTOs.UserDTOs;
 using Common;
@@ -30,15 +31,13 @@ public class GetMyCompanyUsersHandler
     {
         try
         {
-            // 1. Verificar que la company existe y obtener información del plan
-            var companyInfoQuery =
-                from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
-                where c.Id == request.CompanyId
-                select new { Company = c, CustomPlan = cp };
+            // 1. Verificar que la company existe (simplificado - sin CustomPlan)
+            var company = await _dbContext.Companies.FirstOrDefaultAsync(
+                c => c.Id == request.CompanyId,
+                cancellationToken
+            );
 
-            var companyInfo = await companyInfoQuery.FirstOrDefaultAsync(cancellationToken);
-            if (companyInfo?.Company == null)
+            if (company == null)
             {
                 _logger.LogWarning("Company not found: {CompanyId}", request.CompanyId);
                 return new ApiResponse<CompanyUsersCompleteDTO>(
@@ -48,7 +47,7 @@ public class GetMyCompanyUsersHandler
                 );
             }
 
-            // 2. Obtener todos los TaxUsers de la company (sin cambios en la query principal)
+            // 2. Obtener todos los TaxUsers de la company (sin CustomPlan JOIN)
             var usersQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
@@ -67,7 +66,7 @@ public class GetMyCompanyUsersHandler
                 join cstate in _dbContext.States on ca.StateId equals cstate.Id into companyStates
                 from cstate in companyStates.DefaultIfEmpty()
                 where u.CompanyId == request.CompanyId
-                orderby u.IsOwner descending, u.CreatedAt descending // Owner primero
+                orderby u.IsOwner descending, u.CreatedAt descending
                 select new UserGetDTO
                 {
                     Id = u.Id,
@@ -82,10 +81,10 @@ public class GetMyCompanyUsersHandler
                     Confirm = u.Confirm ?? false,
                     CreatedAt = u.CreatedAt,
 
-                    // Direcciones (sin cambios)
+                    // Direcciones
                     Address =
                         a != null
-                            ? new Applications.DTOs.CompanyDTOs.AddressDTO
+                            ? new AddressDTO
                             {
                                 CountryId = a.CountryId,
                                 StateId = a.StateId,
@@ -98,16 +97,17 @@ public class GetMyCompanyUsersHandler
                             }
                             : null,
 
-                    // Información de la company (sin cambios)
+                    // Información de la company
                     CompanyFullName = c.FullName,
                     CompanyName = c.CompanyName,
                     CompanyBrand = c.Brand,
                     CompanyIsIndividual = !c.IsCompany,
                     CompanyDomain = c.Domain,
+                    CompanyServiceLevel = c.ServiceLevel, // NUEVO
 
                     CompanyAddress =
                         ca != null
-                            ? new Applications.DTOs.CompanyDTOs.AddressDTO
+                            ? new AddressDTO
                             {
                                 CountryId = ca.CountryId,
                                 StateId = ca.StateId,
@@ -138,36 +138,36 @@ public class GetMyCompanyUsersHandler
                     new CompanyUsersCompleteDTO
                     {
                         CompanyId = request.CompanyId,
-                        CompanyName = companyInfo.Company.CompanyName,
-                        IsCompany = companyInfo.Company.IsCompany,
-                        ServiceUserLimit = companyInfo.CustomPlan.UserLimit,
+                        CompanyName = company.CompanyName,
+                        IsCompany = company.IsCompany,
+                        ServiceLevel = company.ServiceLevel, // NUEVO
                         Users = new List<UserGetDTO>(),
                     }
                 );
             }
 
-            // 3. Obtener roles y permisos (sin cambios)
+            // 3. Obtener roles y permisos
             await PopulateTaxUserRolesAndPermissionsAsync(users, cancellationToken);
 
-            // 🔧 4. CAMBIO: Usar CustomPlan.UserLimit
+            // 4. CAMBIO: Sin ServiceUserLimit - el frontend lo obtendrá de SubscriptionsService
             var result = new CompanyUsersCompleteDTO
             {
                 CompanyId = request.CompanyId,
-                CompanyName = companyInfo.Company.IsCompany
-                    ? companyInfo.Company.CompanyName
-                    : companyInfo.Company.FullName,
-                IsCompany = companyInfo.Company.IsCompany,
-                ServiceUserLimit = companyInfo.CustomPlan.UserLimit,
+                CompanyName = company.IsCompany ? company.CompanyName : company.FullName,
+                IsCompany = company.IsCompany,
+                ServiceLevel = company.ServiceLevel, // NUEVO
                 Users = users,
+
+                // REMOVIDO: ServiceUserLimit - ahora responsabilidad del frontend
             };
 
             _logger.LogInformation(
-                "Retrieved {Count} TaxUsers for company {CompanyId} (Owner: {Owner}, Regular: {Regular}). CustomPlan limit: {Limit}",
+                "Retrieved {Count} TaxUsers for company {CompanyId} (Owner: {Owner}, Regular: {Regular}), ServiceLevel: {ServiceLevel}",
                 result.TotalUsers,
                 request.CompanyId,
                 result.OwnerCount,
                 result.RegularUsersCount,
-                companyInfo.CustomPlan.UserLimit
+                company.ServiceLevel
             );
 
             return new ApiResponse<CompanyUsersCompleteDTO>(
@@ -192,12 +192,9 @@ public class GetMyCompanyUsersHandler
         }
     }
 
-    /// <summary>
-    /// Popula roles y permisos personalizados para TaxUsers
-    /// </summary>
     private async Task PopulateTaxUserRolesAndPermissionsAsync(
         List<UserGetDTO> users,
-        CancellationToken ct
+        CancellationToken cancellationToken
     )
     {
         var userIds = users.Select(u => u.Id).ToList();
@@ -209,19 +206,19 @@ public class GetMyCompanyUsersHandler
             where userIds.Contains(ur.TaxUserId)
             select new { ur.TaxUserId, r.Name };
 
-        var userRoles = await rolesQuery.ToListAsync(ct);
+        var userRoles = await rolesQuery.ToListAsync(cancellationToken);
         var rolesByUser = userRoles
             .GroupBy(x => x.TaxUserId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
 
-        // CompanyPermissions ahora apunta directamente a TaxUser
+        // CompanyPermissions
         var permissionsQuery =
             from cp in _dbContext.CompanyPermissions
             join p in _dbContext.Permissions on cp.PermissionId equals p.Id
             where userIds.Contains(cp.TaxUserId) && cp.IsGranted
             select new { cp.TaxUserId, p.Code };
 
-        var userPermissions = await permissionsQuery.ToListAsync(ct);
+        var userPermissions = await permissionsQuery.ToListAsync(cancellationToken);
         var permissionsByUser = userPermissions
             .GroupBy(x => x.TaxUserId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());

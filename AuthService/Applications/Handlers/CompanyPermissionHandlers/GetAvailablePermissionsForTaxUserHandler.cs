@@ -33,13 +33,13 @@ public class GetAvailablePermissionsForTaxUserHandler
     {
         try
         {
-            // Verificar que el TaxUser existe
-            var taxUserExists = await _dbContext.TaxUsers.AnyAsync(
+            // 1. Verificar que el TaxUser existe y obtener su CompanyId
+            var taxUser = await _dbContext.TaxUsers.FirstOrDefaultAsync(
                 tu => tu.Id == request.TaxUserId && tu.IsActive,
                 cancellationToken
             );
 
-            if (!taxUserExists)
+            if (taxUser == null)
             {
                 return new ApiResponse<IEnumerable<PermissionDTO>>(
                     false,
@@ -48,32 +48,45 @@ public class GetAvailablePermissionsForTaxUserHandler
                 );
             }
 
-            // Obtener solo permisos que están en uso en CompanyPermissions
-            // Esto asegura que solo mostramos permisos gestionables a nivel company
-            var manageablePermissionIds = await (
-                from cp in _dbContext.CompanyPermissions
-                select cp.PermissionId
+            // 2. Encontrar el Owner de esta Company
+            var ownerTaxUser = await _dbContext.TaxUsers.FirstOrDefaultAsync(
+                tu => tu.CompanyId == taxUser.CompanyId && tu.IsOwner && tu.IsActive,
+                cancellationToken
+            );
+
+            if (ownerTaxUser == null)
+            {
+                return new ApiResponse<IEnumerable<PermissionDTO>>(
+                    false,
+                    "Company owner not found",
+                    null!
+                );
+            }
+
+            // 3. Obtener permisos que tiene el Owner por sus roles (estos son los "delegables")
+            var ownerPermissionIds = await (
+                from ur in _dbContext.UserRoles
+                join rp in _dbContext.RolePermissions on ur.RoleId equals rp.RoleId
+                where ur.TaxUserId == ownerTaxUser.Id
+                select rp.PermissionId
             )
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            // Obtener permisos que ya tiene asignados este usuario específico
+            // 4. Obtener permisos ya asignados como CompanyPermissions a este usuario específico
             var assignedPermissionIds = await (
                 from cp in _dbContext.CompanyPermissions
                 where cp.TaxUserId == request.TaxUserId
                 select cp.PermissionId
             ).ToListAsync(cancellationToken);
 
-            // Solo devolver permisos que:
-            // 1. Son gestionables (están en uso en CompanyPermissions)
-            // 2. Están activos
-            // 3. NO están asignados a este usuario específico
+            // 5. Los permisos disponibles son los del Owner que no están asignados al usuario
             var availablePermissions = await (
                 from p in _dbContext.Permissions
                 where
                     p.IsGranted
-                    && manageablePermissionIds.Contains(p.Id)
-                    && !assignedPermissionIds.Contains(p.Id)
+                    && ownerPermissionIds.Contains(p.Id) // Permisos del Owner
+                    && !assignedPermissionIds.Contains(p.Id) // No asignados al usuario
                 orderby p.Name
                 select new PermissionDTO
                 {
@@ -86,9 +99,10 @@ public class GetAvailablePermissionsForTaxUserHandler
             ).ToListAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Available permissions for TaxUser {TaxUserId}: Total manageable={ManageableCount}, Already assigned={AssignedCount}, Available={AvailableCount}",
+                "Available permissions for TaxUser {TaxUserId} in Company {CompanyId}: Owner permissions={OwnerPermissions}, Already assigned={AssignedCount}, Available={AvailableCount}",
                 request.TaxUserId,
-                manageablePermissionIds.Count,
+                taxUser.CompanyId,
+                ownerPermissionIds.Count,
                 assignedPermissionIds.Count,
                 availablePermissions.Count
             );

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
+using AuthService.Applications.Common;
 
 namespace AuthService.Applications.DTOs.CompanyDTOs;
 
@@ -15,4 +16,5 @@ public class UpdateCompanyDTO
     public string? Description { get; set; }
     public string? Domain { get; set; }
     public AddressDTO? Address { get; set; }
+    public ServiceLevel? ServiceLevel { get; set; }
 }

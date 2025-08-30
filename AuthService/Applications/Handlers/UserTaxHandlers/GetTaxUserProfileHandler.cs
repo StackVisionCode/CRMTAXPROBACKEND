@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.DTOs.UserDTOs;
 using Common;
 using Infraestructure.Context;
@@ -30,7 +30,6 @@ public class GetTaxUserProfileHandler
     {
         try
         {
-            // 🔍 PASO 1: Buscar TaxUser con información completa
             var profile = await GetTaxUserProfileAsync(request.UserId, cancellationToken);
 
             if (profile == null)
@@ -40,9 +39,10 @@ public class GetTaxUserProfileHandler
             }
 
             _logger.LogInformation(
-                "User profile retrieved successfully: {UserId} (IsOwner: {IsOwner})",
+                "User profile retrieved successfully: {UserId} (IsOwner: {IsOwner}, ServiceLevel: {ServiceLevel})",
                 request.UserId,
-                profile.IsOwner
+                profile.IsOwner,
+                profile.CompanyServiceLevel
             );
 
             return new ApiResponse<UserProfileDTO>(
@@ -63,16 +63,15 @@ public class GetTaxUserProfileHandler
         }
     }
 
-    /// <summary>
-    /// Obtiene perfil completo de TaxUser con información de Company y permisos efectivos
-    /// </summary>
-    private async Task<UserProfileDTO?> GetTaxUserProfileAsync(Guid userId, CancellationToken ct)
+    private async Task<UserProfileDTO?> GetTaxUserProfileAsync(
+        Guid userId,
+        CancellationToken cancellationToken
+    )
     {
-        // Query principal para obtener información del TaxUser y Company
+        // Query principal - sin CustomPlans
         var userQuery =
             from u in _db.TaxUsers
             join c in _db.Companies on u.CompanyId equals c.Id
-            join cp in _db.CustomPlans on c.CustomPlanId equals cp.Id
             join a in _db.Addresses on u.AddressId equals a.Id into addresses
             from a in addresses.DefaultIfEmpty()
             join country in _db.Countries on a.CountryId equals country.Id into countries
@@ -91,7 +90,7 @@ public class GetTaxUserProfileHandler
                 Id = u.Id,
                 CompanyId = u.CompanyId,
                 Email = u.Email,
-                IsOwner = u.IsOwner, // NUEVO: Campo IsOwner
+                IsOwner = u.IsOwner,
                 Name = u.Name,
                 LastName = u.LastName,
                 PhoneNumber = u.PhoneNumber,
@@ -113,12 +112,13 @@ public class GetTaxUserProfileHandler
                         }
                         : null,
 
-                // Información de la Company
+                // Información de la Company (disponible en AuthService)
                 CompanyFullName = c.FullName,
                 CompanyName = c.CompanyName,
                 CompanyBrand = c.Brand,
                 CompanyIsIndividual = !c.IsCompany,
                 CompanyDomain = c.Domain,
+                CompanyServiceLevel = c.ServiceLevel, // NUEVO
 
                 // Dirección de la Company
                 CompanyAddress =
@@ -136,42 +136,29 @@ public class GetTaxUserProfileHandler
                         }
                         : null,
 
-                // NUEVO: Información del CustomPlan
-                CustomPlanId = cp.Id,
-                CustomPlanPrice = cp.Price,
-                CustomPlanIsActive = cp.IsActive,
-
                 // Inicializar colecciones
                 RoleNames = new List<string>(),
-                AdditionalModules = new List<string>(),
                 EffectivePermissions = new List<string>(),
+
+                // REMOVIDO - información de CustomPlan (responsabilidad del frontend)
+                // CustomPlanId, CustomPlanPrice, CustomPlanIsActive, AdditionalModules
             };
 
-        var user = await userQuery.FirstOrDefaultAsync(ct);
+        var user = await userQuery.FirstOrDefaultAsync(cancellationToken);
         if (user == null)
             return null;
 
-        // PASO 2: Obtener roles del TaxUser
+        // Obtener roles del TaxUser
         var rolesQuery =
             from ur in _db.UserRoles
             join r in _db.Roles on ur.RoleId equals r.Id
             where ur.TaxUserId == userId
             select r.Name;
 
-        user.RoleNames = await rolesQuery.ToListAsync(ct);
+        user.RoleNames = await rolesQuery.ToListAsync(cancellationToken);
 
-        // PASO 3: Obtener módulos adicionales del CustomPlan
-        var additionalModulesQuery =
-            from cp in _db.CustomPlans
-            join cm in _db.CustomModules on cp.Id equals cm.CustomPlanId
-            join m in _db.Modules on cm.ModuleId equals m.Id
-            where cp.CompanyId == user.CompanyId && cm.IsIncluded && m.ServiceId == null // Solo módulos adicionales
-            select m.Name;
-
-        user.AdditionalModules = await additionalModulesQuery.ToListAsync(ct);
-
-        // PASO 4: Calcular permisos efectivos
-        user.EffectivePermissions = await GetEffectivePermissionsAsync(userId, ct);
+        // Calcular permisos efectivos (disponibles en AuthService)
+        user.EffectivePermissions = await GetEffectivePermissionsAsync(userId, cancellationToken);
 
         return user;
     }
@@ -180,16 +167,19 @@ public class GetTaxUserProfileHandler
     /// Calcula los permisos efectivos del TaxUser:
     /// (Permisos de roles + Permisos custom granted) - Permisos custom revoked
     /// </summary>
-    private async Task<List<string>> GetEffectivePermissionsAsync(Guid userId, CancellationToken ct)
+    private async Task<List<string>> GetEffectivePermissionsAsync(
+        Guid userId,
+        CancellationToken cancellationToken
+    )
     {
         // Permisos base de los roles del usuario
         var rolePermissions = await (
             from ur in _db.UserRoles
             join rp in _db.RolePermissions on ur.RoleId equals rp.RoleId
             join p in _db.Permissions on rp.PermissionId equals p.Id
-            where ur.TaxUserId == userId && p.IsGranted // Solo permisos activos globalmente
+            where ur.TaxUserId == userId && p.IsGranted
             select p.Code
-        ).ToListAsync(ct);
+        ).ToListAsync(cancellationToken);
 
         // Permisos personalizados granted
         var customPermissionsGranted = await (
@@ -197,7 +187,7 @@ public class GetTaxUserProfileHandler
             join p in _db.Permissions on cp.PermissionId equals p.Id
             where cp.TaxUserId == userId && cp.IsGranted && p.IsGranted
             select p.Code
-        ).ToListAsync(ct);
+        ).ToListAsync(cancellationToken);
 
         // Permisos personalizados revoked
         var customPermissionsRevoked = await (
@@ -205,7 +195,7 @@ public class GetTaxUserProfileHandler
             join p in _db.Permissions on cp.PermissionId equals p.Id
             where cp.TaxUserId == userId && !cp.IsGranted
             select p.Code
-        ).ToListAsync(ct);
+        ).ToListAsync(cancellationToken);
 
         // Combinar permisos: (roles + custom granted) - revoked
         var effectivePermissions = rolePermissions

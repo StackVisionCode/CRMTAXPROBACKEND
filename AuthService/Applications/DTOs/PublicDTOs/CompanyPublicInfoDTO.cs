@@ -1,3 +1,5 @@
+using AuthService.Applications.Common;
+
 namespace DTOs.PublicDTOs;
 
 public class CompanyPublicInfoDTO
@@ -20,7 +22,8 @@ public class CompanyPublicInfoDTO
     public string? OwnerPhotoUrl { get; set; }
     public bool OwnerIsActive { get; set; }
 
-    // Plan info muy limitada
+    // Plan info muy limitada (basada en ServiceLevel)
+    public ServiceLevel ServiceLevel { get; set; }
     public bool HasActivePlan { get; set; }
-    public string? PlanType { get; set; } // Solo Basic/Standard/Pro
+    public string? PlanType { get; set; } // Basado en ServiceLevel, no en UserLimit
 }

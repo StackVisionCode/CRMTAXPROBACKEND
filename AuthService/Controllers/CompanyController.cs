@@ -147,47 +147,5 @@ namespace AuthService.Controllers
 
             return Ok(result);
         }
-
-        /// Actualiza el plan de servicio de una company
-        [HttpPut("UpdateCompanyPlan")]
-        public async Task<ActionResult<ApiResponse<CompanyPlanUpdateResultDTO>>> UpdateServicePlan(
-            [FromBody] UpdateCompanyPlanDTO servicePlanDto
-        )
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Values.SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-
-                return BadRequest(
-                    new ApiResponse<CompanyPlanUpdateResultDTO>(
-                        false,
-                        $"Validation errors: {string.Join(", ", errors)}",
-                        null!
-                    )
-                );
-            }
-
-            var command = new UpdateCompanyPlanCommand(servicePlanDto);
-            var result = await _mediator.Send(command);
-
-            if (result == null)
-                return BadRequest(new { message = "Failed to update service plan" });
-
-            // Retornar diferentes códigos según el resultado
-            if (result.Success == true)
-                return Ok(result);
-            else if (result.Message?.Contains("not found") == true)
-                return NotFound(result);
-            else if (
-                result.Message?.Contains("validation") == true
-                || result.Message?.Contains("limit") == true
-            )
-                return BadRequest(result);
-            else
-                return StatusCode(500, result);
-        }
     }
 }

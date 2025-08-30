@@ -7,9 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Handlers.InvitationHandlers;
 
-/// <summary>
-/// Handler para obtener estadísticas globales de invitaciones (Developer)
-/// </summary>
 public class GetGlobalInvitationStatsHandler
     : IRequestHandler<GetGlobalInvitationStatsQuery, ApiResponse<List<InvitationStatsDTO>>>
 {
@@ -35,18 +32,24 @@ public class GetGlobalInvitationStatsHandler
             var daysBack = request.DaysBack;
             var cutoffDate = DateTime.UtcNow.AddDays(-daysBack);
 
-            // 1. Estadísticas por company
+            // Query principal - sin CustomPlans
             var companyStatsQuery =
                 from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 select new
                 {
                     CompanyId = c.Id,
                     CompanyName = c.IsCompany ? c.CompanyName : c.FullName,
                     CompanyDomain = c.Domain,
-                    UserLimit = cp.UserLimit,
+                    ServiceLevel = c.ServiceLevel,
+                    IsCompany = c.IsCompany,
+
+                    // Estadísticas de usuarios (disponibles en AuthService)
                     CurrentActiveUsers = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == c.Id && u.IsActive
+                    ),
+                    CurrentTotalUsers = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
+                    OwnerCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && u.IsOwner && u.IsActive
                     ),
 
                     // Estadísticas de invitaciones
@@ -81,40 +84,55 @@ public class GetGlobalInvitationStatsHandler
 
             var companyStats = await companyStatsQuery.ToListAsync(cancellationToken);
 
-            // 2. Construir resultado
+            // Construir resultado
             var results = companyStats
-                .Select(cs =>
+                .Select(cs => new InvitationStatsDTO
                 {
-                    return new InvitationStatsDTO
-                    {
-                        CompanyId = cs.CompanyId,
-                        CompanyName = cs.CompanyName ?? string.Empty, // ✅ Fix nullable
-                        CompanyDomain = cs.CompanyDomain,
+                    CompanyId = cs.CompanyId,
+                    CompanyName = cs.CompanyName ?? string.Empty,
+                    CompanyDomain = cs.CompanyDomain,
+                    ServiceLevel = cs.ServiceLevel,
+                    IsCompany = cs.IsCompany,
 
-                        CustomPlanUserLimit = cs.UserLimit,
-                        CurrentActiveUsers = cs.CurrentActiveUsers,
+                    // Estadísticas de usuarios
+                    CurrentActiveUsers = cs.CurrentActiveUsers,
+                    CurrentTotalUsers = cs.CurrentTotalUsers,
+                    OwnerCount = cs.OwnerCount,
 
-                        TotalInvitationsSent = cs.TotalInvitations,
-                        PendingInvitations = cs.PendingInvitations,
-                        AcceptedInvitations = cs.AcceptedInvitations,
-                        CancelledInvitations = cs.CancelledInvitations,
-                        ExpiredInvitations = cs.ExpiredInvitations,
-                        FailedInvitations = cs.FailedInvitations,
+                    // Estadísticas de invitaciones
+                    TotalInvitationsSent = cs.TotalInvitations,
+                    PendingInvitations = cs.PendingInvitations,
+                    AcceptedInvitations = cs.AcceptedInvitations,
+                    CancelledInvitations = cs.CancelledInvitations,
+                    ExpiredInvitations = cs.ExpiredInvitations,
+                    FailedInvitations = cs.FailedInvitations,
 
-                        InvitationsLast24Hours = cs.InvitationsLast24Hours,
-                        InvitationsLast7Days = cs.InvitationsLast7Days,
-                        InvitationsLast30Days = cs.InvitationsLast30Days,
+                    InvitationsLast24Hours = cs.InvitationsLast24Hours,
+                    InvitationsLast7Days = cs.InvitationsLast7Days,
+                    InvitationsLast30Days = cs.InvitationsLast30Days,
 
-                        // TopInviters se puede poblar con consulta adicional si se necesita
-                        TopInviters = new List<InviterStats>(),
-                    };
+                    TopInviters = new List<InviterStats>(), // Se puede poblar después si es necesario
+                    RequiresSubscriptionCheck = true,
+                    GeneratedAt = DateTime.UtcNow,
                 })
+                .Where(r => r.TotalInvitationsSent > 0) // Solo companies con invitaciones
                 .OrderByDescending(r => r.TotalInvitationsSent)
                 .ToList();
 
-            _logger.LogDebug(
-                "Generated global invitation stats for {CompanyCount} companies",
-                results.Count
+            // Opcionalmente poblar TopInviters para companies con muchas invitaciones
+            if (results.Any())
+            {
+                await PopulateTopInvitersForTopCompaniesAsync(
+                    results.Take(10).ToList(),
+                    cutoffDate,
+                    cancellationToken
+                );
+            }
+
+            _logger.LogInformation(
+                "Generated global invitation stats for {CompanyCount} companies over {DaysBack} days",
+                results.Count,
+                daysBack
             );
 
             return new ApiResponse<List<InvitationStatsDTO>>(
@@ -131,6 +149,69 @@ public class GetGlobalInvitationStatsHandler
                 ex.Message,
                 new List<InvitationStatsDTO>()
             );
+        }
+    }
+
+    private async Task PopulateTopInvitersForTopCompaniesAsync(
+        List<InvitationStatsDTO> topCompanies,
+        DateTime cutoffDate,
+        CancellationToken cancellationToken
+    )
+    {
+        var companyIds = topCompanies.Select(c => c.CompanyId).ToList();
+
+        var topInvitersQuery =
+            from i in _dbContext.Invitations
+            join u in _dbContext.TaxUsers on i.InvitedByUserId equals u.Id
+            where companyIds.Contains(i.CompanyId) && i.CreatedAt >= cutoffDate
+            group i by new
+            {
+                CompanyId = i.CompanyId,
+                UserId = u.Id,
+                UserName = u.Name ?? string.Empty,
+                UserLastName = u.LastName ?? string.Empty,
+                UserEmail = u.Email,
+                IsOwner = u.IsOwner,
+            } into g
+            select new
+            {
+                g.Key.CompanyId,
+                g.Key.UserId,
+                g.Key.UserName,
+                g.Key.UserLastName,
+                g.Key.UserEmail,
+                g.Key.IsOwner,
+                TotalSent = g.Count(),
+                Accepted = g.Count(x => x.Status == InvitationStatus.Accepted),
+                Pending = g.Count(x => x.Status == InvitationStatus.Pending),
+                Cancelled = g.Count(x => x.Status == InvitationStatus.Cancelled),
+            };
+
+        var topInvitersData = await topInvitersQuery.ToListAsync(cancellationToken);
+        var topInvitersByCompany = topInvitersData
+            .GroupBy(t => t.CompanyId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.TotalSent).Take(3).ToList());
+
+        // Asignar a cada company
+        foreach (var company in topCompanies)
+        {
+            if (topInvitersByCompany.TryGetValue(company.CompanyId, out var inviters))
+            {
+                company.TopInviters = inviters
+                    .Select(t => new InviterStats
+                    {
+                        UserId = t.UserId,
+                        UserName = t.UserName,
+                        UserLastName = t.UserLastName,
+                        UserEmail = t.UserEmail,
+                        IsOwner = t.IsOwner,
+                        TotalInvitationsSent = t.TotalSent,
+                        AcceptedInvitations = t.Accepted,
+                        PendingInvitations = t.Pending,
+                        CancelledInvitations = t.Cancelled,
+                    })
+                    .ToList();
+            }
         }
     }
 }

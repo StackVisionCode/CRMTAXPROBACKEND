@@ -1,3 +1,4 @@
+using AuthService.Applications.Common;
 using AuthService.Domains.Users;
 using AuthService.DTOs.UserDTOs;
 using AutoMapper;
@@ -14,7 +15,7 @@ public class UserProfile : Profile
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.Company, o => o.Ignore())
             .ForMember(d => d.IsOwner, o => o.Ignore())
-            .ForMember(d => d.Password, o => o.Ignore()) // Se maneja manualmente con hash
+            .ForMember(d => d.Password, o => o.Ignore())
             .ForMember(d => d.AddressId, o => o.Ignore())
             .ForMember(d => d.Address, o => o.Ignore())
             .ForMember(d => d.Sessions, o => o.Ignore())
@@ -31,7 +32,7 @@ public class UserProfile : Profile
             .ForMember(d => d.Otp, o => o.Ignore())
             .ForMember(d => d.OtpVerified, o => o.Ignore())
             .ForMember(d => d.OtpExpires, o => o.Ignore())
-            // Campos que SÍ se mapean SOLO si no son nulos en el DTO
+            // Campos condicionales
             .ForMember(d => d.Email, o => o.Condition(src => !string.IsNullOrEmpty(src.Email)))
             .ForMember(d => d.Name, o => o.Condition(src => src.Name != null))
             .ForMember(d => d.LastName, o => o.Condition(src => src.LastName != null))
@@ -41,7 +42,7 @@ public class UserProfile : Profile
 
         CreateMap<TaxUser, UserGetDTO>()
             .ForMember(d => d.Address, o => o.MapFrom(s => s.Address))
-            .ForMember(d => d.IsOwner, o => o.MapFrom(s => s.IsOwner)) // NUEVO
+            .ForMember(d => d.IsOwner, o => o.MapFrom(s => s.IsOwner))
             .ForMember(
                 d => d.CompanyFullName,
                 o => o.MapFrom(s => s.Company != null ? s.Company.FullName : null)
@@ -66,11 +67,15 @@ public class UserProfile : Profile
                 d => d.CompanyAddress,
                 o => o.MapFrom(s => s.Company != null ? s.Company.Address : null)
             )
+            // CompanyServiceLevel
+            .ForMember(
+                d => d.CompanyServiceLevel,
+                o => o.MapFrom(s => s.Company != null ? s.Company.ServiceLevel : ServiceLevel.Basic)
+            )
             .ForMember(
                 d => d.RoleNames,
                 o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role.Name))
             )
-            // NUEVO: Permisos personalizados asignados por Administrator
             .ForMember(
                 d => d.CustomPermissions,
                 o =>
@@ -82,7 +87,7 @@ public class UserProfile : Profile
 
         CreateMap<TaxUser, UserProfileDTO>()
             .ForMember(d => d.Address, o => o.MapFrom(s => s.Address))
-            .ForMember(d => d.IsOwner, o => o.MapFrom(s => s.IsOwner)) // NUEVO
+            .ForMember(d => d.IsOwner, o => o.MapFrom(s => s.IsOwner))
             .ForMember(
                 d => d.CompanyFullName,
                 o => o.MapFrom(s => s.Company != null ? s.Company.FullName : null)
@@ -107,33 +112,14 @@ public class UserProfile : Profile
                 d => d.CompanyAddress,
                 o => o.MapFrom(s => s.Company != null ? s.Company.Address : null)
             )
+            // CompanyServiceLevel
+            .ForMember(
+                d => d.CompanyServiceLevel,
+                o => o.MapFrom(s => s.Company != null ? s.Company.ServiceLevel : ServiceLevel.Basic)
+            )
             .ForMember(
                 d => d.RoleNames,
                 o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role.Name))
-            )
-            // NUEVO: Información del CustomPlan de la Company
-            .ForMember(
-                d => d.CustomPlanId,
-                o => o.MapFrom(s => s.Company != null ? s.Company.CustomPlanId : Guid.Empty)
-            )
-            .ForMember(
-                d => d.CustomPlanPrice,
-                o => o.MapFrom(s => s.Company != null ? s.Company.CustomPlan.Price : 0)
-            )
-            .ForMember(
-                d => d.CustomPlanIsActive,
-                o => o.MapFrom(s => s.Company != null ? s.Company.CustomPlan.IsActive : false)
-            )
-            .ForMember(
-                d => d.AdditionalModules,
-                o =>
-                    o.MapFrom(s =>
-                        s.Company != null
-                            ? s
-                                .Company.CustomPlan.CustomModules.Where(cm => cm.IsIncluded)
-                                .Select(cm => cm.Module.Name)
-                            : new List<string>()
-                    )
             )
             .ForMember(
                 d => d.EffectivePermissions,

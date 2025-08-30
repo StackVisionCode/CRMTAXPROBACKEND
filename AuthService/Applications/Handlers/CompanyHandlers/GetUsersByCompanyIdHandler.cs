@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.DTOs.UserDTOs;
 using Common;
 using Infraestructure.Context;
@@ -31,12 +31,11 @@ public class GetUsersByCompanyIdHandler
         try
         {
             // Verificar que la company existe
-            var companyExistsQuery =
-                from c in _dbContext.Companies
-                where c.Id == request.CompanyId
-                select c.Id;
+            var companyExists = await _dbContext.Companies.AnyAsync(
+                c => c.Id == request.CompanyId,
+                cancellationToken
+            );
 
-            var companyExists = await companyExistsQuery.AnyAsync(cancellationToken);
             if (!companyExists)
             {
                 _logger.LogWarning("Company not found: {CompanyId}", request.CompanyId);
@@ -47,11 +46,10 @@ public class GetUsersByCompanyIdHandler
                 );
             }
 
-            // Obtener TaxUsers con IsOwner y ordenados (Owner primero)
+            // Query simplificado - sin CustomPlans
             var usersQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join a in _dbContext.Addresses on u.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
                 join country in _dbContext.Countries on a.CountryId equals country.Id into countries
@@ -98,12 +96,13 @@ public class GetUsersByCompanyIdHandler
                             }
                             : null,
 
-                    // Información de la company
+                    // Información de la company (disponible en AuthService)
                     CompanyFullName = c.FullName,
                     CompanyName = c.CompanyName,
                     CompanyBrand = c.Brand,
                     CompanyIsIndividual = !c.IsCompany,
                     CompanyDomain = c.Domain,
+                    CompanyServiceLevel = c.ServiceLevel, // NUEVO
 
                     // Dirección de la company
                     CompanyAddress =
@@ -159,9 +158,6 @@ public class GetUsersByCompanyIdHandler
         }
     }
 
-    /// <summary>
-    /// Método para poblar roles y permisos personalizados
-    /// </summary>
     private async Task PopulateUserRolesAndPermissionsAsync(
         List<UserGetDTO> users,
         CancellationToken cancellationToken
@@ -181,6 +177,7 @@ public class GetUsersByCompanyIdHandler
             .GroupBy(x => x.TaxUserId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
 
+        // Obtener permisos personalizados
         var permissionsQuery =
             from cp in _dbContext.CompanyPermissions
             join p in _dbContext.Permissions on cp.PermissionId equals p.Id

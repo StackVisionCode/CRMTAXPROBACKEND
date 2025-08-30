@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.Applications.DTOs.CompanyDTOs;
 using Common;
 using Infraestructure.Context;
@@ -30,9 +30,9 @@ public class GetAllCompaniesHandler
     {
         try
         {
+            // Query simplificado - solo datos disponibles en AuthService
             var companiesQuery =
                 from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join tu in _dbContext.TaxUsers on c.Id equals tu.CompanyId
                 join a in _dbContext.Addresses on c.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
@@ -61,6 +61,7 @@ public class GetAllCompaniesHandler
                     Description = c.Description,
                     Domain = c.Domain,
                     CreatedAt = c.CreatedAt,
+                    ServiceLevel = c.ServiceLevel, // NUEVO - en lugar de datos de CustomPlan
 
                     // Información del TaxUser Owner
                     AdminUserId = tu.Id,
@@ -86,17 +87,15 @@ public class GetAllCompaniesHandler
                             }
                             : null,
 
-                    // Información del CustomPlan
-                    CustomPlanId = cp.Id,
-                    CustomPlanPrice = cp.Price,
-                    CustomPlanIsActive = cp.IsActive,
-                    CustomPlanUserLimit = cp.UserLimit,
-                    CustomPlanStartDate = cp.StartDate,
-                    CustomPlanRenewDate = cp.RenewDate,
-                    CustomPlanIsRenewed = cp.isRenewed,
-
-                    // Conteo de TaxUsers
+                    // Contadores de usuarios (disponibles en AuthService)
                     CurrentTaxUserCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
+                    ActiveTaxUserCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && u.IsActive
+                    ),
+                    OwnerCount =
+                        _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id && u.IsOwner) > 0
+                            ? 1
+                            : 0,
 
                     // Dirección de la company
                     Address =
@@ -114,43 +113,16 @@ public class GetAllCompaniesHandler
                             }
                             : null,
 
-                    // Inicializar colecciones
-                    BaseModules = new List<string>(),
-                    AdditionalModules = new List<string>(),
+                    // Inicializar colección de roles
                     AdminRoleNames = new List<string>(),
                 };
 
             var companies = await companiesQuery.ToListAsync(cancellationToken);
 
-            // Obtener roles de los Owners
+            // Obtener roles de los Owners en consulta separada
             if (companies.Any())
             {
-                var adminIds = companies.Select(c => c.AdminUserId).ToList();
-                var rolesQuery =
-                    from ur in _dbContext.UserRoles
-                    join r in _dbContext.Roles on ur.RoleId equals r.Id
-                    where adminIds.Contains(ur.TaxUserId)
-                    select new { ur.TaxUserId, r.Name };
-
-                var adminRoles = await rolesQuery.ToListAsync(cancellationToken);
-                var rolesByAdmin = adminRoles
-                    .GroupBy(x => x.TaxUserId)
-                    .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
-
-                // Asignar roles a cada company
-                foreach (var company in companies)
-                {
-                    if (rolesByAdmin.TryGetValue(company.AdminUserId, out var roles))
-                    {
-                        company.AdminRoleNames = roles;
-                    }
-                }
-            }
-
-            // Obtener módulos para cada company
-            if (companies.Any())
-            {
-                await PopulateCompanyModulesAsync(companies, cancellationToken);
+                await PopulateAdminRolesAsync(companies, cancellationToken);
             }
 
             _logger.LogInformation("Retrieved {Count} companies successfully", companies.Count);
@@ -167,39 +139,30 @@ public class GetAllCompaniesHandler
         }
     }
 
-    private async Task PopulateCompanyModulesAsync(List<CompanyDTO> companies, CancellationToken ct)
+    private async Task PopulateAdminRolesAsync(
+        List<CompanyDTO> companies,
+        CancellationToken cancellationToken
+    )
     {
-        var companyIds = companies.Select(c => c.Id).ToList();
+        var adminIds = companies.Select(c => c.AdminUserId).ToList();
 
-        var modulesQuery =
-            from cm in _dbContext.CustomModules
-            join cp in _dbContext.CustomPlans on cm.CustomPlanId equals cp.Id
-            join m in _dbContext.Modules on cm.ModuleId equals m.Id
-            where companyIds.Contains(cp.CompanyId) && cm.IsIncluded
-            select new
-            {
-                CompanyId = cp.CompanyId,
-                ModuleName = m.Name,
-                HasService = m.ServiceId != null,
-            };
+        var rolesQuery =
+            from ur in _dbContext.UserRoles
+            join r in _dbContext.Roles on ur.RoleId equals r.Id
+            where adminIds.Contains(ur.TaxUserId)
+            select new { ur.TaxUserId, r.Name };
 
-        var modulesByCompany = await modulesQuery.ToListAsync(ct);
-        var moduleGroups = modulesByCompany.GroupBy(m => m.CompanyId);
+        var adminRoles = await rolesQuery.ToListAsync(cancellationToken);
+        var rolesByAdmin = adminRoles
+            .GroupBy(x => x.TaxUserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
 
+        // Asignar roles a cada company
         foreach (var company in companies)
         {
-            var companyModules = moduleGroups.FirstOrDefault(g => g.Key == company.Id);
-            if (companyModules != null)
+            if (rolesByAdmin.TryGetValue(company.AdminUserId, out var roles))
             {
-                company.BaseModules = companyModules
-                    .Where(m => m.HasService)
-                    .Select(m => m.ModuleName)
-                    .ToList();
-
-                company.AdditionalModules = companyModules
-                    .Where(m => !m.HasService)
-                    .Select(m => m.ModuleName)
-                    .ToList();
+                company.AdminRoleNames = roles;
             }
         }
     }

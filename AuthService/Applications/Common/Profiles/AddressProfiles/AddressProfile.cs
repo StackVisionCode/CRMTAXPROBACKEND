@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.Domains.Addresses;
 using AutoMapper;
 

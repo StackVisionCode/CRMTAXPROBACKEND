@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.DTOs.UserDTOs;
 using Common;
 using Infraestructure.Context;
@@ -29,11 +29,10 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
     {
         try
         {
-            // Query mejorado con IsOwner y CustomPlan info
+            // Query optimizado sin CustomPlans (que no se usaba)
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join a in _dbContext.Addresses on u.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
                 join country in _dbContext.Countries on a.CountryId equals country.Id into countries
@@ -79,12 +78,13 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
                             }
                             : null,
 
-                    // Company info completa
+                    // Company info completa (con ServiceLevel agregado)
                     CompanyFullName = c.FullName,
                     CompanyName = c.CompanyName,
                     CompanyBrand = c.Brand,
                     CompanyIsIndividual = !c.IsCompany,
                     CompanyDomain = c.Domain,
+                    CompanyServiceLevel = c.ServiceLevel, // AGREGADO
 
                     // Dirección de la company
                     CompanyAddress =
@@ -109,6 +109,7 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
             var user = await userQuery.FirstOrDefaultAsync(cancellationToken);
             if (user == null)
             {
+                _logger.LogWarning("Tax user not found: {UserId}", request.Id);
                 return new ApiResponse<UserGetDTO>(false, "Tax user not found", null!);
             }
 
@@ -133,9 +134,11 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
             user.CustomPermissions = customPermissions;
 
             _logger.LogInformation(
-                "Tax user retrieved successfully: UserId={UserId}, IsOwner={IsOwner}, RoleCount={RoleCount}, CustomPermissionCount={PermissionCount}",
+                "Tax user retrieved successfully: UserId={UserId}, IsOwner={IsOwner}, ServiceLevel={ServiceLevel}, "
+                    + "RoleCount={RoleCount}, CustomPermissionCount={PermissionCount}",
                 request.Id,
                 user.IsOwner,
+                user.CompanyServiceLevel,
                 roles.Count,
                 customPermissions.Count
             );
@@ -145,7 +148,7 @@ public class GetTaxUserByIdHandler : IRequestHandler<GetTaxUserByIdQuery, ApiRes
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching tax user {Id}: {Message}", request.Id, ex.Message);
-            return new ApiResponse<UserGetDTO>(false, ex.Message, null!);
+            return new ApiResponse<UserGetDTO>(false, "Error retrieving tax user", null!);
         }
     }
 }

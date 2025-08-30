@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.Domains.Addresses;
 using AuthService.Domains.Users;
 using AuthService.Infraestructure.Services;
@@ -38,21 +38,12 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
         try
         {
-            // Buscar el usuario con info de company y custom plan para validaciones
+            // Buscar el usuario con info de company (sin CustomPlan)
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
-                join s in _dbContext.Services on cp.Id equals s.Id into services
-                from s in services.DefaultIfEmpty()
                 where u.Id == request.UserTax.Id
-                select new
-                {
-                    User = u,
-                    Company = c,
-                    CustomPlan = cp,
-                    Service = s,
-                };
+                select new { User = u, Company = c };
 
             var userData = await userQuery.FirstOrDefaultAsync(cancellationToken);
             if (userData?.User == null)
@@ -62,6 +53,7 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             }
 
             var user = userData.User;
+            var company = userData.Company;
 
             // Verificar si se está intentando desactivar al Owner
             if (user.IsOwner && request.UserTax.IsActive == false)
@@ -70,22 +62,23 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 return new ApiResponse<bool>(false, "Cannot deactivate the company owner", false);
             }
 
-            // Verificar si el email ya existe en otro usuario (si se está cambiando)
+            // Verificar email único
             if (!string.IsNullOrEmpty(request.UserTax.Email) && request.UserTax.Email != user.Email)
             {
-                var emailExistsQuery =
-                    from u in _dbContext.TaxUsers
-                    where u.Email == request.UserTax.Email && u.Id != request.UserTax.Id
-                    select u.Id;
+                var emailExists = await _dbContext.TaxUsers.AnyAsync(
+                    u => u.Email == request.UserTax.Email && u.Id != request.UserTax.Id,
+                    cancellationToken
+                );
 
-                if (await emailExistsQuery.AnyAsync(cancellationToken))
+                if (emailExists)
                 {
                     _logger.LogWarning("Email already exists: {Email}", request.UserTax.Email);
                     return new ApiResponse<bool>(false, "Email already exists", false);
                 }
             }
 
-            // Si se activa un usuario regular, verificar límites del plan
+            // VALIDACIÓN DE ACTIVACIÓN SIMPLIFICADA
+            // El frontend debe validar límites consultando SubscriptionsService
             if (!user.IsOwner && request.UserTax.IsActive == true && !user.IsActive)
             {
                 var currentActiveUsersCount = await _dbContext.TaxUsers.CountAsync(
@@ -93,30 +86,23 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                     cancellationToken
                 );
 
-                if (currentActiveUsersCount >= userData.CustomPlan.UserLimit)
-                {
-                    _logger.LogWarning(
-                        "Cannot activate user - plan limit exceeded: ActiveUsers={ActiveUsers}, Limit={Limit}, Company={CompanyId}",
-                        currentActiveUsersCount,
-                        userData.CustomPlan.UserLimit,
-                        user.CompanyId
-                    );
-                    return new ApiResponse<bool>(
-                        false,
-                        $"Cannot activate user. Plan limit reached ({currentActiveUsersCount}/{userData.CustomPlan.UserLimit} users).",
-                        false
-                    );
-                }
+                _logger.LogInformation(
+                    "Activating user for company {CompanyId} (ServiceLevel: {ServiceLevel}). Current active users: {CurrentUsers}",
+                    user.CompanyId,
+                    company.ServiceLevel,
+                    currentActiveUsersCount
+                );
+
+                // El frontend debe haber validado límites antes de llamar este endpoint
+                // Aquí solo logueamos para auditoría
             }
 
-            // 🔧 GUARDAR VALORES INMUTABLES AL INICIO
+            // Guardar valores inmutables
             var currentPassword = user.Password;
             var currentIsOwner = user.IsOwner;
             var currentCompanyId = user.CompanyId;
 
-            // ⭐ MAPEO MANUAL SELECTIVO ⭐
-
-            // Email - SOLO si viene en el DTO y no es nulo/vacío
+            // MAPEO MANUAL SELECTIVO
             if (!string.IsNullOrEmpty(request.UserTax.Email))
             {
                 user.Email = request.UserTax.Email;
@@ -127,7 +113,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 );
             }
 
-            // Nombre - Solo si viene en el DTO (permitir vacío pero no null)
             if (request.UserTax.Name != null)
             {
                 user.Name = string.IsNullOrWhiteSpace(request.UserTax.Name)
@@ -136,7 +121,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 _logger.LogDebug("Updated name for user: {UserId} to {Name}", user.Id, user.Name);
             }
 
-            // Apellido - Solo si viene en el DTO (permitir vacío pero no null)
             if (request.UserTax.LastName != null)
             {
                 user.LastName = string.IsNullOrWhiteSpace(request.UserTax.LastName)
@@ -149,7 +133,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 );
             }
 
-            // Teléfono - Solo si viene en el DTO (permitir vacío pero no null)
             if (request.UserTax.PhoneNumber != null)
             {
                 user.PhoneNumber = string.IsNullOrWhiteSpace(request.UserTax.PhoneNumber)
@@ -162,7 +145,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 );
             }
 
-            // Estado activo - Solo si viene en el DTO
             if (request.UserTax.IsActive.HasValue)
             {
                 user.IsActive = request.UserTax.IsActive.Value;
@@ -173,11 +155,11 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                 );
             }
 
-            // RESTAURAR VALORES INMUTABLES (sin AddressId)
+            // Restaurar valores inmutables
             user.IsOwner = currentIsOwner;
             user.CompanyId = currentCompanyId;
 
-            // Manejar contraseña - Solo si viene en el DTO
+            // Manejar contraseña
             if (!string.IsNullOrWhiteSpace(request.UserTax.Password))
             {
                 user.Password = _passwordHash.HashPassword(request.UserTax.Password);
@@ -185,12 +167,12 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             }
             else
             {
-                user.Password = currentPassword; // Mantener contraseña actual
+                user.Password = currentPassword;
             }
 
             user.UpdatedAt = DateTime.UtcNow;
 
-            // MANEJAR DIRECCIÓN
+            // Manejar dirección
             await HandleAddressUpdateAsync(user, request.UserTax.Address, cancellationToken);
 
             var result = await _dbContext.SaveChangesAsync(cancellationToken) > 0;
@@ -199,11 +181,10 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             {
                 await transaction.CommitAsync(cancellationToken);
                 _logger.LogInformation(
-                    "Tax user updated successfully: UserId={UserId}, Company={CompanyName}, IsOwner={IsOwner}",
+                    "Tax user updated successfully: UserId={UserId}, Company={CompanyName} (ServiceLevel: {ServiceLevel}), IsOwner={IsOwner}",
                     user.Id,
-                    userData.Company.IsCompany
-                        ? userData.Company.CompanyName
-                        : userData.Company.FullName,
+                    company.IsCompany ? company.CompanyName : company.FullName,
+                    company.ServiceLevel,
                     user.IsOwner
                 );
                 return new ApiResponse<bool>(true, "Tax user updated successfully", true);
@@ -223,26 +204,23 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
         }
     }
 
-    /// <summary>
-    /// Maneja la actualización de dirección sin perder referencia
-    /// </summary>
+    #region Address Management (sin cambios)
+
     private async Task HandleAddressUpdateAsync(
         TaxUser user,
         AddressDTO? addressDto,
         CancellationToken cancellationToken
     )
     {
-        // Caso 1: No se envía información de dirección - NO TOCAR NADA
         if (addressDto == null)
         {
             _logger.LogDebug(
                 "No address data provided - keeping current address for user: {UserId}",
                 user.Id
             );
-            return; // Mantener dirección actual tal como está
+            return;
         }
 
-        // Validar dirección si se proporciona
         var validateResult = await ValidateAddressAsync(
             addressDto.CountryId,
             addressDto.StateId,
@@ -253,7 +231,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             throw new InvalidOperationException(validateResult.Message);
         }
 
-        // Caso 2: Se envía dirección vacía - ELIMINAR dirección existente
         if (IsAddressEmpty(addressDto))
         {
             _logger.LogDebug(
@@ -263,7 +240,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
             if (user.AddressId.HasValue)
             {
-                // Buscar y eliminar la dirección actual
                 var addressToDelete = await _dbContext.Addresses.FirstOrDefaultAsync(
                     a => a.Id == user.AddressId.Value,
                     cancellationToken
@@ -279,16 +255,13 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
                     );
                 }
 
-                // Limpiar la referencia
                 user.AddressId = null;
             }
             return;
         }
 
-        // Caso 3: Se envía dirección con datos - CREAR/ACTUALIZAR
         if (user.AddressId.HasValue)
         {
-            // Usuario tiene dirección - ACTUALIZAR la existente
             var existingAddress = await _dbContext.Addresses.FirstOrDefaultAsync(
                 a => a.Id == user.AddressId.Value,
                 cancellationToken
@@ -296,7 +269,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
 
             if (existingAddress != null)
             {
-                // Actualizar dirección existente
                 UpdateAddressFields(existingAddress, addressDto);
                 _logger.LogDebug(
                     "Updated existing address: {AddressId} for user: {UserId}",
@@ -306,20 +278,15 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
             }
             else
             {
-                // La dirección referenciada no existe - crear nueva
                 await CreateNewAddressAndAssignAsync(user, addressDto, cancellationToken);
             }
         }
         else
         {
-            // Usuario NO tiene dirección - CREAR nueva
             await CreateNewAddressAndAssignAsync(user, addressDto, cancellationToken);
         }
     }
 
-    /// <summary>
-    /// Actualiza los campos de una dirección existente
-    /// </summary>
     private void UpdateAddressFields(Address address, AddressDTO addressDto)
     {
         address.CountryId = addressDto.CountryId;
@@ -335,9 +302,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
         address.UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Crea una nueva dirección y la asigna al usuario
-    /// </summary>
     private async Task CreateNewAddressAndAssignAsync(
         TaxUser user,
         AddressDTO addressDto,
@@ -359,8 +323,6 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
         };
 
         await _dbContext.Addresses.AddAsync(newAddress, cancellationToken);
-
-        // ASIGNAR la nueva dirección al usuario
         user.AddressId = newAddress.Id;
 
         _logger.LogDebug(
@@ -370,39 +332,33 @@ public class UpdateUserTaxHandler : IRequestHandler<UpdateTaxUserCommands, ApiRe
         );
     }
 
-    /// <summary>
-    /// Determina si una dirección está vacía (solo StateId requerido)
-    /// </summary>
-    private bool IsAddressEmpty(AddressDTO addressDto)
-    {
-        return addressDto.StateId <= 0;
-    }
+    private bool IsAddressEmpty(AddressDTO addressDto) => addressDto.StateId <= 0;
 
-    /// <summary>
-    /// Valida que la dirección sea válida (solo USA soportado)
-    /// </summary>
     private async Task<(bool Success, string Message)> ValidateAddressAsync(
         int countryId,
         int stateId,
-        CancellationToken ct
+        CancellationToken cancellationToken
     )
     {
         if (countryId != USA)
             return (false, "Only United States (CountryId = 220) is supported.");
 
-        var countryQuery = from c in _dbContext.Countries where c.Id == countryId select c;
-        var country = await countryQuery.FirstOrDefaultAsync(ct);
-        if (country is null)
+        var country = await _dbContext.Countries.FirstOrDefaultAsync(
+            c => c.Id == countryId,
+            cancellationToken
+        );
+        if (country == null)
             return (false, $"CountryId '{countryId}' not found.");
 
-        var stateQuery =
-            from s in _dbContext.States
-            where s.Id == stateId && s.CountryId == countryId
-            select s;
-        var state = await stateQuery.FirstOrDefaultAsync(ct);
-        if (state is null)
+        var state = await _dbContext.States.FirstOrDefaultAsync(
+            s => s.Id == stateId && s.CountryId == countryId,
+            cancellationToken
+        );
+        if (state == null)
             return (false, $"StateId '{stateId}' not found for CountryId '{countryId}'.");
 
         return (true, "Address validation passed");
     }
+
+    #endregion
 }

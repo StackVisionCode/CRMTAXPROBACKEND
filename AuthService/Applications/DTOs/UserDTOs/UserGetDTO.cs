@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
+using AuthService.Applications.Common;
 
 namespace AuthService.DTOs.UserDTOs;
 
@@ -25,5 +26,6 @@ public class UserGetDTO
     public bool CompanyIsIndividual { get; set; }
     public string? CompanyDomain { get; set; }
     public AddressDTO? CompanyAddress { get; set; }
+    public ServiceLevel CompanyServiceLevel { get; set; }
     public DateTime CreatedAt { get; set; }
 }

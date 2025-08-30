@@ -29,14 +29,13 @@ public class GetCompanyStatsHandler
     {
         try
         {
+            // Query simplificado - solo datos de AuthService
             var statsQuery =
                 from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where c.Id == request.CompanyId
                 select new
                 {
                     Company = c,
-                    CustomPlan = cp,
                     // Conteos de TaxUsers
                     TaxUsersTotal = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
                     TaxUsersActive = _dbContext.TaxUsers.Count(u =>
@@ -46,7 +45,8 @@ public class GetCompanyStatsHandler
                     RegularUsersCount = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == c.Id && !u.IsOwner
                     ),
-                    // Sesiones de TaxUsers
+
+                    // Sesiones activas de TaxUsers
                     ActiveSessions = (
                         from s in _dbContext.Sessions
                         join u in _dbContext.TaxUsers on s.TaxUserId equals u.Id
@@ -58,10 +58,11 @@ public class GetCompanyStatsHandler
             var stats = await statsQuery.FirstOrDefaultAsync(cancellationToken);
             if (stats?.Company == null)
             {
+                _logger.LogWarning("Company not found: {CompanyId}", request.CompanyId);
                 return new ApiResponse<CompanyStatsDTO>(false, "Company not found", null!);
             }
 
-            // Usar CustomPlan.UserLimit directamente
+            // Crear resultado solo con datos de AuthService
             var result = new CompanyStatsDTO
             {
                 CompanyId = stats.Company.Id,
@@ -70,32 +71,34 @@ public class GetCompanyStatsHandler
                     : stats.Company.FullName,
                 Domain = stats.Company.Domain,
                 IsCompany = stats.Company.IsCompany,
+                ServiceLevel = stats.Company.ServiceLevel, // NUEVO
 
-                // TaxUsers
+                // Estadísticas de usuarios (disponibles en AuthService)
                 TotalUsers = stats.TaxUsersTotal,
                 ActiveUsers = stats.TaxUsersActive,
                 OwnerCount = stats.OwnerCount,
                 RegularUsers = stats.RegularUsersCount,
 
-                // Plan información - ACTUALIZADO
-                CustomPlanPrice = stats.CustomPlan.Price,
-                CustomPlanIsActive = stats.CustomPlan.IsActive,
-                ServiceUserLimit = stats.CustomPlan.UserLimit,
-                IsWithinLimits = (stats.TaxUsersActive <= stats.CustomPlan.UserLimit),
-
                 // Actividad
                 ActiveSessions = stats.ActiveSessions,
-
                 CreatedAt = stats.Company.CreatedAt,
+
+                // REMOVIDO - datos de CustomPlan
+                // El frontend obtendrá estos datos de SubscriptionsService:
+                // - CustomPlanPrice
+                // - ServiceUserLimit
+                // - IsWithinLimits
             };
 
             _logger.LogInformation(
-                "Retrieved stats for company {CompanyId}: {Total} TaxUsers ({Owner} Owner, {Regular} Regular), Limit: {Limit}",
+                "Retrieved stats for company {CompanyId}: ServiceLevel={ServiceLevel}, "
+                    + "{Total} TaxUsers ({Owner} Owner, {Regular} Regular), {Sessions} active sessions",
                 request.CompanyId,
+                stats.Company.ServiceLevel,
                 result.TotalUsers,
                 result.OwnerCount,
                 result.RegularUsers,
-                stats.CustomPlan.UserLimit
+                result.ActiveSessions
             );
 
             return new ApiResponse<CompanyStatsDTO>(

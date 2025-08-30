@@ -24,18 +24,15 @@ public class EnableUserHandler : IRequestHandler<EnableUserCommand, ApiResponse<
     {
         try
         {
-            // 1. Buscar TaxUser con información de company y plan
+            // 1. Buscar TaxUser con información de company (sin CustomPlan)
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where u.Id == request.UserId
                 select new
                 {
                     User = u,
                     Company = c,
-                    CustomPlan = cp,
-                    UserLimit = cp.UserLimit,
                     CurrentActiveUserCount = _dbContext.TaxUsers.Count(tu =>
                         tu.CompanyId == u.CompanyId && tu.IsActive && tu.Id != u.Id
                     ),
@@ -54,21 +51,15 @@ public class EnableUserHandler : IRequestHandler<EnableUserCommand, ApiResponse<
                 return new ApiResponse<bool>(false, "User is already active", false);
             }
 
-            // 2. Verificar límites del plan antes de habilitar
-            if (userData.CurrentActiveUserCount >= userData.UserLimit)
-            {
-                _logger.LogWarning(
-                    "Cannot enable user: User limit exceeded for company {CompanyId}. Current: {Current}, Limit: {Limit}",
-                    userData.Company.Id,
-                    userData.CurrentActiveUserCount,
-                    userData.UserLimit
-                );
-                return new ApiResponse<bool>(
-                    false,
-                    $"Cannot enable user: Plan limit ({userData.UserLimit}) would be exceeded. Current active users: {userData.CurrentActiveUserCount}",
-                    false
-                );
-            }
+            // 2. VALIDACIÓN DE LÍMITES SIMPLIFICADA
+            // El frontend debe validar límites consultando SubscriptionsService antes de llamar este endpoint
+            // Aquí solo logueamos para auditoría
+            _logger.LogInformation(
+                "Enabling user for company {CompanyId} (ServiceLevel: {ServiceLevel}). Current active users: {CurrentUsers}",
+                userData.Company.Id,
+                userData.Company.ServiceLevel,
+                userData.CurrentActiveUserCount
+            );
 
             // 3. Habilitar usuario
             user.IsActive = true;
@@ -79,7 +70,13 @@ public class EnableUserHandler : IRequestHandler<EnableUserCommand, ApiResponse<
 
             if (result)
             {
-                _logger.LogInformation("User enabled: {UserId}", request.UserId);
+                _logger.LogInformation(
+                    "User enabled successfully: {UserId} for company {CompanyId} (ServiceLevel: {ServiceLevel}). Total active users now: {TotalActive}",
+                    request.UserId,
+                    userData.Company.Id,
+                    userData.Company.ServiceLevel,
+                    userData.CurrentActiveUserCount + 1
+                );
                 return new ApiResponse<bool>(true, "User enabled successfully", true);
             }
 

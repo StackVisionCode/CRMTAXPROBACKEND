@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Applications.DTOs.CompanyDTOs;
+namespace Applications.DTOs.AddressDTOs;
 
 public class AddressDTO
 {
