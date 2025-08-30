@@ -12,6 +12,8 @@ internal static class ServiceMap
         { 5005, ("bankstaments-service", 8080) },
         { 5006, ("signature-service", 8080) },
         { 5007, ("commlink-service", 8080) },
+        { 5010, ("reminder-service", 8080) },
+        { 5012, ("sms-service", 8080) },
         // …añade todos los que uses
     };
 }

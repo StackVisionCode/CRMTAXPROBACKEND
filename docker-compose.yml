@@ -167,6 +167,20 @@ services:
         reservations:
           memory: 512M
 
+
+# ---SMS Service ---------------------------------------------------------
+
+  sms-service:
+    image: ${REGISTRY_PREFIX}-sms-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."  
+    networks: [backend]
+  
+
   # --- Calendar Service ------------------------------------------------------
   calendar-service:
     image: ${REGISTRY_PREFIX}-calendar-service:${TAG}
@@ -179,6 +193,18 @@ services:
     depends_on: 
     networks: [backend]
 
+    #--reminder service
+
+  reminder-service:
+    image: ${REGISTRY_PREFIX}-reminder-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."    
+    depends_on: 
+    networks: [backend]
   # --- Customer Service ------------------------------------------------------
   customer-service:
     image: ${REGISTRY_PREFIX}-customer-service:${TAG}
@@ -311,6 +337,24 @@ services:
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
+      
+  reminder-migrator:
+    image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
+ 
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
+  sms-migrator:
+    image: ${REGISTRY_PREFIX}-sms-migrator:${TAG} 
+    environment:
+      DB_SERVER: sqlserver
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
 
 # ────────────────────  volúmenes  ─────────────────────────
 volumes:
