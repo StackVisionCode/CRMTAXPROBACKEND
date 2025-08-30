@@ -190,7 +190,6 @@ services:
       DB_SERVER: sqlserver
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."    
-    depends_on: 
     networks: [backend]
 
     #--reminder service
@@ -203,7 +202,7 @@ services:
       DB_SERVER: sqlserver
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."    
-    depends_on: 
+   
     networks: [backend]
   # --- Customer Service ------------------------------------------------------
   customer-service:
