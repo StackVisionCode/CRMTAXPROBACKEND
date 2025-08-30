@@ -50,11 +50,17 @@ jobs:
             [calendar-service]=CalendarService/Dockerfile
             [email-service]=EmailServices/Dockerfile
             [signature-service]=signature/Dockerfile
+            [sms-service]=SMSServices/Dockerfile
+            [reminder-service]=ReminderService/Dockerfile
+            [subscription-service]=SubscriptionsService/Dockerfile
             [auth-migrator]=AuthService/Dockerfile.migrator
             [customer-migrator]=CustomerService/Dockerfile.migrator
             [email-migrator]=EmailServices/Dockerfile.migrator
             [calendar-migrator]=CalendarService/Dockerfile.migrator
             [signature-migrator]=signature/Dockerfile.migrator
+            [reminder-migrator]=ReminderService/Dockerfile.migrator
+            [sms-migrator]=SMSServices/Dockerfile.migrator
+            [subscription-migrator]=SubscriptionsService/Dockerfile.migrator
           )
           total=${#DF[@]}
           current=1

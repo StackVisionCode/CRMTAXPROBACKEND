@@ -1,32 +1,35 @@
 services:
   # --- SQL Server 2022 -------------------------------------------------------
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sqlserver
-    ports:
-      - "1433:1433"
-    environment:
-      ACCEPT_EULA: "Y"
-      SA_PASSWORD: "Brittany040238."
-      MSSQL_PID: "Developer"
-      MSSQL_MEMORY_LIMIT_MB: "2048"
-      MSSQL_TCP_PORT: "1433"
-    networks: [backend]
-    volumes:
-      - sqlserver_data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Brittany040238.' -C -Q 'SELECT 1' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
+  # 10.128.3.20:
+  #   image: mcr.microsoft.com/mssql/server:2022-latest
+  #   container_name: 10.128.3.20
+  #   ports:
+  #     - "1433:1433"
+  #   environment:
+  #     ACCEPT_EULA: "Y"
+  #     SA_PASSWORD: "Brittany040238."
+  #     MSSQL_PID: "Developer"
+  #     MSSQL_MEMORY_LIMIT_MB: "2048"
+  #     MSSQL_TCP_PORT: "1433"
+  #   networks: [backend]
+  #   volumes:
+  #     - 10.128.3.20_data:/var/opt/mssql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Brittany040238.' -C -Q 'SELECT 1' || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 10
+  #     start_period: 60s
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 2G
+  #       reservations:
+  #         memory: 1G
+
+
+
 
   # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
@@ -34,7 +37,7 @@ services:
     container_name: rabbitmq
     ports:
       - "5672:5672"
-      - "15672:15672"
+      - "80:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -57,7 +60,7 @@ services:
       "redis-server",
       "--appendonly", "yes",
       "--appendfsync", "everysec",
-      "--maxmemory", "512mb",
+      "--maxmemory", "2048mb",
       "--maxmemory-policy", "allkeys-lru",
       "--tcp-keepalive", "60",
       "--timeout", "300",
@@ -111,7 +114,7 @@ services:
       HybridCache__Redis__KeyPrefix: "gateway"
       HybridCache__Redis__Database: "0"
     ports:
-      - "5000:80"
+      - "80:80"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -138,7 +141,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -149,9 +152,7 @@ services:
       HybridCache__Redis__Database: "1"
     depends_on:
       rabbitmq:
-        condition: service_healthy
-      sqlserver:
-        condition: service_healthy
+        condition: service_healthy     
       redis:
         condition: service_healthy
     networks: [backend]
@@ -169,25 +170,50 @@ services:
         reservations:
           memory: 512M
 
+
+# ---SMS Service ---------------------------------------------------------
+
+  sms-service:
+    image: ${REGISTRY_PREFIX}-sms-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."  
+    networks: [backend]
+  
+
   # --- Calendar Service ------------------------------------------------------
   calendar-service:
     image: ${REGISTRY_PREFIX}-calendar-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."    
-    depends_on: [sqlserver]
     networks: [backend]
 
+    #--reminder service
+
+  reminder-service:
+    image: ${REGISTRY_PREFIX}-reminder-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."    
+   
+    networks: [backend]
   # --- Customer Service ------------------------------------------------------
   customer-service:
     image: ${REGISTRY_PREFIX}-customer-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -199,8 +225,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      sqlserver:
-        condition: service_started
+    
       redis:
         condition: service_healthy
     networks: [backend]
@@ -218,7 +243,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -230,8 +255,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      sqlserver:
-        condition: service_started
+     
       redis:
         condition: service_healthy
     networks: [backend]
@@ -249,7 +273,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
       RabbitMQ__HostName: rabbitmq
@@ -258,7 +282,7 @@ services:
       HybridCache__Redis__ConnectionString: "redis:6379"
       HybridCache__Redis__KeyPrefix: "signature"
       HybridCache__Redis__Database: "9"
-    depends_on: [rabbitmq, sqlserver]
+    depends_on: [rabbitmq]
     networks: [backend]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -268,36 +292,42 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # ---SMS Service ---------------------------------------------------------
+
+  subscription-service:
+    image: ${REGISTRY_PREFIX}-subscription-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."  
+    networks: [backend]
+
   # --- Migrators (Usan imágenes dedicadas) -----------------------------------
   auth-migrator:
     image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+  
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
   customer-migrator:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+   
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
   calendar-migrator:
     image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -305,22 +335,44 @@ services:
 
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+   
+ 
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
   signature-migrator:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
-    depends_on: 
-      sqlserver:
-        condition: service_healthy
+ 
     environment:
-      DB_SERVER: sqlserver
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+      
+  reminder-migrator:
+    image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
+ 
+    environment:
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
+  sms-migrator:
+    image: ${REGISTRY_PREFIX}-sms-migrator:${TAG} 
+    environment:
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
+  subscription-migrator:
+    image: ${REGISTRY_PREFIX}-subscription-migrator:${TAG} 
+    environment:
+      DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
@@ -330,7 +382,7 @@ volumes:
   redisdata:
   redisinsight_data:
   rabbitmq_data:
-  sqlserver_data:
+
 
 networks:
   backend:

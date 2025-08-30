@@ -111,7 +111,7 @@ public sealed class StartVideoCallHandler
                 RoomId = request.RoomId,
                 RoomName = room.Name,
                 StartedAt = DateTime.UtcNow,
-                SignalServer = "ws://localhost:5000/ws/",
+                SignalServer = "ws://localhost/ws/",
                 IceServers = new Dictionary<string, object>
                 {
                     ["iceServers"] = new[]
