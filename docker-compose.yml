@@ -58,6 +58,7 @@ services:
     container_name: redis
     command: [
       "redis-server",
+      "--requirepass", "P@$$w0rd23.",
       "--appendonly", "yes",
       "--appendfsync", "everysec",
       "--maxmemory", "2048mb",
@@ -76,7 +77,7 @@ services:
       - redisdata:/data 
     networks: [backend]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "P@$$w0rd23.", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
