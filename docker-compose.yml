@@ -28,9 +28,6 @@ services:
   #       reservations:
   #         memory: 1G
 
-
-
-
   # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
     image: rabbitmq:3-management
@@ -172,8 +169,7 @@ services:
           memory: 512M
 
 
-# ---SMS Service ---------------------------------------------------------
-
+  # ---SMS Service ---------------------------------------------------------
   sms-service:
     image: ${REGISTRY_PREFIX}-sms-service:${TAG}
     environment:
@@ -196,8 +192,7 @@ services:
       DB_PASSWORD: "Brittany040238."    
     networks: [backend]
 
-    #--reminder service
-
+  #--reminder service
   reminder-service:
     image: ${REGISTRY_PREFIX}-reminder-service:${TAG}
     environment:
@@ -206,8 +201,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."    
-   
     networks: [backend]
+
   # --- Customer Service ------------------------------------------------------
   customer-service:
     image: ${REGISTRY_PREFIX}-customer-service:${TAG}
@@ -226,7 +221,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    
       redis:
         condition: service_healthy
     networks: [backend]
@@ -256,7 +250,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-     
+          
       redis:
         condition: service_healthy
     networks: [backend]
@@ -305,6 +299,18 @@ services:
       DB_PASSWORD: "Brittany040238."  
     networks: [backend]
 
+  # ---SMS Service ---------------------------------------------------------
+
+  landing-service:
+    image: ${REGISTRY_PREFIX}-landing-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."  
+    networks: [backend]
+
   # --- Migrators (Usan imágenes dedicadas) -----------------------------------
   auth-migrator:
     image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
@@ -317,7 +323,6 @@ services:
 
   customer-migrator:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
-   
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -333,11 +338,8 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
-
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
-   
- 
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -346,7 +348,7 @@ services:
 
   signature-migrator:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
- 
+      
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -355,7 +357,7 @@ services:
       
   reminder-migrator:
     image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
- 
+      
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -378,12 +380,19 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
+  landing-migrator:
+    image: ${REGISTRY_PREFIX}-landing-migrator:${TAG} 
+    environment:
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks: [backend]
+
 # ────────────────────  volúmenes  ─────────────────────────
 volumes:
   redisdata:
   redisinsight_data:
   rabbitmq_data:
-
 
 networks:
   backend:
