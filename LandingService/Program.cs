@@ -1,15 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
-using LandingService.Applications.Common;
 using LandingService.Applications.Services;
 using LandingService.Infrastructure.Context;
 using LandingService.Infrastructure.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
+using SharedLibrary.Extensions;
+using SharedLibrary.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,16 +33,11 @@ try
 
     JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy(
-            "AllowAllOrigins",
-            builder =>
-            {
-                builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-            }
-        );
-    });
+    // Configurar caché hibrido Redis X Local
+    builder.Services.AddHybridCache(builder.Configuration);
+
+    // Configurar CORS
+    builder.Services.AddCustomCors();
 
     // Configurar Swagger (nativo de .NET 9)
     builder.Services.AddEndpointsApiExplorer();
@@ -84,36 +77,30 @@ try
         );
     });
 
-    // JWT AUTHENTICATION
-    var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+    // Configurar JWT
+    builder.Services.AddJwtAuth(builder.Configuration);
+
+    // CONFIGURAR HEALTH CHECKS
+    builder.Services.AddCacheHealthChecks();
 
     builder
-        .Services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            var key = Encoding.UTF8.GetBytes(jwtSettings!.SecretKey);
-            options.TokenValidationParameters = new TokenValidationParameters
+        .Services.AddAuthentication("Bearer")
+        .AddJwtBearer(
+            "Bearer",
+            opts =>
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ClockSkew = TimeSpan.Zero,
-            };
-        });
+                var cfg = builder.Configuration.GetSection("JwtSettings");
+                opts.TokenValidationParameters = JwtOptionsFactory.Build(cfg);
+                opts.MapInboundClaims = false;
+                JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+            }
+        );
+
+    builder.Services.AddAuthorization();
 
     builder.Services.AddScoped<IPasswordHash, PasswordHash>();
 
-    builder.Services.AddMemoryCache();
-
     builder.Services.AddScoped<IGeolocationService, GeolocationService>();
-
-    builder.Services.AddAuthorization();
 
     builder.Services.AddControllers();
 
@@ -161,8 +148,10 @@ try
 
     app.UseHttpsRedirection();
 
-    // app.UseAuthentication();
-    // app.UseAuthorization();
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
+    app.UseMiddleware<ExceptionMiddleware>("AuthService");
 
     app.MapControllers();
 
