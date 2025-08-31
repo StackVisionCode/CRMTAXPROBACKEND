@@ -15,6 +15,7 @@ internal static class ServiceMap
         { 5010, ("reminder-service", 8080) },
         { 5011, ("subscription-service", 8080) },
         { 5012, ("sms-service", 8080) },
+        { 5014, ("landing-service", 8080) },
         // …añade todos los que uses
     };
 }
