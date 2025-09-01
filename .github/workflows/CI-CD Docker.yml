@@ -110,6 +110,9 @@ jobs:
             echo "| $svc | $REGISTRY/$REGISTRY_PREFIX-$svc | $TAG |" >> $GITHUB_STEP_SUMMARY
           done
 
+      - name:  Cleanup old containers
+        run: docker rm -f rabbitmq redis redisinsight nginx || true
+
   deploy:
     name: 🚀 Deploy to Ubuntu Server
     needs: build-and-push
