@@ -9,9 +9,9 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
       interval: 30s
       timeout: 30s
       retries: 3
@@ -24,29 +24,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
-    command:
-      [
-        "redis-server",
-        "--requirepass", "Brittany040238.",
-        "--appendonly", "yes",
-        "--appendfsync", "everysec",
-        "--maxmemory", "2048mb",
-        "--maxmemory-policy", "allkeys-lru",
-        "--tcp-keepalive", "60",
-        "--timeout", "300",
-        "--save", "900", "1",
-        "--save", "300", "10",
-        "--save", "60", "10000",
-        "--rdbcompression", "yes",
-        "--rdbchecksum", "yes"
-      ]
+    command: [ "redis-server", "--requirepass", "Brittany040238.", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "2048mb", "--maxmemory-policy", "allkeys-lru", "--tcp-keepalive", "60", "--timeout", "300", "--save", "900", "1", "--save", "300", "10", "--save", "60", "10000", "--rdbcompression", "yes", "--rdbchecksum", "yes" ]
     ports:
       - "6379:6379"
     volumes:
       - redisdata:/data
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "Brittany040238.", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "Brittany040238.", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -70,7 +55,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks: [ backend ]
     restart: unless-stopped
 
   # --- API Gateway (SOLO red interna) ---------------------------------------
@@ -91,9 +76,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -126,9 +111,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -150,7 +135,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   # --- Calendar Service ------------------------------------------------------
   calendar-service:
@@ -161,7 +146,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   # --- Reminder Service ------------------------------------------------------
   reminder-service:
@@ -172,7 +157,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   # --- Customer Service ------------------------------------------------------
   customer-service:
@@ -194,9 +179,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -223,9 +208,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -249,9 +234,9 @@ services:
       HybridCache__Redis__Database: "9"
     depends_on:
       - rabbitmq
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -267,7 +252,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   # --- Landing Service -------------------------------------------------------
   landing-service:
@@ -284,9 +269,9 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -300,7 +285,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   customer-migrator:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
@@ -308,7 +293,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   calendar-migrator:
     image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
@@ -316,7 +301,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
@@ -324,7 +309,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   signature-migrator:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
@@ -332,7 +317,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   reminder-migrator:
     image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
@@ -340,7 +325,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   sms-migrator:
     image: ${REGISTRY_PREFIX}-sms-migrator:${TAG}
@@ -348,7 +333,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   subscription-migrator:
     image: ${REGISTRY_PREFIX}-subscription-migrator:${TAG}
@@ -356,7 +341,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   landing-migrator:
     image: ${REGISTRY_PREFIX}-landing-migrator:${TAG}
@@ -364,7 +349,7 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks: [ backend ]
 
   # --- NGINX Reverse Proxy (TLS Let's Encrypt del host) ---------------------
   nginx:
@@ -373,7 +358,7 @@ services:
     depends_on:
       apigateway:
         condition: service_healthy
-    networks: [backend]
+    networks: [ backend ]
     ports:
       - "80:80"
       - "443:443"
@@ -384,18 +369,19 @@ services:
       # (opcional) si generaste dhparam:
       # - ./nginx/ssl/dhparam.pem:/etc/ssl/certs/dhparam.pem:ro
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+  healthcheck:
+  test: [ "CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/80'" ]
+  interval: 30s
+  timeout: 5s
+  retries: 5
+  start_period: 30s
 
 # ────────────────────  volúmenes  ─────────────────────────
 volumes:
   redisdata:
   redisinsight_data:
   rabbitmq_data:
+
 
 networks:
   backend:
