@@ -114,9 +114,6 @@ namespace AuthService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<Guid>("CustomPlanId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime2");
 
@@ -140,15 +137,17 @@ namespace AuthService.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<int>("ServiceLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AddressId");
-
-                    b.HasIndex("CustomPlanId")
-                        .IsUnique();
 
                     b.HasIndex("Domain")
                         .IsUnique()
@@ -164,89 +163,11 @@ namespace AuthService.Migrations
                             Brand = "https://images5.example.com/",
                             CompanyName = "StackVision Software S.R.L.",
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomPlanId = new Guid("880e8400-e29b-41d4-a716-556655441001"),
                             Description = "Software Developers Assembly.",
                             Domain = "stackvision",
                             IsCompany = true,
-                            Phone = "8298981594"
-                        });
-                });
-
-            modelBuilder.Entity("AuthService.Domains.CustomPlans.CustomPlan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateTime?>("DeleteAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("RenewDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("RenewedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserLimit")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("isRenewed")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId")
-                        .IsUnique();
-
-                    b.HasIndex("IsActive");
-
-                    b.ToTable("CustomPlans", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_CustomPlans_Price", "[Price] >= 0");
-
-                            t.HasCheckConstraint("CK_CustomPlans_RenewDate", "[RenewDate] IS NOT NULL");
-
-                            t.HasCheckConstraint("CK_CustomPlans_UserLimit", "[UserLimit] >= 1");
-                        });
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("880e8400-e29b-41d4-a716-556655441001"),
-                            CompanyId = new Guid("770e8400-e29b-41d4-a716-556655441000"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsActive = true,
-                            Price = 0.00m,
-                            RenewDate = new DateTime(2035, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            StartDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            UserLimit = 100,
-                            isRenewed = false
+                            Phone = "8298981594",
+                            ServiceLevel = 99
                         });
                 });
 
@@ -2193,198 +2114,6 @@ namespace AuthService.Migrations
                         });
                 });
 
-            modelBuilder.Entity("AuthService.Domains.Modules.CustomModule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<Guid>("CustomPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeleteAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsIncluded")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomPlanId");
-
-                    b.HasIndex("ModuleId");
-
-                    b.HasIndex("CustomPlanId", "ModuleId")
-                        .IsUnique();
-
-                    b.ToTable("CustomModules", (string)null);
-                });
-
-            modelBuilder.Entity("AuthService.Domains.Modules.Module", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateTime?>("DeleteAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid?>("ServiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Url")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.HasIndex("ServiceId");
-
-                    b.ToTable("Modules", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440001"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Individual and business tax return preparation",
-                            IsActive = true,
-                            Name = "Tax Returns",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441001"),
-                            Url = "/tax-returns"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440002"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Create and manage invoices",
-                            IsActive = true,
-                            Name = "Invoicing",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441001"),
-                            Url = "/invoicing"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440003"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Upload and organize tax documents",
-                            IsActive = true,
-                            Name = "Document Management",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441001"),
-                            Url = "/documents"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440004"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Generate financial and tax reports",
-                            IsActive = true,
-                            Name = "Reports",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441002"),
-                            Url = "/reports"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440005"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Dedicated portal for client communication",
-                            IsActive = true,
-                            Name = "Customer Portal",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441002"),
-                            Url = "/customer-portal"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440006"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Business insights and analytics",
-                            IsActive = true,
-                            Name = "Advanced Analytics",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441003"),
-                            Url = "/analytics"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440007"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Connect with third-party services",
-                            IsActive = true,
-                            Name = "API Integration",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441003"),
-                            Url = "/api-integration"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440008"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Custom branding options",
-                            IsActive = true,
-                            Name = "White Label",
-                            ServiceId = new Guid("660e8400-e29b-41d4-a716-556655441003"),
-                            Url = "/white-label"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440009"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Manage multiple companies from one dashboard",
-                            IsActive = true,
-                            Name = "Multi-Company Management",
-                            Url = "/multi-company"
-                        },
-                        new
-                        {
-                            Id = new Guid("770e8400-e29b-41d4-a716-556655440010"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Enhanced security features and compliance",
-                            IsActive = true,
-                            Name = "Advanced Security",
-                            Url = "/security"
-                        });
-                });
-
             modelBuilder.Entity("AuthService.Domains.Permissions.CompanyPermission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2684,186 +2413,6 @@ namespace AuthService.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsGranted = true,
                             Name = "Read own profile"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440045"),
-                            Code = "Service.Create",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Create new services in the system",
-                            IsGranted = true,
-                            Name = "Create Services"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440046"),
-                            Code = "Service.Read",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "View and retrieve service information",
-                            IsGranted = true,
-                            Name = "Read Services"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440047"),
-                            Code = "Service.Update",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Modify existing services",
-                            IsGranted = true,
-                            Name = "Update Services"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440048"),
-                            Code = "Service.Delete",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Remove services from the system",
-                            IsGranted = true,
-                            Name = "Delete Services"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440049"),
-                            Code = "Service.ManageStatus",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Activate or deactivate services",
-                            IsGranted = true,
-                            Name = "Manage Service Status"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440050"),
-                            Code = "Module.Create",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Create new modules in the system",
-                            IsGranted = true,
-                            Name = "Create Modules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440051"),
-                            Code = "Module.Read",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "View and retrieve module information",
-                            IsGranted = true,
-                            Name = "Read Modules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440052"),
-                            Code = "Module.Update",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Modify existing modules",
-                            IsGranted = true,
-                            Name = "Update Modules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440053"),
-                            Code = "Module.Delete",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Remove modules from the system",
-                            IsGranted = true,
-                            Name = "Delete Modules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440054"),
-                            Code = "Module.ManageStatus",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Activate or deactivate modules",
-                            IsGranted = true,
-                            Name = "Manage Module Status"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440055"),
-                            Code = "CustomPlan.Create",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Create new custom plans for companies",
-                            IsGranted = true,
-                            Name = "Create CustomPlans"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440056"),
-                            Code = "CustomPlan.Read",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "View and retrieve custom plan information",
-                            IsGranted = true,
-                            Name = "Read CustomPlans"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440057"),
-                            Code = "CustomPlan.Update",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Modify existing custom plans",
-                            IsGranted = true,
-                            Name = "Update CustomPlans"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440058"),
-                            Code = "CustomPlan.Delete",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Remove custom plans from the system",
-                            IsGranted = true,
-                            Name = "Delete CustomPlans"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440059"),
-                            Code = "CustomPlan.ManageStatus",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Activate, deactivate or renew custom plans",
-                            IsGranted = true,
-                            Name = "Manage CustomPlan Status"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440060"),
-                            Code = "CustomModule.Create",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Assign modules to custom plans",
-                            IsGranted = true,
-                            Name = "Create CustomModules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440061"),
-                            Code = "CustomModule.Read",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "View and retrieve custom module information",
-                            IsGranted = true,
-                            Name = "Read CustomModules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440062"),
-                            Code = "CustomModule.Update",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Modify existing custom modules",
-                            IsGranted = true,
-                            Name = "Update CustomModules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440063"),
-                            Code = "CustomModule.Delete",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Remove custom modules from plans",
-                            IsGranted = true,
-                            Name = "Delete CustomModules"
-                        },
-                        new
-                        {
-                            Id = new Guid("550e8400-e29b-41d4-a716-446655440064"),
-                            Code = "CustomModule.ManageStatus",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Include or exclude modules from plans",
-                            IsGranted = true,
-                            Name = "Manage CustomModule Status"
                         },
                         new
                         {
@@ -3493,146 +3042,6 @@ namespace AuthService.Migrations
                         },
                         new
                         {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450045"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440045"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450046"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440046"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450047"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440047"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450048"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440048"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450049"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440049"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450050"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440050"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450051"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440051"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450052"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440052"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450053"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440053"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450054"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440054"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450055"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440055"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450056"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440056"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450057"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440057"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450058"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440058"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450059"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440059"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450060"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440060"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450061"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440061"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450062"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440062"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450063"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440063"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-446655450064"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440064"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441001")
-                        },
-                        new
-                        {
                             Id = new Guid("770e8400-e29b-41d4-a716-556655460000"),
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440011"),
@@ -4060,34 +3469,6 @@ namespace AuthService.Migrations
                         },
                         new
                         {
-                            Id = new Guid("790e8400-e29b-41d4-a716-556655460027"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440046"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441004")
-                        },
-                        new
-                        {
-                            Id = new Guid("790e8400-e29b-41d4-a716-556655460028"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440051"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441004")
-                        },
-                        new
-                        {
-                            Id = new Guid("790e8400-e29b-41d4-a716-556655460029"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440056"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441004")
-                        },
-                        new
-                        {
-                            Id = new Guid("790e8400-e29b-41d4-a716-556655460030"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440061"),
-                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655441004")
-                        },
-                        new
-                        {
                             Id = new Guid("880e8400-e29b-41d4-a716-556655470000"),
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440029"),
@@ -4106,105 +3487,6 @@ namespace AuthService.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PermissionId = new Guid("550e8400-e29b-41d4-a716-446655440026"),
                             RoleId = new Guid("550e8400-e29b-41d4-a716-446655441006")
-                        });
-                });
-
-            modelBuilder.Entity("AuthService.Domains.Services.Service", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateTime?>("DeleteAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Features")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserLimit")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Services", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_Services_Price", "[Price] >= 0");
-
-                            t.HasCheckConstraint("CK_Services_UserLimit", "[UserLimit] >= 0");
-                        });
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-556655441001"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Basic tax preparation service with essential features",
-                            Features = "[\"Individual tax returns\",\"Basic invoicing\",\"Document storage\",\"Email support\"]",
-                            IsActive = true,
-                            Name = "Basic",
-                            Price = 29.99m,
-                            Title = "Basic Plan",
-                            UserLimit = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-556655441002"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Standard service with additional modules and more users",
-                            Features = "[\"Individual \\u0026 business tax returns\",\"Advanced invoicing\",\"Document management\",\"Financial reports\",\"Customer portal\",\"Priority support\"]",
-                            IsActive = true,
-                            Name = "Standard",
-                            Price = 59.99m,
-                            Title = "Standard Plan",
-                            UserLimit = 4
-                        },
-                        new
-                        {
-                            Id = new Guid("660e8400-e29b-41d4-a716-556655441003"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Professional service with all modules and unlimited features",
-                            Features = "[\"All tax return types\",\"Complete invoicing suite\",\"Advanced document management\",\"Comprehensive reports\",\"Full customer portal\",\"Advanced analytics\",\"API integrations\",\"White label options\",\"24/7 premium support\"]",
-                            IsActive = true,
-                            Name = "Pro",
-                            Price = 99.99m,
-                            Title = "Professional Plan",
-                            UserLimit = 5
                         });
                 });
 
@@ -4545,15 +3827,7 @@ namespace AuthService.Migrations
                         .HasForeignKey("AddressId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("AuthService.Domains.CustomPlans.CustomPlan", "CustomPlan")
-                        .WithOne("Company")
-                        .HasForeignKey("AuthService.Domains.Companies.Company", "CustomPlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Address");
-
-                    b.Navigation("CustomPlan");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Geography.State", b =>
@@ -4598,35 +3872,6 @@ namespace AuthService.Migrations
                     b.Navigation("InvitedByUser");
 
                     b.Navigation("RegisteredUser");
-                });
-
-            modelBuilder.Entity("AuthService.Domains.Modules.CustomModule", b =>
-                {
-                    b.HasOne("AuthService.Domains.CustomPlans.CustomPlan", "CustomPlan")
-                        .WithMany("CustomModules")
-                        .HasForeignKey("CustomPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AuthService.Domains.Modules.Module", "Module")
-                        .WithMany("CustomModules")
-                        .HasForeignKey("ModuleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CustomPlan");
-
-                    b.Navigation("Module");
-                });
-
-            modelBuilder.Entity("AuthService.Domains.Modules.Module", b =>
-                {
-                    b.HasOne("AuthService.Domains.Services.Service", "Service")
-                        .WithMany("Modules")
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Service");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Permissions.CompanyPermission", b =>
@@ -4731,22 +3976,9 @@ namespace AuthService.Migrations
                     b.Navigation("TaxUsers");
                 });
 
-            modelBuilder.Entity("AuthService.Domains.CustomPlans.CustomPlan", b =>
-                {
-                    b.Navigation("Company")
-                        .IsRequired();
-
-                    b.Navigation("CustomModules");
-                });
-
             modelBuilder.Entity("AuthService.Domains.Geography.Country", b =>
                 {
                     b.Navigation("States");
-                });
-
-            modelBuilder.Entity("AuthService.Domains.Modules.Module", b =>
-                {
-                    b.Navigation("CustomModules");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Permissions.Permission", b =>
@@ -4761,11 +3993,6 @@ namespace AuthService.Migrations
                     b.Navigation("RolePermissions");
 
                     b.Navigation("UserRoles");
-                });
-
-            modelBuilder.Entity("AuthService.Domains.Services.Service", b =>
-                {
-                    b.Navigation("Modules");
                 });
 
             modelBuilder.Entity("AuthService.Domains.Users.TaxUser", b =>

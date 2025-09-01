@@ -1,3 +1,4 @@
+using AuthService.Applications.Common;
 using Common;
 using DTOs.PublicDTOs;
 using Infraestructure.Context;
@@ -29,11 +30,10 @@ public class GetTaxUserPublicInfoHandler
     {
         try
         {
-            // Query optimizado con información limitada para seguridad
+            // Query optimizado con información limitada para seguridad (sin CustomPlans)
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join a in _dbContext.Addresses on c.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
                 join s in _dbContext.States on a.StateId equals s.Id into states
@@ -44,7 +44,6 @@ public class GetTaxUserPublicInfoHandler
                     u.Id == request.TaxUserId
                     && u.IsActive == true // Solo usuarios activos
                     && c.Id != Guid.Empty // Validación adicional
-                    && cp.IsActive == true // Solo compañías con plan activo
                 select new TaxUserPublicInfoDTO
                 {
                     Id = u.Id,
@@ -53,6 +52,9 @@ public class GetTaxUserPublicInfoHandler
                     Email = u.Email,
                     PhotoUrl = u.PhotoUrl,
                     IsActive = u.IsActive,
+                    IsOwner = u.IsOwner,
+
+                    // Información de la company
                     CompanyId = u.CompanyId,
                     CompanyName = c.CompanyName,
                     CompanyBrand = c.Brand,
@@ -60,6 +62,8 @@ public class GetTaxUserPublicInfoHandler
                     CompanyPhone = c.Phone,
                     CompanyCity = a != null ? a.City : null,
                     CompanyState = s != null ? s.Name : null,
+                    CompanyServiceLevel = c.ServiceLevel,
+
                     BasicRoles = new List<string>(),
                 };
 
@@ -88,18 +92,13 @@ public class GetTaxUserPublicInfoHandler
             var roles = await basicRolesQuery.ToListAsync(cancellationToken);
 
             // Filtrar roles sensibles para seguridad pública
-            user.BasicRoles = roles
-                .Where(role =>
-                    !role.Contains("Developer") && !role.Contains("Administrator")
-                    || role.Contains("User")
-                    || role.Contains("Customer")
-                )
-                .ToList();
+            user.BasicRoles = FilterSensitiveRoles(roles);
 
             _logger.LogInformation(
-                "Public TaxUser info retrieved: {TaxUserId} from Company: {CompanyId}",
+                "Public TaxUser info retrieved: {TaxUserId} from Company: {CompanyId} (ServiceLevel: {ServiceLevel})",
                 request.TaxUserId,
-                user.CompanyId
+                user.CompanyId,
+                user.CompanyServiceLevel
             );
 
             return new ApiResponse<TaxUserPublicInfoDTO>(
@@ -118,5 +117,17 @@ public class GetTaxUserPublicInfoHandler
             );
             return new ApiResponse<TaxUserPublicInfoDTO>(false, "Internal server error", null!);
         }
+    }
+
+    private static List<string> FilterSensitiveRoles(List<string> roles)
+    {
+        // Solo mostrar roles públicamente apropiados
+        return roles
+            .Where(role =>
+                !role.Contains("Developer")
+                && !role.Contains("Administrator")
+                && (role.Contains("User") || role.Contains("Customer"))
+            )
+            .ToList();
     }
 }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
+using AuthService.Applications.Common;
 
 namespace AuthService.DTOs.UserDTOs;
 
@@ -24,11 +25,6 @@ public class UserProfileDTO
     public bool CompanyIsIndividual { get; set; }
     public string? CompanyDomain { get; set; }
     public AddressDTO? CompanyAddress { get; set; }
-
-    // Información del CustomPlan
-    public Guid CustomPlanId { get; set; }
-    public decimal CustomPlanPrice { get; set; }
-    public bool CustomPlanIsActive { get; set; }
-    public ICollection<string> AdditionalModules { get; set; } = new List<string>();
+    public ServiceLevel CompanyServiceLevel { get; set; }
     public ICollection<string> EffectivePermissions { get; set; } = new List<string>();
 }

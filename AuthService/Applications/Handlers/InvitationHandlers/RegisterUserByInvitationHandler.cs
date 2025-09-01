@@ -1,3 +1,4 @@
+using AuthService.Applications.Common;
 using AuthService.Commands.InvitationCommands;
 using AuthService.Domains.Addresses;
 using AuthService.Domains.Invitations;
@@ -50,11 +51,10 @@ public class RegisterUserByInvitationHandler
         {
             var registration = request.Registration;
 
-            // 1. Validar token de invitación y obtener registro de invitación
+            // 1. Validar token de invitación (sin CustomPlans)
             var invitationQuery =
                 from i in _dbContext.Invitations
                 join c in _dbContext.Companies on i.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where i.Token == registration.InvitationToken
                 select new
                 {
@@ -68,8 +68,7 @@ public class RegisterUserByInvitationHandler
                     CompanyFullName = c.FullName,
                     CompanyDomain = c.Domain,
                     CompanyIsCompany = c.IsCompany,
-                    CustomPlanIsActive = cp.IsActive,
-                    UserLimit = cp.UserLimit,
+                    CompanyServiceLevel = c.ServiceLevel, // NUEVO
                     CurrentActiveUserCount = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == i.CompanyId && u.IsActive
                     ),
@@ -102,50 +101,31 @@ public class RegisterUserByInvitationHandler
 
             if (invitationData.ExpiresAt <= DateTime.UtcNow)
             {
-                // Marcar como expirada
-                await _dbContext.Database.ExecuteSqlInterpolatedAsync(
-                    $@"
-                    UPDATE Invitations 
-                    SET Status = {(int)InvitationStatus.Expired}, UpdatedAt = {DateTime.UtcNow}
-                    WHERE Id = {invitationData.InvitationId}
-                ",
+                // Obtener la invitación para actualizarla
+                var expiredInvitation = await _dbContext.Invitations.FirstOrDefaultAsync(
+                    i => i.Id == invitationData.InvitationId,
                     cancellationToken
                 );
 
+                if (expiredInvitation != null)
+                {
+                    expiredInvitation.Status = InvitationStatus.Expired;
+                    expiredInvitation.UpdatedAt = DateTime.UtcNow;
+
+                    // Guardar los cambios
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+
                 _logger.LogWarning(
-                    "Invitation has expired: {InvitationId}",
+                    "Invitation has expired and was marked as expired: {InvitationId}",
                     invitationData.InvitationId
                 );
                 return new ApiResponse<bool>(false, "Invitation has expired", false);
             }
 
-            // 3. Verificar estado de la company
-            if (!invitationData.CustomPlanIsActive)
-            {
-                _logger.LogWarning(
-                    "Company plan is inactive during registration: {CompanyId}",
-                    invitationData.CompanyId
-                );
-                return new ApiResponse<bool>(false, "Company plan is inactive", false);
-            }
-
-            // 4. Verificar límites de usuarios
-            if (invitationData.CurrentActiveUserCount >= invitationData.UserLimit)
-            {
-                _logger.LogWarning(
-                    "User limit exceeded during registration for company: {CompanyId}. "
-                        + "Current active users: {Current}, CustomPlan limit: {Limit}",
-                    invitationData.CompanyId,
-                    invitationData.CurrentActiveUserCount,
-                    invitationData.UserLimit
-                );
-                return new ApiResponse<bool>(
-                    false,
-                    $"User limit exceeded. Current: {invitationData.CurrentActiveUserCount}, Limit: {invitationData.UserLimit}",
-                    false
-                );
-            }
-
+            // 3. VALIDACIÓN DE LÍMITES SIMPLIFICADA
+            // El frontend debe haber validado límites consultando SubscriptionsService
+            // Aquí solo validamos reglas básicas de AuthService
             if (invitationData.OwnerCount == 0)
             {
                 _logger.LogError(
@@ -155,7 +135,14 @@ public class RegisterUserByInvitationHandler
                 return new ApiResponse<bool>(false, "Company has no active administrator", false);
             }
 
-            // 5. Verificar que el email no esté registrado
+            _logger.LogInformation(
+                "Processing invitation registration for company {CompanyId} (ServiceLevel: {ServiceLevel}). Current users: {CurrentUsers}",
+                invitationData.CompanyId,
+                invitationData.CompanyServiceLevel,
+                invitationData.CurrentActiveUserCount
+            );
+
+            // 4. Verificar que el email no esté registrado
             var emailExists = await _dbContext.TaxUsers.AnyAsync(
                 u => u.Email == invitationData.Email,
                 cancellationToken
@@ -167,46 +154,34 @@ public class RegisterUserByInvitationHandler
                 return new ApiResponse<bool>(false, "Email already registered", false);
             }
 
-            // 6. Obtener permisos del Administrator para heredar
-            var adminPermissionsQuery =
-                from adminUser in _dbContext.TaxUsers
-                join userRole in _dbContext.UserRoles on adminUser.Id equals userRole.TaxUserId
-                join role in _dbContext.Roles on userRole.RoleId equals role.Id
-                join rolePermission in _dbContext.RolePermissions
-                    on role.Id equals rolePermission.RoleId
-                join permission in _dbContext.Permissions
-                    on rolePermission.PermissionId equals permission.Id
-                where
-                    adminUser.CompanyId == invitationData.CompanyId
-                    && adminUser.IsOwner == true
-                    && adminUser.IsActive == true
-                    && role.Name.Contains("Administrator")
-                    && permission.IsGranted == true
-                select new
+            // 5. Validar roles para el ServiceLevel de la company
+            if (invitationData.RoleIds?.Any() == true)
+            {
+                var roleValidation = await ValidateRolesForServiceLevelAsync(
+                    invitationData.RoleIds,
+                    invitationData.CompanyServiceLevel,
+                    cancellationToken
+                );
+
+                if (!roleValidation.IsValid)
                 {
-                    PermissionId = permission.Id,
-                    PermissionCode = permission.Code,
-                    PermissionName = permission.Name,
-                };
+                    return new ApiResponse<bool>(false, roleValidation.Message, false);
+                }
+            }
 
-            var adminPermissions = await adminPermissionsQuery
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            _logger.LogDebug(
-                "Found {PermissionCount} administrator permissions to inherit for company {CompanyId}",
-                adminPermissions.Count,
-                invitationData.CompanyId
+            // 6. Obtener permisos del Administrator para heredar
+            var adminPermissions = await GetAdminPermissionsToInheritAsync(
+                invitationData.CompanyId,
+                cancellationToken
             );
 
             // 7. Crear dirección si se proporciona
             Address? userAddressEntity = null;
-            if (registration.Address != null)
+            if (registration.Address is { } addressDto)
             {
-                var addrDto = registration.Address;
                 var validateResult = await ValidateAddressAsync(
-                    addrDto.CountryId,
-                    addrDto.StateId,
+                    addressDto.CountryId,
+                    addressDto.StateId,
                     cancellationToken
                 );
                 if (!validateResult.Success)
@@ -217,18 +192,16 @@ public class RegisterUserByInvitationHandler
                 userAddressEntity = new Address
                 {
                     Id = Guid.NewGuid(),
-                    CountryId = addrDto.CountryId,
-                    StateId = addrDto.StateId,
-                    City = addrDto.City?.Trim(),
-                    Street = addrDto.Street?.Trim(),
-                    Line = addrDto.Line?.Trim(),
-                    ZipCode = addrDto.ZipCode?.Trim(),
+                    CountryId = addressDto.CountryId,
+                    StateId = addressDto.StateId,
+                    City = addressDto.City?.Trim(),
+                    Street = addressDto.Street?.Trim(),
+                    Line = addressDto.Line?.Trim(),
+                    ZipCode = addressDto.ZipCode?.Trim(),
                     CreatedAt = DateTime.UtcNow,
                 };
 
                 await _dbContext.Addresses.AddAsync(userAddressEntity, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
-
                 _logger.LogDebug("Created address for TaxUser: {AddressId}", userAddressEntity.Id);
             }
 
@@ -254,86 +227,17 @@ public class RegisterUserByInvitationHandler
             await _dbContext.TaxUsers.AddAsync(taxUser, cancellationToken);
 
             // 9. Asignar roles
-            var rolesToAssign = new List<Guid>();
+            await AssignRolesToUserAsync(
+                taxUser.Id,
+                invitationData.RoleIds,
+                invitationData.CompanyServiceLevel,
+                cancellationToken
+            );
 
-            // Si la invitación especifica roles, usarlos; sino, asignar User por defecto
-            if (invitationData.RoleIds?.Any() == true)
-            {
-                // Validar que los roles especificados existen y no incluyen roles de Administrator
-                var validRoles = await _dbContext
-                    .Roles.Where(r =>
-                        invitationData.RoleIds.Contains(r.Id)
-                        && !r.Name.Contains("Administrator")
-                        && !r.Name.Contains("Developer")
-                    )
-                    .Select(r => r.Id)
-                    .ToListAsync(cancellationToken);
+            // 10. Heredar permisos del Administrator
+            await InheritAdminPermissionsAsync(taxUser.Id, adminPermissions, cancellationToken);
 
-                rolesToAssign.AddRange(validRoles);
-            }
-
-            // Si no hay roles válidos, asignar User por defecto
-            if (!rolesToAssign.Any())
-            {
-                var userRoleQuery = from r in _dbContext.Roles where r.Name == "User" select r.Id;
-                var userRoleId = await userRoleQuery.FirstOrDefaultAsync(cancellationToken);
-                if (userRoleId != Guid.Empty)
-                {
-                    rolesToAssign.Add(userRoleId);
-                }
-            }
-
-            // Crear UserRoles
-            foreach (var roleId in rolesToAssign.Distinct())
-            {
-                var userRole = new UserRole
-                {
-                    Id = Guid.NewGuid(),
-                    TaxUserId = taxUser.Id,
-                    RoleId = roleId,
-                    CreatedAt = DateTime.UtcNow,
-                };
-
-                await _dbContext.UserRoles.AddAsync(userRole, cancellationToken);
-            }
-
-            // 10. HEREDAR PERMISOS DEL ADMINISTRATOR A COMPANYPERMISSIONS
-            var companyPermissionsToAdd = new List<CompanyPermission>();
-
-            foreach (var adminPermission in adminPermissions)
-            {
-                var companyPermission = new CompanyPermission
-                {
-                    Id = Guid.NewGuid(),
-                    TaxUserId = taxUser.Id,
-                    PermissionId = adminPermission.PermissionId,
-                    IsGranted = true, // Heredamos como granted
-                    Description =
-                        $"Inherited from Administrator role on registration - {adminPermission.PermissionCode}",
-                    CreatedAt = DateTime.UtcNow,
-                };
-
-                companyPermissionsToAdd.Add(companyPermission);
-            }
-
-            // Bulk insert para mejor performance
-            if (companyPermissionsToAdd.Any())
-            {
-                await _dbContext.CompanyPermissions.AddRangeAsync(
-                    companyPermissionsToAdd,
-                    cancellationToken
-                );
-
-                _logger.LogInformation(
-                    "Inherited {PermissionCount} administrator permissions for new user {TaxUserId} "
-                        + "in company {CompanyId}",
-                    companyPermissionsToAdd.Count,
-                    taxUser.Id,
-                    invitationData.CompanyId
-                );
-            }
-
-            // 🔧 PRIMERA PARTE: Guardar TaxUser y dependencias SIN actualizar invitación
+            // 11. Guardar TaxUser y dependencias
             var firstSaveResult = await _dbContext.SaveChangesAsync(cancellationToken);
             if (firstSaveResult <= 0)
             {
@@ -344,7 +248,7 @@ public class RegisterUserByInvitationHandler
 
             _logger.LogInformation("TaxUser created successfully with ID: {TaxUserId}", taxUser.Id);
 
-            //  Actualizar invitación DESPUÉS de que TaxUser existe
+            // 12. Actualizar invitación
             var invitation = await _dbContext.Invitations.FirstOrDefaultAsync(
                 i => i.Id == invitationData.InvitationId,
                 cancellationToken
@@ -360,7 +264,6 @@ public class RegisterUserByInvitationHandler
                 return new ApiResponse<bool>(false, "Invitation not found", false);
             }
 
-            // Actualizar invitación
             invitation.Status = InvitationStatus.Accepted;
             invitation.AcceptedAt = DateTime.UtcNow;
             invitation.RegisteredUserId = taxUser.Id;
@@ -368,7 +271,6 @@ public class RegisterUserByInvitationHandler
 
             _dbContext.Invitations.Update(invitation);
 
-            // Guardar la actualización de la invitación
             var secondSaveResult = await _dbContext.SaveChangesAsync(cancellationToken);
             if (secondSaveResult <= 0)
             {
@@ -380,15 +282,14 @@ public class RegisterUserByInvitationHandler
             await transaction.CommitAsync(cancellationToken);
 
             _logger.LogInformation(
-                "TaxUser registered successfully by invitation: {TaxUserId} for company {CompanyId}. "
-                    + "Invitation {InvitationId} marked as accepted. "
-                    + "Users: {Current}/{Limit}. Inherited permissions: {PermissionCount}",
+                "TaxUser registered successfully by invitation: {TaxUserId} for company {CompanyId} (ServiceLevel: {ServiceLevel}). "
+                    + "Invitation {InvitationId} marked as accepted. Current users: {CurrentUsers}. Inherited permissions: {PermissionCount}",
                 taxUser.Id,
                 invitationData.CompanyId,
+                invitationData.CompanyServiceLevel,
                 invitationData.InvitationId,
-                invitationData.CurrentActiveUserCount + 1, // +1 porque acabamos de crear uno
-                invitationData.UserLimit,
-                companyPermissionsToAdd.Count
+                invitationData.CurrentActiveUserCount + 1,
+                adminPermissions.Count
             );
 
             // 13. Publicar evento de registro completado
@@ -422,27 +323,202 @@ public class RegisterUserByInvitationHandler
         }
     }
 
+    #region Helper Methods
+
+    private async Task<(bool IsValid, string Message)> ValidateRolesForServiceLevelAsync(
+        ICollection<Guid> roleIds,
+        ServiceLevel companyServiceLevel,
+        CancellationToken cancellationToken
+    )
+    {
+        var rolesQuery =
+            from r in _dbContext.Roles
+            where roleIds.Contains(r.Id)
+            select new
+            {
+                r.Id,
+                r.Name,
+                r.ServiceLevel,
+            };
+
+        var roles = await rolesQuery.ToListAsync(cancellationToken);
+
+        foreach (var role in roles)
+        {
+            // No permitir roles de Administrator o Developer en invitaciones
+            if (role.Name.Contains("Administrator") || role.Name.Contains("Developer"))
+            {
+                return (false, $"Role '{role.Name}' cannot be assigned via invitation");
+            }
+
+            // Validar ServiceLevel
+            if (role.ServiceLevel.HasValue && role.ServiceLevel > companyServiceLevel)
+            {
+                return (
+                    false,
+                    $"Role '{role.Name}' requires {role.ServiceLevel} service level, but company has {companyServiceLevel}"
+                );
+            }
+        }
+
+        return (true, "Roles validated successfully");
+    }
+
+    private async Task<
+        List<(Guid PermissionId, string Code, string Name)>
+    > GetAdminPermissionsToInheritAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var adminPermissionsQuery =
+            from adminUser in _dbContext.TaxUsers
+            join userRole in _dbContext.UserRoles on adminUser.Id equals userRole.TaxUserId
+            join role in _dbContext.Roles on userRole.RoleId equals role.Id
+            join rolePermission in _dbContext.RolePermissions
+                on role.Id equals rolePermission.RoleId
+            join permission in _dbContext.Permissions
+                on rolePermission.PermissionId equals permission.Id
+            where
+                adminUser.CompanyId == companyId
+                && adminUser.IsOwner == true
+                && adminUser.IsActive == true
+                && role.Name.Contains("Administrator")
+                && permission.IsGranted == true
+            select new
+            {
+                PermissionId = permission.Id,
+                PermissionCode = permission.Code,
+                PermissionName = permission.Name,
+            };
+
+        var adminPermissions = await adminPermissionsQuery
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        _logger.LogDebug(
+            "Found {PermissionCount} administrator permissions to inherit for company {CompanyId}",
+            adminPermissions.Count,
+            companyId
+        );
+
+        return adminPermissions
+            .Select(p => (p.PermissionId, p.PermissionCode, p.PermissionName))
+            .ToList();
+    }
+
+    private async Task AssignRolesToUserAsync(
+        Guid userId,
+        ICollection<Guid>? roleIds,
+        ServiceLevel companyServiceLevel,
+        CancellationToken cancellationToken
+    )
+    {
+        var rolesToAssign = new List<Guid>();
+
+        if (roleIds?.Any() == true)
+        {
+            // Validar que los roles especificados existen y son apropiados
+            var validRoles = await _dbContext
+                .Roles.Where(r =>
+                    roleIds.Contains(r.Id)
+                    && !r.Name.Contains("Administrator")
+                    && !r.Name.Contains("Developer")
+                    && (!r.ServiceLevel.HasValue || r.ServiceLevel <= companyServiceLevel)
+                )
+                .Select(r => r.Id)
+                .ToListAsync(cancellationToken);
+
+            rolesToAssign.AddRange(validRoles);
+        }
+
+        // Si no hay roles válidos, asignar User por defecto
+        if (!rolesToAssign.Any())
+        {
+            var userRoleId = await _dbContext
+                .Roles.Where(r => r.Name == "User")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (userRoleId != Guid.Empty)
+            {
+                rolesToAssign.Add(userRoleId);
+            }
+        }
+
+        // Crear UserRoles
+        foreach (var roleId in rolesToAssign.Distinct())
+        {
+            var userRole = new UserRole
+            {
+                Id = Guid.NewGuid(),
+                TaxUserId = userId,
+                RoleId = roleId,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            await _dbContext.UserRoles.AddAsync(userRole, cancellationToken);
+        }
+    }
+
+    private async Task InheritAdminPermissionsAsync(
+        Guid userId,
+        List<(Guid PermissionId, string Code, string Name)> adminPermissions,
+        CancellationToken cancellationToken
+    )
+    {
+        var companyPermissionsToAdd = new List<CompanyPermission>();
+
+        foreach (var (permissionId, code, name) in adminPermissions)
+        {
+            var companyPermission = new CompanyPermission
+            {
+                Id = Guid.NewGuid(),
+                TaxUserId = userId,
+                PermissionId = permissionId,
+                IsGranted = true,
+                Description = $"Inherited from Administrator role on registration - {code}",
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            companyPermissionsToAdd.Add(companyPermission);
+        }
+
+        if (companyPermissionsToAdd.Any())
+        {
+            await _dbContext.CompanyPermissions.AddRangeAsync(
+                companyPermissionsToAdd,
+                cancellationToken
+            );
+
+            _logger.LogInformation(
+                "Inherited {PermissionCount} administrator permissions for new user {UserId}",
+                companyPermissionsToAdd.Count,
+                userId
+            );
+        }
+    }
+
     private async Task<(bool Success, string Message)> ValidateAddressAsync(
         int countryId,
         int stateId,
-        CancellationToken ct
+        CancellationToken cancellationToken
     )
     {
         if (countryId != USA)
             return (false, "Only United States (CountryId = 220) is supported.");
 
-        var country = await _dbContext
-            .Countries.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == countryId, ct);
-        if (country is null)
-            return (false, $"CountryId '{countryId}' not found.");
+        var addressValidation = await (
+            from c in _dbContext.Countries
+            join s in _dbContext.States on c.Id equals s.CountryId
+            where c.Id == countryId && s.Id == stateId
+            select new { CountryName = c.Name, StateName = s.Name }
+        ).FirstOrDefaultAsync(cancellationToken);
 
-        var state = await _dbContext
-            .States.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == stateId && s.CountryId == countryId, ct);
-        if (state is null)
-            return (false, $"StateId '{stateId}' not found for CountryId '{countryId}'.");
+        if (addressValidation == null)
+        {
+            return (false, $"Invalid CountryId '{countryId}' or StateId '{stateId}'");
+        }
 
-        return (true, "OK");
+        return (true, "Address validation passed");
     }
+
+    #endregion
 }

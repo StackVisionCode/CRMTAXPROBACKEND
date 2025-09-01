@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.Applications.DTOs.CompanyDTOs;
 using Common;
 using Infraestructure.Context;
@@ -29,9 +29,9 @@ public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, ApiRes
     {
         try
         {
+            // Query simplificado - solo datos de AuthService
             var companyQuery =
                 from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join tu in _dbContext.TaxUsers on c.Id equals tu.CompanyId
                 join a in _dbContext.Addresses on c.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
@@ -60,6 +60,7 @@ public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, ApiRes
                     Description = c.Description,
                     Domain = c.Domain,
                     CreatedAt = c.CreatedAt,
+                    ServiceLevel = c.ServiceLevel, // NUEVO
 
                     // Información del TaxUser Owner
                     AdminUserId = tu.Id,
@@ -85,17 +86,15 @@ public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, ApiRes
                             }
                             : null,
 
-                    // Información del CustomPlan
-                    CustomPlanId = cp.Id,
-                    CustomPlanPrice = cp.Price,
-                    CustomPlanUserLimit = cp.UserLimit,
-                    CustomPlanIsActive = cp.IsActive,
-                    CustomPlanStartDate = cp.StartDate,
-                    CustomPlanRenewDate = cp.RenewDate,
-                    CustomPlanIsRenewed = cp.isRenewed,
-
-                    // Conteo de TaxUsers
+                    // Contadores de usuarios
                     CurrentTaxUserCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
+                    ActiveTaxUserCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == c.Id && u.IsActive
+                    ),
+                    OwnerCount =
+                        _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id && u.IsOwner) > 0
+                            ? 1
+                            : 0,
 
                     // Dirección de la Company
                     Address =
@@ -113,9 +112,7 @@ public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, ApiRes
                             }
                             : null,
 
-                    // Inicializar colecciones
-                    BaseModules = new List<string>(),
-                    AdditionalModules = new List<string>(),
+                    // Inicializar colección
                     AdminRoleNames = new List<string>(),
                 };
 
@@ -123,6 +120,7 @@ public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, ApiRes
 
             if (company == null)
             {
+                _logger.LogWarning("Company not found: {CompanyId}", request.Id);
                 return new ApiResponse<CompanyDTO>(false, "Company not found", null!);
             }
 
@@ -136,8 +134,11 @@ public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, ApiRes
             var roles = await rolesQuery.ToListAsync(cancellationToken);
             company.AdminRoleNames = roles;
 
-            // Obtener módulos de la company
-            await PopulateCompanyModulesAsync(company, cancellationToken);
+            _logger.LogInformation(
+                "Retrieved company successfully: {CompanyId}, ServiceLevel: {ServiceLevel}",
+                company.Id,
+                company.ServiceLevel
+            );
 
             return new ApiResponse<CompanyDTO>(true, "Company retrieved successfully", company);
         }
@@ -151,23 +152,5 @@ public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, ApiRes
             );
             return new ApiResponse<CompanyDTO>(false, ex.Message, null!);
         }
-    }
-
-    private async Task PopulateCompanyModulesAsync(CompanyDTO company, CancellationToken ct)
-    {
-        var modulesQuery =
-            from cm in _dbContext.CustomModules
-            join cp in _dbContext.CustomPlans on cm.CustomPlanId equals cp.Id
-            join m in _dbContext.Modules on cm.ModuleId equals m.Id
-            where cp.CompanyId == company.Id && cm.IsIncluded
-            select new { ModuleName = m.Name, HasService = m.ServiceId != null };
-
-        var modules = await modulesQuery.ToListAsync(ct);
-
-        company.BaseModules = modules.Where(m => m.HasService).Select(m => m.ModuleName).ToList();
-        company.AdditionalModules = modules
-            .Where(m => !m.HasService)
-            .Select(m => m.ModuleName)
-            .ToList();
     }
 }

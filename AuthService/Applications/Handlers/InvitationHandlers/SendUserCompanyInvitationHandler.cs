@@ -1,9 +1,9 @@
 using Applications.Common;
+using AuthService.Applications.Common;
 using AuthService.Commands.InvitationCommands;
 using AuthService.Domains.Invitations;
 using AuthService.DTOs.InvitationDTOs;
 using AuthService.Infraestructure.Services;
-using AutoMapper;
 using Common;
 using Infraestructure.Context;
 using MediatR;
@@ -21,15 +21,13 @@ public class SendUserInvitationHandler
     private readonly IInvitationTokenService _invitationTokenService;
     private readonly IEventBus _eventBus;
     private readonly LinkBuilder _linkBuilder;
-    private readonly IMapper _mapper;
 
     public SendUserInvitationHandler(
         ApplicationDbContext dbContext,
         ILogger<SendUserInvitationHandler> logger,
         IInvitationTokenService invitationTokenService,
         IEventBus eventBus,
-        LinkBuilder linkBuilder,
-        IMapper mapper
+        LinkBuilder linkBuilder
     )
     {
         _dbContext = dbContext;
@@ -37,7 +35,6 @@ public class SendUserInvitationHandler
         _invitationTokenService = invitationTokenService;
         _eventBus = eventBus;
         _linkBuilder = linkBuilder;
-        _mapper = mapper;
     }
 
     public async Task<ApiResponse<InvitationDTO>> Handle(
@@ -51,180 +48,79 @@ public class SendUserInvitationHandler
         {
             var invitation = request.Invitation;
 
-            // 1. Verificar que el usuario que envía la invitación existe y tiene permisos
-            var invitingUserQuery =
-                from u in _dbContext.TaxUsers
-                where u.Id == request.InvitedByUserId && u.CompanyId == invitation.CompanyId
-                select new
-                {
-                    u.Id,
-                    u.Email,
-                    u.Name,
-                    u.LastName,
-                    u.IsOwner,
-                    u.IsActive,
-                    CompanyId = u.CompanyId,
-                };
-
-            var invitingUser = await invitingUserQuery.FirstOrDefaultAsync(cancellationToken);
-            if (invitingUser == null)
-            {
-                _logger.LogWarning(
-                    "User not found or doesn't belong to company: UserId={UserId}, CompanyId={CompanyId}",
-                    request.InvitedByUserId,
-                    invitation.CompanyId
-                );
-                return new ApiResponse<InvitationDTO>(
-                    false,
-                    "User not found or insufficient permissions",
-                    null!
-                );
-            }
-
-            if (!invitingUser.IsActive)
-            {
-                _logger.LogWarning(
-                    "Inactive user trying to send invitation: UserId={UserId}",
-                    request.InvitedByUserId
-                );
-                return new ApiResponse<InvitationDTO>(false, "User account is inactive", null!);
-            }
-
-            // 2. Verificar información de la company y límites
-            var companyLimitQuery =
-                from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
-                where c.Id == invitation.CompanyId
-                select new
-                {
-                    CompanyId = c.Id,
-                    c.CompanyName,
-                    c.FullName,
-                    c.Domain,
-                    c.IsCompany,
-                    CustomPlanId = cp.Id,
-                    CustomPlanIsActive = cp.IsActive,
-                    UserLimit = cp.UserLimit,
-                    CurrentActiveUsers = _dbContext.TaxUsers.Count(u =>
-                        u.CompanyId == invitation.CompanyId && u.IsActive
-                    ),
-                    PendingInvitations = _dbContext.Invitations.Count(i =>
-                        i.CompanyId == invitation.CompanyId
-                        && i.Status == InvitationStatus.Pending
-                        && i.ExpiresAt > DateTime.UtcNow
-                    ),
-                };
-
-            var companyLimits = await companyLimitQuery.FirstOrDefaultAsync(cancellationToken);
-            if (companyLimits == null)
-            {
-                _logger.LogWarning("Company not found: {CompanyId}", invitation.CompanyId);
-                return new ApiResponse<InvitationDTO>(false, "Company not found", null!);
-            }
-
-            if (!companyLimits.CustomPlanIsActive)
-            {
-                _logger.LogWarning("Company plan is inactive: {CompanyId}", invitation.CompanyId);
-                return new ApiResponse<InvitationDTO>(false, "Company plan is inactive", null!);
-            }
-
-            // 3. VALIDAR LÍMITES: current users + pending invitations no debe exceder user limit
-            var totalCommittedSlots =
-                companyLimits.CurrentActiveUsers + companyLimits.PendingInvitations;
-            if (totalCommittedSlots >= companyLimits.UserLimit)
-            {
-                _logger.LogWarning(
-                    "User limit exceeded for company: {CompanyId}. "
-                        + "Active users: {ActiveUsers}, Pending invitations: {PendingInvitations}, Limit: {UserLimit}",
-                    invitation.CompanyId,
-                    companyLimits.CurrentActiveUsers,
-                    companyLimits.PendingInvitations,
-                    companyLimits.UserLimit
-                );
-                return new ApiResponse<InvitationDTO>(
-                    false,
-                    $"User limit exceeded. Active users: {companyLimits.CurrentActiveUsers}, "
-                        + $"Pending invitations: {companyLimits.PendingInvitations}, Limit: {companyLimits.UserLimit}",
-                    null!
-                );
-            }
-
-            // 4. Verificar que el email no esté ya registrado
-            var emailExists = await _dbContext.TaxUsers.AnyAsync(
-                u => u.Email == invitation.Email,
+            // 1. Verificar usuario que envía la invitación
+            var invitingUserValidation = await ValidateInvitingUserAsync(
+                request.InvitedByUserId,
+                invitation.CompanyId,
                 cancellationToken
             );
 
-            if (emailExists)
+            if (!invitingUserValidation.IsValid)
             {
-                _logger.LogWarning("Email already registered: {Email}", invitation.Email);
-                return new ApiResponse<InvitationDTO>(
-                    false,
-                    "Email already registered in the system",
-                    null!
-                );
+                return new ApiResponse<InvitationDTO>(false, invitingUserValidation.Message, null!);
             }
 
-            // 5. Verificar que no exista una invitación pendiente para este email en esta company
-            var pendingInvitationExists = await _dbContext.Invitations.AnyAsync(
-                i =>
-                    i.CompanyId == invitation.CompanyId
-                    && i.Email == invitation.Email
-                    && i.Status == InvitationStatus.Pending
-                    && i.ExpiresAt > DateTime.UtcNow,
+            var invitingUser = invitingUserValidation.User!;
+
+            // 2. Verificar información de la company
+            var companyValidation = await ValidateCompanyAsync(
+                invitation.CompanyId,
                 cancellationToken
             );
 
-            if (pendingInvitationExists)
+            if (!companyValidation.IsValid)
             {
-                _logger.LogWarning(
-                    "Pending invitation already exists: Email={Email}, CompanyId={CompanyId}",
-                    invitation.Email,
-                    invitation.CompanyId
-                );
-                return new ApiResponse<InvitationDTO>(
-                    false,
-                    "A pending invitation already exists for this email",
-                    null!
-                );
+                return new ApiResponse<InvitationDTO>(false, companyValidation.Message, null!);
             }
 
-            // 6. Validar roles si se especifican
+            var companyInfo = companyValidation.CompanyInfo!;
+
+            // 3. Validaciones básicas de invitación
+            var basicValidation = await PerformBasicInvitationValidationAsync(
+                invitation,
+                companyInfo,
+                cancellationToken
+            );
+
+            if (!basicValidation.IsValid)
+            {
+                return new ApiResponse<InvitationDTO>(false, basicValidation.Message, null!);
+            }
+
+            // 4. Logging de procesamiento
+            _logger.LogInformation(
+                "Processing invitation for company {CompanyId} (ServiceLevel: {ServiceLevel}). "
+                    + "Current users: {ActiveUsers}, Pending invitations: {PendingInvitations}",
+                invitation.CompanyId,
+                companyInfo.ServiceLevel,
+                companyInfo.CurrentActiveUsers,
+                companyInfo.PendingInvitations
+            );
+
+            // 5. Validar roles si se especifican
             if (invitation.RoleIds?.Any() == true)
             {
-                var validRoleCount = await _dbContext.Roles.CountAsync(
-                    r =>
-                        invitation.RoleIds.Contains(r.Id)
-                        && !r.Name.Contains("Administrator")
-                        && !r.Name.Contains("Developer"),
+                var roleValidation = await ValidateRolesForInvitationAsync(
+                    invitation.RoleIds,
+                    companyInfo.ServiceLevel,
                     cancellationToken
                 );
 
-                if (validRoleCount != invitation.RoleIds.Count)
+                if (!roleValidation.IsValid)
                 {
-                    _logger.LogWarning(
-                        "Invalid role IDs in invitation: {RoleIds}",
-                        string.Join(", ", invitation.RoleIds)
-                    );
-                    return new ApiResponse<InvitationDTO>(
-                        false,
-                        "Some specified roles are invalid or not allowed",
-                        null!
-                    );
+                    return new ApiResponse<InvitationDTO>(false, roleValidation.Message, null!);
                 }
             }
 
-            // 7. Generar token de invitación
+            // 6. Generar token y crear invitación
             var (token, expiration) = _invitationTokenService.GenerateInvitation(
                 invitation.CompanyId,
                 invitation.Email,
                 invitation.RoleIds
             );
 
-            // 8. Construir link de invitación
             var invitationLink = _linkBuilder.BuildInvitationLink(request.Origin, token);
 
-            // 9. Crear registro de invitación
             var invitationEntity = new Invitation
             {
                 Id = Guid.NewGuid(),
@@ -254,17 +150,19 @@ public class SendUserInvitationHandler
 
             await transaction.CommitAsync(cancellationToken);
 
+            // 7. Logging de éxito
             _logger.LogInformation(
-                "Invitation created successfully: Id={InvitationId}, Email={Email}, CompanyId={CompanyId}, "
+                "Invitation created successfully: Id={InvitationId}, Email={Email}, CompanyId={CompanyId} (ServiceLevel: {ServiceLevel}), "
                     + "InvitedBy={InvitedByUserId}, Expires={ExpiresAt}",
                 invitationEntity.Id,
                 invitation.Email,
                 invitation.CompanyId,
+                companyInfo.ServiceLevel,
                 request.InvitedByUserId,
                 expiration
             );
 
-            // 10. Publicar evento para envío de email
+            // 8. Publicar evento para envío de email
             _eventBus.Publish(
                 new UserInvitationSentEvent(
                     Id: Guid.NewGuid(),
@@ -273,46 +171,21 @@ public class SendUserInvitationHandler
                     Email: invitation.Email,
                     InvitationLink: invitationLink,
                     ExpiresAt: expiration,
-                    CompanyName: companyLimits.CompanyName,
-                    CompanyFullName: companyLimits.FullName,
-                    CompanyDomain: companyLimits.Domain,
-                    IsCompany: companyLimits.IsCompany,
+                    CompanyName: companyInfo.CompanyName,
+                    CompanyFullName: companyInfo.CompanyFullName,
+                    CompanyDomain: companyInfo.CompanyDomain,
+                    IsCompany: companyInfo.IsCompany,
                     PersonalMessage: invitation.PersonalMessage
                 )
             );
 
-            // 11. Preparar DTO de respuesta con información completa
-            var responseDto = new InvitationDTO
-            {
-                Id = invitationEntity.Id,
-                CompanyId = invitation.CompanyId,
-                InvitedByUserId = request.InvitedByUserId,
-                Email = invitation.Email,
-                Token = token,
-                ExpiresAt = expiration,
-                Status = InvitationStatus.Pending,
-                PersonalMessage = invitation.PersonalMessage,
-                RoleIds = invitation.RoleIds ?? new List<Guid>(),
-                CreatedAt = invitationEntity.CreatedAt,
-                InvitationLink = invitationLink,
-                IpAddress = request.IpAddress,
-                UserAgent = request.UserAgent,
-
-                // Información del usuario que invitó
-                InvitedByUserName = invitingUser.Name ?? string.Empty,
-                InvitedByUserLastName = invitingUser.LastName ?? string.Empty,
-                InvitedByUserEmail = invitingUser.Email,
-                InvitedByUserIsOwner = invitingUser.IsOwner,
-
-                // Información de la company
-                CompanyName = companyLimits.CompanyName,
-                CompanyFullName = companyLimits.FullName,
-                CompanyDomain = companyLimits.Domain,
-                CompanyIsCompany = companyLimits.IsCompany,
-
-                // RoleNames se pueden agregar aquí si es necesario
-                RoleNames = new List<string>(), // Se puede poblar con otra consulta si se necesita
-            };
+            // 9. Preparar respuesta
+            var responseDto = await BuildInvitationResponseAsync(
+                invitationEntity,
+                invitingUser,
+                companyInfo,
+                cancellationToken
+            );
 
             return new ApiResponse<InvitationDTO>(
                 true,
@@ -324,7 +197,282 @@ public class SendUserInvitationHandler
         {
             await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error sending invitation: {Message}", ex.Message);
-            return new ApiResponse<InvitationDTO>(false, ex.Message, null!);
+            return new ApiResponse<InvitationDTO>(false, "Error sending invitation", null!);
         }
     }
+
+    #region Helper Methods
+
+    private async Task<(
+        bool IsValid,
+        string Message,
+        InvitingUserInfo? User
+    )> ValidateInvitingUserAsync(Guid userId, Guid companyId, CancellationToken cancellationToken)
+    {
+        var invitingUserQuery =
+            from u in _dbContext.TaxUsers
+            where u.Id == userId && u.CompanyId == companyId
+            select new InvitingUserInfo
+            {
+                Id = u.Id,
+                Email = u.Email,
+                Name = u.Name,
+                LastName = u.LastName,
+                IsOwner = u.IsOwner,
+                IsActive = u.IsActive,
+                CompanyId = u.CompanyId,
+            };
+
+        var invitingUser = await invitingUserQuery.FirstOrDefaultAsync(cancellationToken);
+
+        if (invitingUser == null)
+        {
+            _logger.LogWarning(
+                "User not found or doesn't belong to company: UserId={UserId}, CompanyId={CompanyId}",
+                userId,
+                companyId
+            );
+            return (false, "User not found or insufficient permissions", null);
+        }
+
+        if (!invitingUser.IsActive)
+        {
+            _logger.LogWarning("Inactive user trying to send invitation: UserId={UserId}", userId);
+            return (false, "User account is inactive", null);
+        }
+
+        return (true, "User validation passed", invitingUser);
+    }
+
+    private async Task<(
+        bool IsValid,
+        string Message,
+        CompanyInfo? CompanyInfo
+    )> ValidateCompanyAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var companyInfoQuery =
+            from c in _dbContext.Companies
+            where c.Id == companyId
+            select new CompanyInfo
+            {
+                CompanyId = c.Id,
+                CompanyName = c.CompanyName,
+                CompanyFullName = c.FullName,
+                CompanyDomain = c.Domain,
+                IsCompany = c.IsCompany,
+                ServiceLevel = c.ServiceLevel,
+                CurrentActiveUsers = _dbContext.TaxUsers.Count(u =>
+                    u.CompanyId == companyId && u.IsActive
+                ),
+                OwnerCount = _dbContext.TaxUsers.Count(u =>
+                    u.CompanyId == companyId && u.IsOwner && u.IsActive
+                ),
+                PendingInvitations = _dbContext.Invitations.Count(i =>
+                    i.CompanyId == companyId
+                    && i.Status == InvitationStatus.Pending
+                    && i.ExpiresAt > DateTime.UtcNow
+                ),
+            };
+
+        var companyInfo = await companyInfoQuery.FirstOrDefaultAsync(cancellationToken);
+
+        if (companyInfo == null)
+        {
+            _logger.LogWarning("Company not found: {CompanyId}", companyId);
+            return (false, "Company not found", null);
+        }
+
+        if (companyInfo.OwnerCount == 0)
+        {
+            _logger.LogWarning("Company has no active owners: {CompanyId}", companyId);
+            return (false, "Company has no active administrators", null);
+        }
+
+        return (true, "Company validation passed", companyInfo);
+    }
+
+    private async Task<(bool IsValid, string Message)> PerformBasicInvitationValidationAsync(
+        NewInvitationDTO invitation,
+        CompanyInfo companyInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        // 1. Verificar que el email no esté ya registrado
+        var emailExists = await _dbContext.TaxUsers.AnyAsync(
+            u => u.Email == invitation.Email,
+            cancellationToken
+        );
+
+        if (emailExists)
+        {
+            _logger.LogWarning("Email already registered: {Email}", invitation.Email);
+            return (false, "Email already registered in the system");
+        }
+
+        // 2. Verificar que no exista una invitación pendiente
+        var pendingInvitationExists = await _dbContext.Invitations.AnyAsync(
+            i =>
+                i.CompanyId == invitation.CompanyId
+                && i.Email == invitation.Email
+                && i.Status == InvitationStatus.Pending
+                && i.ExpiresAt > DateTime.UtcNow,
+            cancellationToken
+        );
+
+        if (pendingInvitationExists)
+        {
+            _logger.LogWarning(
+                "Pending invitation already exists: Email={Email}, CompanyId={CompanyId}",
+                invitation.Email,
+                invitation.CompanyId
+            );
+            return (false, "A pending invitation already exists for this email");
+        }
+
+        // 3. Validación básica de límite interno (anti-spam)
+        const int MAX_PENDING_INVITATIONS = 50;
+        if (companyInfo.PendingInvitations >= MAX_PENDING_INVITATIONS)
+        {
+            _logger.LogWarning(
+                "Too many pending invitations for company: {CompanyId}, Count: {Count}",
+                invitation.CompanyId,
+                companyInfo.PendingInvitations
+            );
+            return (
+                false,
+                $"Too many pending invitations ({companyInfo.PendingInvitations}). Please wait for some to be accepted or expire."
+            );
+        }
+
+        return (true, "Basic validation passed");
+    }
+
+    private async Task<(bool IsValid, string Message)> ValidateRolesForInvitationAsync(
+        ICollection<Guid> roleIds,
+        ServiceLevel companyServiceLevel,
+        CancellationToken cancellationToken
+    )
+    {
+        var rolesQuery =
+            from r in _dbContext.Roles
+            where roleIds.Contains(r.Id)
+            select new
+            {
+                r.Id,
+                r.Name,
+                r.ServiceLevel,
+            };
+
+        var roles = await rolesQuery.ToListAsync(cancellationToken);
+
+        if (roles.Count != roleIds.Count)
+        {
+            _logger.LogWarning("Some role IDs not found: {RoleIds}", string.Join(", ", roleIds));
+            return (false, "Some specified roles were not found");
+        }
+
+        foreach (var role in roles)
+        {
+            // No permitir roles de Administrator o Developer en invitaciones
+            if (role.Name.Contains("Administrator") || role.Name.Contains("Developer"))
+            {
+                _logger.LogWarning(
+                    "Attempted to assign restricted role via invitation: {RoleName}",
+                    role.Name
+                );
+                return (false, $"Role '{role.Name}' cannot be assigned via invitation");
+            }
+
+            // Validar ServiceLevel
+            if (role.ServiceLevel.HasValue && role.ServiceLevel > companyServiceLevel)
+            {
+                return (
+                    false,
+                    $"Role '{role.Name}' requires {role.ServiceLevel} service level, but company has {companyServiceLevel}"
+                );
+            }
+        }
+
+        return (true, "Role validation passed");
+    }
+
+    private async Task<InvitationDTO> BuildInvitationResponseAsync(
+        Invitation invitationEntity,
+        InvitingUserInfo invitingUser,
+        CompanyInfo companyInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        // Obtener nombres de roles si se especificaron
+        var roleNames = new List<string>();
+        if (invitationEntity.RoleIds?.Any() == true)
+        {
+            roleNames = await _dbContext
+                .Roles.Where(r => invitationEntity.RoleIds.Contains(r.Id))
+                .Select(r => r.Name)
+                .ToListAsync(cancellationToken);
+        }
+
+        return new InvitationDTO
+        {
+            Id = invitationEntity.Id,
+            CompanyId = invitationEntity.CompanyId,
+            InvitedByUserId = invitationEntity.InvitedByUserId,
+            Email = invitationEntity.Email,
+            Token = invitationEntity.Token,
+            ExpiresAt = invitationEntity.ExpiresAt,
+            Status = invitationEntity.Status,
+            PersonalMessage = invitationEntity.PersonalMessage,
+            RoleIds = invitationEntity.RoleIds ?? new List<Guid>(),
+            CreatedAt = invitationEntity.CreatedAt,
+            InvitationLink = invitationEntity.InvitationLink,
+            IpAddress = invitationEntity.IpAddress,
+            UserAgent = invitationEntity.UserAgent,
+
+            // Información del usuario que invitó
+            InvitedByUserName = invitingUser.Name ?? string.Empty,
+            InvitedByUserLastName = invitingUser.LastName ?? string.Empty,
+            InvitedByUserEmail = invitingUser.Email,
+            InvitedByUserIsOwner = invitingUser.IsOwner,
+
+            // Información de la company
+            CompanyName = companyInfo.CompanyName,
+            CompanyFullName = companyInfo.CompanyFullName,
+            CompanyDomain = companyInfo.CompanyDomain,
+            CompanyIsCompany = companyInfo.IsCompany,
+            CompanyServiceLevel = companyInfo.ServiceLevel,
+
+            RoleNames = roleNames,
+        };
+    }
+
+    #endregion
+
+    #region Helper Classes
+
+    private class InvitingUserInfo
+    {
+        public Guid Id { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string? Name { get; set; }
+        public string? LastName { get; set; }
+        public bool IsOwner { get; set; }
+        public bool IsActive { get; set; }
+        public Guid CompanyId { get; set; }
+    }
+
+    private class CompanyInfo
+    {
+        public Guid CompanyId { get; set; }
+        public string? CompanyName { get; set; }
+        public string? CompanyFullName { get; set; }
+        public string? CompanyDomain { get; set; }
+        public bool IsCompany { get; set; }
+        public ServiceLevel ServiceLevel { get; set; }
+        public int CurrentActiveUsers { get; set; }
+        public int OwnerCount { get; set; }
+        public int PendingInvitations { get; set; }
+    }
+
+    #endregion
 }

@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 80
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["SubscriptionsService/SubscriptionsService.csproj", "SubscriptionsService/"]
+COPY ["SharedLibrary/SharedLibrary.csproj", "SharedLibrary/"]
+RUN dotnet restore "SubscriptionsService/SubscriptionsService.csproj"
+COPY . .
+WORKDIR "/src/SubscriptionsService"
+RUN dotnet build "SubscriptionsService.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "SubscriptionsService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+
+ENTRYPOINT ["dotnet", "SubscriptionsService.dll"]

@@ -1,3 +1,4 @@
+using AuthService.Applications.Common;
 using AuthService.DTOs.UserDTOs;
 using Common;
 using Infraestructure.Context;
@@ -25,16 +26,14 @@ public class GetUserStatsHandler : IRequestHandler<GetUserStatsQuery, ApiRespons
     {
         try
         {
-            // Usar CustomPlan.UserLimit directamente
+            // Query simplificado - solo datos de AuthService
             var statsQuery =
                 from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where c.Id == request.CompanyId
                 select new
                 {
                     Company = c,
-                    CustomPlan = cp,
-                    // User counts - MEJORADO
+                    // Conteos de usuarios (disponibles en AuthService)
                     TotalUsers = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id),
                     ActiveUsers = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id && u.IsActive),
                     OwnerCount = _dbContext.TaxUsers.Count(u => u.CompanyId == c.Id && u.IsOwner),
@@ -44,9 +43,7 @@ public class GetUserStatsHandler : IRequestHandler<GetUserStatsQuery, ApiRespons
                     ConfirmedUsers = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == c.Id && u.Confirm == true
                     ),
-                    // Usar CustomPlan.UserLimit directamente
-                    PlanUserLimit = cp.UserLimit,
-                    // Last user created
+                    // Último usuario creado
                     LastUserCreated = _dbContext.TaxUsers.Where(u => u.CompanyId == c.Id).Any()
                         ? _dbContext.TaxUsers.Where(u => u.CompanyId == c.Id).Max(u => u.CreatedAt)
                         : DateTime.MinValue,
@@ -58,7 +55,7 @@ public class GetUserStatsHandler : IRequestHandler<GetUserStatsQuery, ApiRespons
                 return new ApiResponse<UserStatsDTO>(false, "Company not found", null!);
             }
 
-            // Users by role query (sin cambios)
+            // Users by role query
             var usersByRoleQuery =
                 from u in _dbContext.TaxUsers
                 join ur in _dbContext.UserRoles on u.Id equals ur.TaxUserId
@@ -73,10 +70,13 @@ public class GetUserStatsHandler : IRequestHandler<GetUserStatsQuery, ApiRespons
                 cancellationToken
             );
 
-            // Lógica de estadísticas mejorada
+            // Estadísticas enfocadas en AuthService
             var stats = new UserStatsDTO
             {
                 CompanyId = request.CompanyId,
+                CompanyServiceLevel = statsData.Company.ServiceLevel, // NUEVO
+
+                // Conteos de usuarios (disponibles en AuthService)
                 TotalUsers = statsData.TotalUsers,
                 ActiveUsers = statsData.ActiveUsers,
                 InactiveUsers = statsData.TotalUsers - statsData.ActiveUsers,
@@ -85,33 +85,19 @@ public class GetUserStatsHandler : IRequestHandler<GetUserStatsQuery, ApiRespons
                 ConfirmedUsers = statsData.ConfirmedUsers,
                 PendingConfirmation = statsData.TotalUsers - statsData.ConfirmedUsers,
 
-                // Usar CustomPlan.UserLimit como autoridad
-                PlanUserLimit = statsData.PlanUserLimit,
-
-                // Calcular slots disponibles considerando todos los usuarios activos
-                AvailableSlots = Math.Max(0, statsData.PlanUserLimit - statsData.ActiveUsers),
-
-                // Información adicional útil
-                IsWithinLimits = statsData.ActiveUsers <= statsData.PlanUserLimit,
-                UsagePercentage =
-                    statsData.PlanUserLimit > 0
-                        ? (int)
-                            Math.Round(
-                                (double)statsData.ActiveUsers / statsData.PlanUserLimit * 100
-                            )
-                        : 0,
-
                 UsersByRole = usersByRole,
                 LastUserCreated = statsData.LastUserCreated,
+
+                // REMOVIDO - información de límites del plan (responsabilidad del frontend)
+                // PlanUserLimit, AvailableSlots, IsWithinLimits, UsagePercentage
             };
 
             _logger.LogInformation(
-                "User stats retrieved for company {CompanyId}: {Active}/{Total} users, Limit: {Limit}, Available: {Available}",
+                "User stats retrieved for company {CompanyId} (ServiceLevel: {ServiceLevel}): {Active}/{Total} users",
                 request.CompanyId,
+                statsData.Company.ServiceLevel,
                 statsData.ActiveUsers,
-                statsData.TotalUsers,
-                statsData.PlanUserLimit,
-                stats.AvailableSlots
+                statsData.TotalUsers
             );
 
             return new ApiResponse<UserStatsDTO>(true, "Stats retrieved successfully", stats);

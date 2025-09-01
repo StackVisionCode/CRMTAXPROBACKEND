@@ -26,7 +26,7 @@ builder.Services.Configure<ReminderClientOptions>(builder.Configuration.GetSecti
 // HttpClient hacia el API Gateway (Ocelot)
 builder.Services.AddHttpClient<IReminderClient, ReminderClient>(client =>
 {
-    var baseUrl = builder.Configuration["ReminderClient:BaseUrl"] ?? "http://localhost:5000";
+    var baseUrl = builder.Configuration["ReminderClient:BaseUrl"] ?? "http://localhost";
     client.BaseAddress = new Uri(baseUrl);
 });
 

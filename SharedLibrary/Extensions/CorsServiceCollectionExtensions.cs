@@ -13,12 +13,13 @@ public static class CorsServiceCollectionExtensions
                 policy =>
                 {
                     policy
-                        .WithOrigins("http://localhost:4200",
-                        "http://app.taxprosuite.com",
-                        "https://app.taxprosuite.com",
+                        .WithOrigins(
+                        "http://go.taxprosuite.com",
+                        "https://go.taxprosuite.com",
                         "https://taxprosuite.com",
                         "https://www.taxprosuite.com",
-                        "http://taxprosuite.com")
+                        "http://taxprosuite.com"
+                )
                         // .AllowAnyOrigin()
                         .AllowAnyMethod()
                         .AllowAnyHeader()

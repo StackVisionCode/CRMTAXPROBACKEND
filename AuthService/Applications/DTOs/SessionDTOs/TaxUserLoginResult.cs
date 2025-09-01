@@ -1,3 +1,4 @@
+using AuthService.Applications.Common;
 using Common;
 
 namespace AuthService.DTOs.SessionDTOs;
@@ -14,13 +15,15 @@ public class TaxUserLoginResult
     public string? LastName { get; set; }
     public bool IsActive { get; set; }
     public bool IsConfirmed { get; set; }
-    public bool IsOwner { get; set; } // NUEVO: Indica si es el Owner/Administrator
+    public bool IsOwner { get; set; }
     public Guid CompanyId { get; set; }
     public string? CompanyName { get; set; }
     public string? CompanyFullName { get; set; }
     public string? CompanyDomain { get; set; }
     public bool IsCompany { get; set; }
-    public bool CompanyIsActive { get; set; } // NUEVO: Estado del CustomPlan
+    public ServiceLevel CompanyServiceLevel { get; set; }
+    public int CompanyOwnerCount { get; set; }
+    public bool CompanyIsOperational { get; set; }
 }
 
 /// <summary>

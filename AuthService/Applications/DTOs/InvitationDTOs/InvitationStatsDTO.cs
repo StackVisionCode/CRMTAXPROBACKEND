@@ -1,19 +1,25 @@
+using AuthService.Applications.Common;
+
 namespace AuthService.DTOs.InvitationDTOs;
 
 /// <summary>
-/// DTO con estadísticas de invitaciones de una company
+/// DTO con estadísticas de invitaciones basado en datos de AuthService
+/// El frontend debe combinar con datos de SubscriptionsService para límites completos
 /// </summary>
 public class InvitationStatsDTO
 {
     public Guid CompanyId { get; set; }
     public string? CompanyName { get; set; }
     public string? CompanyDomain { get; set; }
+    public ServiceLevel ServiceLevel { get; set; }
+    public bool IsCompany { get; set; }
 
-    // Límites del plan
-    public int CustomPlanUserLimit { get; set; }
+    // Estadísticas de usuarios (disponibles en AuthService)
     public int CurrentActiveUsers { get; set; }
+    public int CurrentTotalUsers { get; set; }
+    public int OwnerCount { get; set; }
 
-    // Estadísticas de invitaciones
+    // Estadísticas de invitaciones (disponibles en AuthService)
     public int TotalInvitationsSent { get; set; }
     public int PendingInvitations { get; set; }
     public int AcceptedInvitations { get; set; }
@@ -28,13 +34,16 @@ public class InvitationStatsDTO
 
     // Top usuarios que más invitan
     public List<InviterStats> TopInviters { get; set; } = new List<InviterStats>();
-    public int AvailableSlots => Math.Max(0, CustomPlanUserLimit - CurrentActiveUsers);
-    public int RemainingInvitationsAllowed => Math.Max(0, AvailableSlots - PendingInvitations);
-    public bool CanSendMoreInvitations => RemainingInvitationsAllowed > 0;
 
-    // Tasa de aceptación
+    // Propiedades calculadas con datos de AuthService
+    public int InactiveUsers => CurrentTotalUsers - CurrentActiveUsers;
     public decimal AcceptanceRate =>
         TotalInvitationsSent > 0 ? (decimal)AcceptedInvitations / TotalInvitationsSent * 100 : 0;
+    public bool HasActiveOwner => OwnerCount > 0;
+
+    // Metadata
+    public bool RequiresSubscriptionCheck { get; set; } = true;
+    public DateTime GeneratedAt { get; set; }
 }
 
 /// <summary>
@@ -53,6 +62,8 @@ public class InviterStats
     public int PendingInvitations { get; set; }
     public int CancelledInvitations { get; set; }
 
+    // Propiedades calculadas
+    public string FullName => $"{UserName} {UserLastName}".Trim();
     public decimal PersonalAcceptanceRate =>
         TotalInvitationsSent > 0 ? (decimal)AcceptedInvitations / TotalInvitationsSent * 100 : 0;
 }

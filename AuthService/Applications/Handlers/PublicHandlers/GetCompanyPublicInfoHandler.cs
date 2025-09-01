@@ -1,3 +1,4 @@
+using AuthService.Applications.Common;
 using Common;
 using DTOs.PublicDTOs;
 using Infraestructure.Context;
@@ -29,10 +30,9 @@ public class GetCompanyPublicInfoHandler
     {
         try
         {
-            // Query con información muy limitada para seguridad
+            // Query con información limitada para seguridad (sin CustomPlans)
             var companyQuery =
                 from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join owner in _dbContext.TaxUsers on c.Id equals owner.CompanyId
                 join a in _dbContext.Addresses on c.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
@@ -40,11 +40,7 @@ public class GetCompanyPublicInfoHandler
                 from s in states.DefaultIfEmpty()
                 join country in _dbContext.Countries on a.CountryId equals country.Id into countries
                 from country in countries.DefaultIfEmpty()
-                where
-                    c.Id == request.CompanyId
-                    && owner.IsOwner == true
-                    && owner.IsActive == true
-                    && cp.IsActive == true // Solo compañías activas
+                where c.Id == request.CompanyId && owner.IsOwner == true && owner.IsActive == true
                 select new CompanyPublicInfoDTO
                 {
                     Id = c.Id,
@@ -55,13 +51,18 @@ public class GetCompanyPublicInfoHandler
                     City = a != null ? a.City : null,
                     State = s != null ? s.Name : null,
                     CountryName = country != null ? country.Name : null,
+
+                    // Información del owner
                     OwnerId = owner.Id,
                     OwnerName = owner.Name,
                     OwnerLastName = owner.LastName,
                     OwnerPhotoUrl = owner.PhotoUrl,
                     OwnerIsActive = owner.IsActive,
-                    HasActivePlan = cp.IsActive,
-                    PlanType = DeterminePlanTypeByUserLimit(cp.UserLimit), // Método helper
+
+                    // Información del plan basada en ServiceLevel
+                    ServiceLevel = c.ServiceLevel,
+                    HasActivePlan = true, // Si existe en AuthService y tiene owner activo, está operativa
+                    PlanType = DeterminePlanTypeByServiceLevel(c.ServiceLevel),
                 };
 
             var company = await companyQuery.FirstOrDefaultAsync(cancellationToken);
@@ -69,7 +70,7 @@ public class GetCompanyPublicInfoHandler
             if (company == null)
             {
                 _logger.LogWarning(
-                    "Public info requested for non-existent or inactive Company: {CompanyId}",
+                    "Public info requested for non-existent Company: {CompanyId}",
                     request.CompanyId
                 );
                 return new ApiResponse<CompanyPublicInfoDTO>(
@@ -80,9 +81,10 @@ public class GetCompanyPublicInfoHandler
             }
 
             _logger.LogInformation(
-                "Public Company info retrieved: {CompanyId} - {CompanyName}",
+                "Public Company info retrieved: {CompanyId} - {CompanyName} (ServiceLevel: {ServiceLevel})",
                 request.CompanyId,
-                company.CompanyName
+                company.CompanyName,
+                company.ServiceLevel
             );
 
             return new ApiResponse<CompanyPublicInfoDTO>(
@@ -103,14 +105,15 @@ public class GetCompanyPublicInfoHandler
         }
     }
 
-    private static string DeterminePlanTypeByUserLimit(int userLimit)
+    private static string DeterminePlanTypeByServiceLevel(ServiceLevel serviceLevel)
     {
-        return userLimit switch
+        return serviceLevel switch
         {
-            1 => "Basic",
-            <= 4 => "Standard",
-            <= 5 => "Pro",
-            _ => "Enterprise",
+            ServiceLevel.Basic => "Basic",
+            ServiceLevel.Standard => "Standard",
+            ServiceLevel.Pro => "Professional",
+            ServiceLevel.Developer => "Enterprise", // No exponer "Developer" públicamente
+            _ => "Basic",
         };
     }
 }

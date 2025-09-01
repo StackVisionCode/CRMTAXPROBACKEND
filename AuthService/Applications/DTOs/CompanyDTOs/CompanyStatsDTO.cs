@@ -1,3 +1,4 @@
+using AuthService.Applications.Common;
 using AuthService.DTOs.UserDTOs;
 
 namespace AuthService.DTOs.CompanyDTOs;
@@ -11,6 +12,7 @@ public class CompanyStatsDTO
     public string? CompanyName { get; set; }
     public string? Domain { get; set; }
     public bool IsCompany { get; set; }
+    public ServiceLevel ServiceLevel { get; set; }
 
     // CAMBIO: Solo estadísticas de TaxUsers ahora
     public int TotalUsers { get; set; } // Total TaxUsers
@@ -18,15 +20,8 @@ public class CompanyStatsDTO
     public int OwnerCount { get; set; } = 1; // Siempre 1 Owner
     public int RegularUsers { get; set; } // TaxUsers que no son Owner
 
-    // Plan información
-    public decimal CustomPlanPrice { get; set; }
-    public bool CustomPlanIsActive { get; set; }
-    public int ServiceUserLimit { get; set; }
-    public bool IsWithinLimits { get; set; }
-
     // Actividad
     public int ActiveSessions { get; set; }
-
     public DateTime CreatedAt { get; set; }
 }
 
@@ -38,6 +33,7 @@ public class CompanyUsersCompleteDTO
     public Guid CompanyId { get; set; }
     public string? CompanyName { get; set; }
     public bool IsCompany { get; set; }
+    public ServiceLevel ServiceLevel { get; set; }
 
     // Solo TaxUsers ahora (incluyendo Owner y Users regulares)
     public List<UserGetDTO> Users { get; set; } = new();
@@ -47,10 +43,6 @@ public class CompanyUsersCompleteDTO
     public int TotalUsers => Users.Count;
     public int OwnerCount => Owner != null ? 1 : 0;
     public int RegularUsersCount => RegularUsers.Count;
-
-    // Plan limits
-    public int ServiceUserLimit { get; set; }
-    public bool IsWithinLimits => RegularUsersCount <= ServiceUserLimit;
 
     // Totales
     public int ActiveUsers => Users.Count(u => u.IsActive);

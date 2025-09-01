@@ -7,9 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Handlers.InvitationHandlers;
 
-/// <summary>
-/// Handler para obtener estadísticas de invitaciones de una company
-/// </summary>
 public class GetInvitationStatsHandler
     : IRequestHandler<GetInvitationStatsQuery, ApiResponse<InvitationStatsDTO>>
 {
@@ -36,19 +33,23 @@ public class GetInvitationStatsHandler
             var daysBack = request.DaysBack;
             var cutoffDate = DateTime.UtcNow.AddDays(-daysBack);
 
-            // 1. Información básica de la company y límites
+            // Información básica de la company (sin CustomPlans)
             var companyInfoQuery =
                 from c in _dbContext.Companies
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 where c.Id == companyId
                 select new
                 {
                     c.Id,
                     CompanyName = c.IsCompany ? c.CompanyName : c.FullName,
                     c.Domain,
-                    UserLimit = cp.UserLimit,
+                    c.ServiceLevel,
+                    c.IsCompany,
                     CurrentActiveUsers = _dbContext.TaxUsers.Count(u =>
                         u.CompanyId == companyId && u.IsActive
+                    ),
+                    CurrentTotalUsers = _dbContext.TaxUsers.Count(u => u.CompanyId == companyId),
+                    OwnerCount = _dbContext.TaxUsers.Count(u =>
+                        u.CompanyId == companyId && u.IsOwner && u.IsActive
                     ),
                 };
 
@@ -59,7 +60,7 @@ public class GetInvitationStatsHandler
                 return new ApiResponse<InvitationStatsDTO>(false, "Company not found", null!);
             }
 
-            // 2. Estadísticas generales de invitaciones
+            // Estadísticas generales de invitaciones por status
             var invitationStatsQuery =
                 from i in _dbContext.Invitations
                 where i.CompanyId == companyId
@@ -72,30 +73,21 @@ public class GetInvitationStatsHandler
                 cancellationToken
             );
 
-            // 3. Estadísticas por período de tiempo
+            // Estadísticas por período de tiempo
             var now = DateTime.UtcNow;
-            var last24Hours = now.AddDays(-1);
-            var last7Days = now.AddDays(-7);
-            var last30Days = now.AddDays(-30);
-
-            var timeBasedStats = await (
+            var timeBasedStatsQuery =
                 from i in _dbContext.Invitations
                 where i.CompanyId == companyId
                 select new
                 {
-                    InvitationId = i.Id,
-                    CreatedAt = i.CreatedAt,
-                    IsLast24Hours = i.CreatedAt >= last24Hours,
-                    IsLast7Days = i.CreatedAt >= last7Days,
-                    IsLast30Days = i.CreatedAt >= last30Days,
-                }
-            ).ToListAsync(cancellationToken);
+                    IsLast24Hours = i.CreatedAt >= now.AddDays(-1),
+                    IsLast7Days = i.CreatedAt >= now.AddDays(-7),
+                    IsLast30Days = i.CreatedAt >= now.AddDays(-30),
+                };
 
-            var invitationsLast24Hours = timeBasedStats.Count(x => x.IsLast24Hours);
-            var invitationsLast7Days = timeBasedStats.Count(x => x.IsLast7Days);
-            var invitationsLast30Days = timeBasedStats.Count(x => x.IsLast30Days);
+            var timeBasedStats = await timeBasedStatsQuery.ToListAsync(cancellationToken);
 
-            // 4. Top usuarios que más invitan
+            // Top usuarios que más invitan
             var topInvitersQuery =
                 from i in _dbContext.Invitations
                 join u in _dbContext.TaxUsers on i.InvitedByUserId equals u.Id
@@ -126,39 +118,38 @@ public class GetInvitationStatsHandler
                 .Take(10)
                 .ToListAsync(cancellationToken);
 
-            // 5. Construir resultado
+            // Construir resultado
             var totalInvitations = invitationStats.Values.Sum();
-            var pendingInvitations = invitationStats.GetValueOrDefault(InvitationStatus.Pending, 0);
-            var acceptedInvitations = invitationStats.GetValueOrDefault(
-                InvitationStatus.Accepted,
-                0
-            );
-            var cancelledInvitations = invitationStats.GetValueOrDefault(
-                InvitationStatus.Cancelled,
-                0
-            );
-            var expiredInvitations = invitationStats.GetValueOrDefault(InvitationStatus.Expired, 0);
-            var failedInvitations = invitationStats.GetValueOrDefault(InvitationStatus.Failed, 0);
-
             var result = new InvitationStatsDTO
             {
                 CompanyId = companyId,
                 CompanyName = companyInfo.CompanyName,
                 CompanyDomain = companyInfo.Domain,
+                ServiceLevel = companyInfo.ServiceLevel,
+                IsCompany = companyInfo.IsCompany,
 
-                CustomPlanUserLimit = companyInfo.UserLimit,
+                // Estadísticas de usuarios
                 CurrentActiveUsers = companyInfo.CurrentActiveUsers,
+                CurrentTotalUsers = companyInfo.CurrentTotalUsers,
+                OwnerCount = companyInfo.OwnerCount,
 
+                // Estadísticas de invitaciones
                 TotalInvitationsSent = totalInvitations,
-                PendingInvitations = pendingInvitations,
-                AcceptedInvitations = acceptedInvitations,
-                CancelledInvitations = cancelledInvitations,
-                ExpiredInvitations = expiredInvitations,
-                FailedInvitations = failedInvitations,
+                PendingInvitations = invitationStats.GetValueOrDefault(InvitationStatus.Pending, 0),
+                AcceptedInvitations = invitationStats.GetValueOrDefault(
+                    InvitationStatus.Accepted,
+                    0
+                ),
+                CancelledInvitations = invitationStats.GetValueOrDefault(
+                    InvitationStatus.Cancelled,
+                    0
+                ),
+                ExpiredInvitations = invitationStats.GetValueOrDefault(InvitationStatus.Expired, 0),
+                FailedInvitations = invitationStats.GetValueOrDefault(InvitationStatus.Failed, 0),
 
-                InvitationsLast24Hours = invitationsLast24Hours,
-                InvitationsLast7Days = invitationsLast7Days,
-                InvitationsLast30Days = invitationsLast30Days,
+                InvitationsLast24Hours = timeBasedStats.Count(x => x.IsLast24Hours),
+                InvitationsLast7Days = timeBasedStats.Count(x => x.IsLast7Days),
+                InvitationsLast30Days = timeBasedStats.Count(x => x.IsLast30Days),
 
                 TopInviters = topInviters
                     .Select(t => new InviterStats
@@ -174,13 +165,19 @@ public class GetInvitationStatsHandler
                         CancelledInvitations = t.Cancelled,
                     })
                     .ToList(),
+
+                RequiresSubscriptionCheck = true,
+                GeneratedAt = DateTime.UtcNow,
             };
 
-            _logger.LogDebug(
-                "Generated invitation stats for company {CompanyId}: {TotalInvitations} total, {PendingInvitations} pending",
+            _logger.LogInformation(
+                "Generated invitation stats for company {CompanyId} (ServiceLevel: {ServiceLevel}): "
+                    + "{TotalInvitations} total, {PendingInvitations} pending, {AcceptanceRate:F1}% acceptance rate",
                 companyId,
+                companyInfo.ServiceLevel,
                 totalInvitations,
-                pendingInvitations
+                result.PendingInvitations,
+                result.AcceptanceRate
             );
 
             return new ApiResponse<InvitationStatsDTO>(

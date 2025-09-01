@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AuthService.Applications.Common;
 
 namespace AuthService.DTOs.InvitationDTOs;
 
@@ -52,6 +53,7 @@ public class InvitationDTO
     public string? CompanyFullName { get; set; }
     public string? CompanyDomain { get; set; }
     public bool CompanyIsCompany { get; set; }
+    public ServiceLevel CompanyServiceLevel { get; set; }
 
     // Nombres de roles asignados
     public List<string> RoleNames { get; set; } = new List<string>();

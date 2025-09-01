@@ -1,4 +1,4 @@
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
 using AuthService.DTOs.UserDTOs;
 using Common;
 using Infraestructure.Context;
@@ -29,11 +29,10 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
     {
         try
         {
-            // Query mejorado con IsOwner y CustomPlan info
+            // Query con JOINs potentes - sin CustomPlans
             var userQuery =
                 from u in _dbContext.TaxUsers
                 join c in _dbContext.Companies on u.CompanyId equals c.Id
-                join cp in _dbContext.CustomPlans on c.CustomPlanId equals cp.Id
                 join a in _dbContext.Addresses on u.AddressId equals a.Id into addresses
                 from a in addresses.DefaultIfEmpty()
                 join country in _dbContext.Countries on a.CountryId equals country.Id into countries
@@ -48,6 +47,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                 from ccountry in companyCountries.DefaultIfEmpty()
                 join cstate in _dbContext.States on ca.StateId equals cstate.Id into companyStates
                 from cstate in companyStates.DefaultIfEmpty()
+                orderby u.IsOwner descending, u.CreatedAt descending // Owners primero
                 select new UserGetDTO
                 {
                     Id = u.Id,
@@ -78,12 +78,13 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                             }
                             : null,
 
-                    // Company info completa
+                    // Company info - disponible en AuthService
                     CompanyFullName = c.FullName,
                     CompanyName = c.CompanyName,
                     CompanyBrand = c.Brand,
                     CompanyIsIndividual = !c.IsCompany,
                     CompanyDomain = c.Domain,
+                    CompanyServiceLevel = c.ServiceLevel, // NUEVO
 
                     // Dirección de la company
                     CompanyAddress =
@@ -109,6 +110,7 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
 
             if (!users.Any())
             {
+                _logger.LogInformation("No tax users found");
                 return new ApiResponse<List<UserGetDTO>>(
                     true,
                     "No tax users found",
@@ -116,45 +118,8 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
                 );
             }
 
-            var userIds = users.Select(u => u.Id).ToList();
-
-            // Obtener roles por separado
-            var rolesQuery =
-                from ur in _dbContext.UserRoles
-                join r in _dbContext.Roles on ur.RoleId equals r.Id
-                where userIds.Contains(ur.TaxUserId)
-                select new { ur.TaxUserId, r.Name };
-
-            var userRoles = await rolesQuery.ToListAsync(cancellationToken);
-            var rolesByUser = userRoles
-                .GroupBy(x => x.TaxUserId)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
-
-            // Obtener permisos personalizados (CompanyPermissions)
-            var customPermissionsQuery =
-                from cp in _dbContext.CompanyPermissions
-                join p in _dbContext.Permissions on cp.PermissionId equals p.Id
-                where userIds.Contains(cp.TaxUserId) && cp.IsGranted
-                select new { cp.TaxUserId, p.Code };
-
-            var customPermissions = await customPermissionsQuery.ToListAsync(cancellationToken);
-            var permissionsByUser = customPermissions
-                .GroupBy(x => x.TaxUserId)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
-
-            // Asignar roles y permisos a usuarios
-            foreach (var user in users)
-            {
-                if (rolesByUser.TryGetValue(user.Id, out var roles))
-                {
-                    user.RoleNames = roles;
-                }
-
-                if (permissionsByUser.TryGetValue(user.Id, out var permissions))
-                {
-                    user.CustomPermissions = permissions;
-                }
-            }
+            // Obtener roles y permisos en consultas separadas
+            await PopulateUsersRolesAndPermissionsAsync(users, cancellationToken);
 
             _logger.LogInformation("Retrieved {Count} tax users successfully", users.Count);
             return new ApiResponse<List<UserGetDTO>>(
@@ -167,6 +132,52 @@ public class GetAllUserTaxHandler : IRequestHandler<GetAllUserQuery, ApiResponse
         {
             _logger.LogError(ex, "Error retrieving tax users: {Message}", ex.Message);
             return new ApiResponse<List<UserGetDTO>>(false, ex.Message, new List<UserGetDTO>());
+        }
+    }
+
+    private async Task PopulateUsersRolesAndPermissionsAsync(
+        List<UserGetDTO> users,
+        CancellationToken cancellationToken
+    )
+    {
+        var userIds = users.Select(u => u.Id).ToList();
+
+        // Obtener roles por separado
+        var rolesQuery =
+            from ur in _dbContext.UserRoles
+            join r in _dbContext.Roles on ur.RoleId equals r.Id
+            where userIds.Contains(ur.TaxUserId)
+            select new { ur.TaxUserId, r.Name };
+
+        var userRoles = await rolesQuery.ToListAsync(cancellationToken);
+        var rolesByUser = userRoles
+            .GroupBy(x => x.TaxUserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Name).ToList());
+
+        // Obtener permisos personalizados
+        var customPermissionsQuery =
+            from cp in _dbContext.CompanyPermissions
+            join p in _dbContext.Permissions on cp.PermissionId equals p.Id
+            where userIds.Contains(cp.TaxUserId) && cp.IsGranted
+            select new { cp.TaxUserId, p.Code };
+
+        var customPermissions = await customPermissionsQuery.ToListAsync(cancellationToken);
+        var permissionsByUser = customPermissions
+            .GroupBy(x => x.TaxUserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
+
+        // Asignar roles y permisos a usuarios
+        foreach (var user in users)
+        {
+            if (rolesByUser.TryGetValue(user.Id, out var roles))
+            {
+                user.RoleNames = roles;
+            }
+
+            if (permissionsByUser.TryGetValue(user.Id, out var permissions))
+            {
+                user.CustomPermissions = permissions;
+            }
         }
     }
 }

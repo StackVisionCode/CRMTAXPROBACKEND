@@ -1,7 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Applications.DTOs.CompanyDTOs;
-using AuthService.Applications.Common;
-using AuthService.DTOs.CustomModuleDTOs;
+using Applications.DTOs.AddressDTOs;
 
 namespace AuthService.Applications.DTOs.CompanyDTOs;
 

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Applications.DTOs.CompanyDTOs;
+using Applications.DTOs.AddressDTOs;
+using AuthService.Applications.Common;
 
 namespace AuthService.Applications.DTOs.CompanyDTOs;
 
@@ -16,20 +17,7 @@ public class CompanyDTO
     public string? Domain { get; set; }
     public AddressDTO? Address { get; set; }
     public DateTime CreatedAt { get; set; }
-
-    // Información del servicio base
-    public string? BaseServiceName { get; set; }
-    public string? BaseServiceTitle { get; set; }
-    public List<string> BaseServiceFeatures { get; set; } = new();
-    public decimal BaseServicePrice { get; set; }
-    public int BaseServiceUserLimit { get; set; }
-    public required Guid CustomPlanId { get; set; }
-    public decimal CustomPlanPrice { get; set; }
-    public int CustomPlanUserLimit { get; set; }
-    public bool CustomPlanIsActive { get; set; }
-    public DateTime? CustomPlanStartDate { get; set; }
-    public DateTime CustomPlanRenewDate { get; set; }
-    public bool CustomPlanIsRenewed { get; set; }
+    public ServiceLevel ServiceLevel { get; set; }
 
     // Info del TaxUser (admin)
     public Guid AdminUserId { get; set; }
@@ -45,9 +33,7 @@ public class CompanyDTO
 
     // Contadores
     public int CurrentTaxUserCount { get; set; } // Staff users
+    public int ActiveTaxUserCount { get; set; }
+    public int OwnerCount { get; set; }
     public int TotalUsers => CurrentTaxUserCount;
-
-    // Módulos disponibles
-    public ICollection<string> AdditionalModules { get; set; } = new List<string>();
-    public ICollection<string> BaseModules { get; set; } = new List<string>();
 }

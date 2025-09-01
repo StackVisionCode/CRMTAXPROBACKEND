@@ -3,7 +3,7 @@ namespace Infrastructure.Reminders;
 public sealed class ReminderClientOptions
 {
     // Apunta al API Gateway (Ocelot) o directo al ReminderService
-    public string BaseUrl { get; set; } = "http://localhost:5000";
+    public string BaseUrl { get; set; } = "http://localhost";
 
     // Upstream de Ocelot hacia ReminderService (ajústalo a tu gateway)
     public string EventsPathTemplate { get; set; } = "/reminders/api/reminders/events/{eventId}";
