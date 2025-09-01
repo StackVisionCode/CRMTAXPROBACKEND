@@ -1,6 +1,4 @@
 services:
-
-
   # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
     image: rabbitmq:3-management
@@ -22,29 +20,30 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
-  # --- Reddis --------------------------------------------------------------
+  # --- Redis --------------------------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: redis
-    command: [
-      "redis-server",
-      "--requirepass", "Brittany040238.",
-      "--appendonly", "yes",
-      "--appendfsync", "everysec",
-      "--maxmemory", "2048mb",
-      "--maxmemory-policy", "allkeys-lru",
-      "--tcp-keepalive", "60",
-      "--timeout", "300",
-      "--save", "900", "1",
-      "--save", "300", "10", 
-      "--save", "60", "10000",
-      "--rdbcompression", "yes",
-      "--rdbchecksum", "yes"
-    ]
+    command:
+      [
+        "redis-server",
+        "--requirepass", "Brittany040238.",
+        "--appendonly", "yes",
+        "--appendfsync", "everysec",
+        "--maxmemory", "2048mb",
+        "--maxmemory-policy", "allkeys-lru",
+        "--tcp-keepalive", "60",
+        "--timeout", "300",
+        "--save", "900", "1",
+        "--save", "300", "10",
+        "--save", "60", "10000",
+        "--rdbcompression", "yes",
+        "--rdbchecksum", "yes"
+      ]
     ports:
       - "6379:6379"
     volumes:
-      - redisdata:/data 
+      - redisdata:/data
     networks: [backend]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "Brittany040238.", "ping"]
@@ -74,7 +73,7 @@ services:
     networks: [backend]
     restart: unless-stopped
 
-  # --- API Gateway -----------------------------------------------------------
+  # --- API Gateway (SOLO red interna) ---------------------------------------
   apigateway:
     image: ${REGISTRY_PREFIX}-apigateway:${TAG}
     environment:
@@ -84,8 +83,9 @@ services:
       HybridCache__Redis__ConnectionString: "redis:6379"
       HybridCache__Redis__KeyPrefix: "gateway"
       HybridCache__Redis__Database: "0"
-    ports:
-      - "80:80"
+    # 👇 QUITAMOS la publicación al host (lo expone Nginx):
+    # ports:
+    #   - "80:80"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -123,7 +123,7 @@ services:
       HybridCache__Redis__Database: "1"
     depends_on:
       rabbitmq:
-        condition: service_healthy     
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks: [backend]
@@ -141,8 +141,7 @@ services:
         reservations:
           memory: 512M
 
-
-  # ---SMS Service ---------------------------------------------------------
+  # --- SMS Service -----------------------------------------------------------
   sms-service:
     image: ${REGISTRY_PREFIX}-sms-service:${TAG}
     environment:
@@ -150,9 +149,8 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       DB_SERVER: 10.128.3.20
       DB_USER: sa
-      DB_PASSWORD: "Brittany040238."  
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
-  
 
   # --- Calendar Service ------------------------------------------------------
   calendar-service:
@@ -162,10 +160,10 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       DB_SERVER: 10.128.3.20
       DB_USER: sa
-      DB_PASSWORD: "Brittany040238."    
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
-  #--reminder service
+  # --- Reminder Service ------------------------------------------------------
   reminder-service:
     image: ${REGISTRY_PREFIX}-reminder-service:${TAG}
     environment:
@@ -173,7 +171,7 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       DB_SERVER: 10.128.3.20
       DB_USER: sa
-      DB_PASSWORD: "Brittany040238."    
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
   # --- Customer Service ------------------------------------------------------
@@ -223,7 +221,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-          
       redis:
         condition: service_healthy
     networks: [backend]
@@ -235,7 +232,7 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # --- Auth Service ----------------------------------------------------------
+  # --- Signature Service -----------------------------------------------------
   signature-service:
     image: ${REGISTRY_PREFIX}-signature-service:${TAG}
     environment:
@@ -250,7 +247,8 @@ services:
       HybridCache__Redis__ConnectionString: "redis:6379"
       HybridCache__Redis__KeyPrefix: "signature"
       HybridCache__Redis__Database: "9"
-    depends_on: [rabbitmq]
+    depends_on:
+      - rabbitmq
     networks: [backend]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -260,8 +258,7 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # ---SMS Service ---------------------------------------------------------
-
+  # --- Subscription Service --------------------------------------------------
   subscription-service:
     image: ${REGISTRY_PREFIX}-subscription-service:${TAG}
     environment:
@@ -269,11 +266,10 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       DB_SERVER: 10.128.3.20
       DB_USER: sa
-      DB_PASSWORD: "Brittany040238."  
+      DB_PASSWORD: "Brittany040238."
     networks: [backend]
 
-  # ---SMS Service ---------------------------------------------------------
-
+  # --- Landing Service -------------------------------------------------------
   landing-service:
     image: ${REGISTRY_PREFIX}-landing-service:${TAG}
     environment:
@@ -281,11 +277,11 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       DB_SERVER: 10.128.3.20
       DB_USER: sa
-      DB_PASSWORD: "Brittany040238."  
+      DB_PASSWORD: "Brittany040238."
       HybridCache__Redis__ConnectionString: "redis:6379"
       HybridCache__Redis__KeyPrefix: "landing"
       HybridCache__Redis__Database: "10"
-    depends_on: 
+    depends_on:
       redis:
         condition: service_healthy
     networks: [backend]
@@ -297,10 +293,9 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # --- Migrators (Usan imágenes dedicadas) -----------------------------------
+  # --- Migrators (imágenes dedicadas) ---------------------------------------
   auth-migrator:
     image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
-  
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -317,7 +312,6 @@ services:
 
   calendar-migrator:
     image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
-
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -334,16 +328,14 @@ services:
 
   signature-migrator:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
-      
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
-      
+
   reminder-migrator:
     image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
-      
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -351,7 +343,7 @@ services:
     networks: [backend]
 
   sms-migrator:
-    image: ${REGISTRY_PREFIX}-sms-migrator:${TAG} 
+    image: ${REGISTRY_PREFIX}-sms-migrator:${TAG}
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -359,7 +351,7 @@ services:
     networks: [backend]
 
   subscription-migrator:
-    image: ${REGISTRY_PREFIX}-subscription-migrator:${TAG} 
+    image: ${REGISTRY_PREFIX}-subscription-migrator:${TAG}
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
@@ -367,12 +359,37 @@ services:
     networks: [backend]
 
   landing-migrator:
-    image: ${REGISTRY_PREFIX}-landing-migrator:${TAG} 
+    image: ${REGISTRY_PREFIX}-landing-migrator:${TAG}
     environment:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
     networks: [backend]
+
+  # --- NGINX Reverse Proxy (TLS Let's Encrypt del host) ---------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx
+    depends_on:
+      apigateway:
+        condition: service_healthy
+    networks: [backend]
+    ports:
+      - "80:80"
+      - "443:443"
+    # Montamos los certificados del host en solo lectura + conf propia
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/conf.d/api.taxprosuite.com.conf:/etc/nginx/conf.d/default.conf:ro
+      # (opcional) si generaste dhparam:
+      # - ./nginx/ssl/dhparam.pem:/etc/ssl/certs/dhparam.pem:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 # ────────────────────  volúmenes  ─────────────────────────
 volumes:
