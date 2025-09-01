@@ -8,6 +8,7 @@ using Serilog;
 using SharedLibrary.Extensions;
 using SharedLibrary.Logs;
 using SharedLibrary.Middleware;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -110,6 +111,14 @@ try
     // Configure middleware pipeline
     app.UseSerilogRequestLogging();
 
+    // --- MUY IMPORTANTE detrás de Nginx: respetar X-Forwarded-* ---
+    var fwd = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    };
+    // Permitimos los headers aunque vengan de otra red docker/host
+    fwd.KnownNetworks.Clear(); fwd.KnownProxies.Clear();
+    app.UseForwardedHeaders(fwd);
     // HEALTH CHECKS ENDPOINT
     app.MapHealthChecks(
         "/health",
@@ -142,7 +151,7 @@ try
     );
 
     app.UseHttpsRedirection();
-
+   
     app.UseAuthentication();
     app.UseSessionValidation();
 
