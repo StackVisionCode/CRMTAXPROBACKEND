@@ -195,8 +195,12 @@ try
         app.UseSwagger();
         app.UseSwaggerUI();
     }
+    else
+    {
+        app.UseHsts();
+        app.UseHttpsRedirection();
+    }
 
-    //app.UseHttpsRedirection();
 
     app.UseAuthentication();
     app.UseSessionValidation();
