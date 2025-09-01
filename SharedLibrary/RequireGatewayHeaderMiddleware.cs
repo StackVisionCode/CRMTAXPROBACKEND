@@ -103,10 +103,7 @@ namespace SharedLibrary
         };
 
         /* ------------------ WebSocket públicos (si tuvieras alguno) ------------------ */
-        private static readonly string[] PublicWebSockets =
-        {
-            // Ejemplo: "/ws/public"
-        };
+        private static readonly string[] PublicWebSockets = { "/ws" };
 
         public RequireGatewayHeaderMiddleware(RequestDelegate next) => _next = next;
 
