@@ -406,11 +406,11 @@
 
         {
             "DownstreamPathTemplate": "/ws",
-            "DownstreamScheme": "ws",
+            "DownstreamScheme": "wss",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/ws",
