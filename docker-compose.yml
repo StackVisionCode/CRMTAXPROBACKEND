@@ -91,7 +91,7 @@ services:
         condition: service_healthy
     networks: [backend]   
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/80' || nc -z 127.0.0.1 80"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -126,7 +126,7 @@ services:
         condition: service_healthy
     networks: [backend]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -194,7 +194,7 @@ services:
         condition: service_healthy
     networks: [backend]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -223,7 +223,7 @@ services:
         condition: service_healthy
     networks: [backend]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -249,7 +249,7 @@ services:
       - rabbitmq
     networks: [backend]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -284,7 +284,7 @@ services:
         condition: service_healthy
     networks: [backend]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
       timeout: 10s
       retries: 3

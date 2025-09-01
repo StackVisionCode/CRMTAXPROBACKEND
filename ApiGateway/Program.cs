@@ -77,6 +77,13 @@ try
     builder.Services.AddCacheHealthChecks();
 
     var app = builder.Build();
+    var fwd = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    };
+    fwd.KnownNetworks.Clear();
+    fwd.KnownProxies.Clear();
+    app.UseForwardedHeaders(fwd);
 
     // MOSTRAR INFORMACIÓN DEL CACHÉ AL INICIAR
     using (var scope = app.Services.CreateScope())
@@ -111,14 +118,7 @@ try
     // Configure middleware pipeline
     app.UseSerilogRequestLogging();
 
-    // --- MUY IMPORTANTE detrás de Nginx: respetar X-Forwarded-* ---
-    var fwd = new ForwardedHeadersOptions
-    {
-        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-    };
-    // Permitimos los headers aunque vengan de otra red docker/host
-    fwd.KnownNetworks.Clear(); fwd.KnownProxies.Clear();
-    app.UseForwardedHeaders(fwd);
+
     // HEALTH CHECKS ENDPOINT
     app.MapHealthChecks(
         "/health",
@@ -150,8 +150,12 @@ try
         }
     );
 
+  if (Environment.GetEnvironmentVariable("RUNNING_IN_DOCKER") != "true")
+{
     app.UseHttpsRedirection();
-   
+}
+
+
     app.UseAuthentication();
     app.UseSessionValidation();
 
