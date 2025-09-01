@@ -406,7 +406,7 @@
 
         {
             "DownstreamPathTemplate": "/ws",
-            "DownstreamScheme": "ws",
+            "DownstreamScheme": "wss",
             "DownstreamHostAndPorts": [
                 {
                     "Host": "localhost",

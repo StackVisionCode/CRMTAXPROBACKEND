@@ -1,32 +1,5 @@
 services:
-  # --- SQL Server 2022 -------------------------------------------------------
-  # 10.128.3.20:
-  #   image: mcr.microsoft.com/mssql/server:2022-latest
-  #   container_name: 10.128.3.20
-  #   ports:
-  #     - "1433:1433"
-  #   environment:
-  #     ACCEPT_EULA: "Y"
-  #     SA_PASSWORD: "Brittany040238."
-  #     MSSQL_PID: "Developer"
-  #     MSSQL_MEMORY_LIMIT_MB: "2048"
-  #     MSSQL_TCP_PORT: "1433"
-  #   networks: [backend]
-  #   volumes:
-  #     - 10.128.3.20_data:/var/opt/mssql
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Brittany040238.' -C -Q 'SELECT 1' || exit 1"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 10
-  #     start_period: 60s
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 2G
-  #       reservations:
-  #         memory: 1G
+
 
   # --- RabbitMQ --------------------------------------------------------------
   rabbitmq:
