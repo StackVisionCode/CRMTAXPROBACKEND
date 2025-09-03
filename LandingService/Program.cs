@@ -36,6 +36,8 @@ try
     // Configurar caché hibrido Redis X Local
     builder.Services.AddHybridCache(builder.Configuration);
 
+    // CONFIGURAR RABBITMQ
+    builder.Services.AddEventBus(builder.Configuration);
     // Configurar CORS
     builder.Services.AddCustomCors();
 

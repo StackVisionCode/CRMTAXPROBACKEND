@@ -6,9 +6,17 @@ public class ConnectionApp
     public string User { get; }
     public string Password { get; }
 
-    public ConnectionApp()
+    // public ConnectionApp()
+    // {
+    //     Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "10.128.3.20";
+
+    //     User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
+
+    //     Password = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "Brittany040238.";
+    // }
+        public ConnectionApp()
     {
-        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "10.128.3.20";
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "dev001";
 
         User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 

@@ -4,6 +4,7 @@ using EmailServices.Handlers.PasswordEventsHandler;
 using EmailServices.Services;
 using EmailServices.Services.EmailNotificationsServices;
 using Handlers.EventHandlers.InvitationEventHandlers;
+using Handlers.EventHandlers.LandingEventHandlers;
 using Handlers.EventHandlers.ReminderEventsHandlers;
 using Handlers.EventHandlers.SignatureEventHandlers;
 using Handlers.EventHandlers.UserEventHandlers;
@@ -166,6 +167,10 @@ builder.Services.AddScoped<
     AccountConfirmationLinkHandler
 >();
 builder.Services.AddScoped<
+    IIntegrationEventHandler<AccountConfirmationLinkEvent>,
+    EmailConfirmationLinkHandler
+>();
+builder.Services.AddScoped<
     IIntegrationEventHandler<UserInvitationSentEvent>,
     UserInvitationSentHandler
 >();
@@ -173,6 +178,10 @@ builder.Services.AddScoped<IIntegrationEventHandler<UserRegisteredEvent>, UserRe
 builder.Services.AddScoped<
     IIntegrationEventHandler<AccountConfirmedEvent>,
     AccountActivatedHandler
+>();
+builder.Services.AddScoped<
+    IIntegrationEventHandler<AccountConfirmedEvent>,
+    LandingActivatedEmailHandlers
 >();
 builder.Services.AddScoped<
     IIntegrationEventHandler<SignatureInvitationEvent>,
@@ -208,10 +217,12 @@ builder.Services.AddScoped<PasswordResetEventHandler>();
 builder.Services.AddScoped<PasswordResetOtpEventsHandler>();
 builder.Services.AddScoped<PasswordChangedEventHandler>();
 builder.Services.AddScoped<AccountConfirmationLinkHandler>();
+builder.Services.AddScoped<EmailConfirmationLinkHandler>();
 builder.Services.AddScoped<UserInvitationSentHandler>();
 builder.Services.AddScoped<UserRegisteredHandler>();
 builder.Services.AddScoped<AccountActivatedHandler>();
 builder.Services.AddScoped<SignatureInvitationHandler>();
+builder.Services.AddScoped<LandingActivatedEmailHandlers>();
 builder.Services.AddScoped<PartiallySignedHandler>();
 builder.Services.AddScoped<SignatureRequestRejectedHandler>();
 builder.Services.AddScoped<SecureDocumentDownloadHandler>();
@@ -254,6 +265,8 @@ using (var scope = app.Services.CreateScope())
     bus.Subscribe<CustomerLoginEnabledEvent, CustomerLoginEnabledEventHandler>();
     bus.Subscribe<CustomerLoginDisabledEvent, CustomerLoginDisabledEventHandler>();
     bus.Subscribe<ReminderDueEvent, ReminderDueEventsHandler>();
+   bus.Subscribe<AccountConfirmationLinkEvent,EmailConfirmationLinkHandler>();
+   bus.Subscribe<AccountConfirmedEvent,LandingActivatedEmailHandlers>();
 
     // Log successful subscriptions
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
