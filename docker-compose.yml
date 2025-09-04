@@ -86,20 +86,20 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       ASPNETCORE_URLS: http://0.0.0.0:80
-      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__ConnectionString: "redis:6379,password=Brittany040238."
       HybridCache__Redis__KeyPrefix: "gateway"
       HybridCache__Redis__Database: "0"
+    ports:
+      - "80:80"
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - backend
+    networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/80' || nc -z 127.0.0.1 80"]
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -124,7 +124,7 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__ConnectionString: "redis:6379,password=Brittany040238."
       HybridCache__Redis__KeyPrefix: "auth"
       HybridCache__Redis__Database: "1"
     depends_on:
@@ -196,7 +196,7 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__ConnectionString: "redis:6379,password=Brittany040238."
       HybridCache__Redis__KeyPrefix: "customer"
       HybridCache__Redis__Database: "5"
     depends_on:
@@ -226,7 +226,7 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__ConnectionString: "redis:6379,password=Brittany040238."
       HybridCache__Redis__KeyPrefix: "email"
       HybridCache__Redis__Database: "6"
     depends_on:
@@ -256,7 +256,7 @@ services:
       RabbitMQ__HostName: rabbitmq
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
-      HybridCache__Redis__ConnectionString: "redis:6379"
+      HybridCache__Redis__ConnectionString: "redis:6379,password=Brittany040238."
       HybridCache__Redis__KeyPrefix: "signature"
       HybridCache__Redis__Database: "9"
     depends_on:
@@ -295,7 +295,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
-   
+        
 
   # --- Migrators (imágenes dedicadas) ---------------------------------------
   auth-migrator:
