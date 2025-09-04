@@ -380,27 +380,7 @@ services:
       - backend
 
   # --- NGINX Reverse Proxy (TLS del host) -----------------------------------
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: nginx
-    depends_on:
-      apigateway:
-        condition: service_healthy
-    networks:
-      - backend
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "nginx -t || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: unless-stopped
+  
 
 # ────────────────────  Volúmenes  ─────────────────────────
 volumes:
