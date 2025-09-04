@@ -151,9 +151,7 @@ try
     app.UseHttpsRedirection();
 
     app.UseAuthentication();
-    app.UseAuthorization();
-    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
-    app.UseMiddleware<ExceptionMiddleware>("AuthService");
+    app.UseAuthorization(); 
 
     app.MapControllers();
 

@@ -293,21 +293,9 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-      HybridCache__Redis__ConnectionString: "redis:6379"
-      HybridCache__Redis__KeyPrefix: "landing"
-      HybridCache__Redis__Database: "10"
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       - backend
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    restart: unless-stopped
+   
 
   # --- Migrators (imágenes dedicadas) ---------------------------------------
   auth-migrator:
