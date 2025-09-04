@@ -16,7 +16,7 @@ public class ConnectionApp
     // }
         public ConnectionApp()
     {
-        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "dev001";
+        Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "10.128.3.20";
 
         User = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
 
