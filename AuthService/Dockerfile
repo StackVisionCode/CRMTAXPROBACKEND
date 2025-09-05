@@ -17,6 +17,7 @@ RUN dotnet publish "AuthService.csproj" -c Release -o /app/publish /p:UseAppHost
 FROM base AS final
 WORKDIR /app
 
+RUN mkdir -p /Data
 # Instalar curl para descargar GeoLite2
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
