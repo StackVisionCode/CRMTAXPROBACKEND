@@ -1,6 +1,6 @@
 using Application.Common.DTO;
 using Infrastructure.Commands;
-using MassTransit.Mediator;
+using MediatR;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.AuthEvents;
 
