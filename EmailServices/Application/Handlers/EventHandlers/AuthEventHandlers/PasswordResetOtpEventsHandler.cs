@@ -24,7 +24,7 @@ public sealed class PasswordResetOtpEventsHandler : IIntegrationEventHandler<Pas
                         e.Otp,
                         Exp = e.ExpiresAt.ToLocalTime(),
                     },
-                    Subject: "Tu código de verificación",
+                    Subject: "Your verification code",
                     To: e.Email,
                     InlineLogoPath: "Assets/logo.png"
                 )

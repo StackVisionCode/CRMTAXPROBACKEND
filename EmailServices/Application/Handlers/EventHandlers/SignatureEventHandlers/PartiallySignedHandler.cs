@@ -24,7 +24,7 @@ public sealed class PartiallySignedHandler : IIntegrationEventHandler<DocumentPa
                 Year = DateTime.UtcNow.Year,
                 FullName = e.FullName,
             },
-            Subject: "Tu firma ha sido registrada",
+            Subject: "Your signature has been registered",
             To: e.SignerEmail,
             InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")
         );

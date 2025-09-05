@@ -95,15 +95,25 @@ try
         "Customers",
         c =>
         {
-            var customerServiceUrl = builder.Configuration["Services:Customer"];
-            if (string.IsNullOrWhiteSpace(customerServiceUrl))
+            // 🔥 DETECTAR ENTORNO Y CONFIGURAR URL CORRECTA
+            var isRunningInDocker =
+                Environment.GetEnvironmentVariable("RUNNING_IN_DOCKER") == "true";
+
+            string customerServiceUrl;
+            if (isRunningInDocker)
             {
-                throw new InvalidOperationException(
-                    "Customer service URL is not configured. Please set 'Services:Customer' in your configuration."
-                );
+                // En Docker: usar nombre DNS interno
+                customerServiceUrl = "http://customer-service:8080";
+            }
+            else
+            {
+                // En Local: usar configuración desde appsettings
+                customerServiceUrl =
+                    builder.Configuration["Services:Customer"] ?? "http://localhost:5002";
             }
             c.BaseAddress = new Uri(customerServiceUrl); // http://localhost:5002
             c.DefaultRequestHeaders.Add("X-From-Gateway", "Api-Gateway");
+            c.Timeout = TimeSpan.FromSeconds(30);
         }
     );
 

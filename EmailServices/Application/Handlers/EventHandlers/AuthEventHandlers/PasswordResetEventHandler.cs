@@ -24,7 +24,7 @@ public sealed class PasswordResetEventHandler : IIntegrationEventHandler<Passwor
                         e.ResetLink,
                         Exp = e.ExpiresAt.ToLocalTime(),
                     },
-                    Subject: "Reestablece tu contraseña",
+                    Subject: "Reset your password",
                     To: e.Email,
                     InlineLogoPath: "Assets/logo.png"
                 )

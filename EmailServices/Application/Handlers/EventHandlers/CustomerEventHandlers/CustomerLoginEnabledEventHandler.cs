@@ -33,7 +33,7 @@ public sealed class CustomerLoginEnabledEventHandler
                 TempPassword = e.TempPassword,
                 Year = DateTime.UtcNow.Year,
             },
-            Subject: "Acceso habilitado a su portal",
+            Subject: "Access enabled to your portal",
             To: e.Email,
             InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")
         );

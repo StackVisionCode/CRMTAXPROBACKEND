@@ -28,7 +28,7 @@ public sealed class CustomerLoginDisabledEventHandler
                 Email = e.Email,
                 Year = DateTime.UtcNow.Year,
             },
-            Subject: "Acceso deshabilitado a su portal",
+            Subject: "Access to your portal is disabled",
             To: e.Email,
             InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")
         );

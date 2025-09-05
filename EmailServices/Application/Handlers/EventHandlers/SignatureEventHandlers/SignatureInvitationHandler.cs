@@ -29,7 +29,7 @@ public sealed class SignatureInvitationHandler : IIntegrationEventHandler<Signat
                 FullName = e.FullName,
                 Year = DateTime.UtcNow.Year,
             },
-            Subject: "Invitación para firmar documento",
+            Subject: "Invitation to sign document",
             To: e.SignerEmail,
             InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")
         );

@@ -53,7 +53,7 @@ public sealed class ReminderDueEventsHandler : IIntegrationEventHandler<Reminder
             var dto = new EmailNotificationDto(
                 Template: "Reminders/Due.html", // <- crea este template debajo
                 Model: model,
-                Subject: string.IsNullOrWhiteSpace(evt.Subject) ? "Recordatorio" : evt.Subject,
+                Subject: string.IsNullOrWhiteSpace(evt.Subject) ? "Reminder" : evt.Subject,
                 To: evt.Email!, // si prefieres resolver por UserId, cámbialo aquí
                 CompanyId: evt.CompanyId,
                 UserId: userIdGuid,

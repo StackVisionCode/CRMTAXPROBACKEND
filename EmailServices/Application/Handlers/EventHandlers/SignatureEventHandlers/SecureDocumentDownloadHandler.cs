@@ -83,7 +83,7 @@ public sealed class SecureDocumentDownloadHandler
                 ExpiresAt = e.ExpiresAt.ToString("dd/MM/yyyy HH:mm 'UTC'"),
                 Year = DateTime.UtcNow.Year,
             },
-            Subject: "Tu documento final sellado está disponible",
+            Subject: "Your final sealed document is available",
             To: payload.SignerEmail,
             InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")
         );

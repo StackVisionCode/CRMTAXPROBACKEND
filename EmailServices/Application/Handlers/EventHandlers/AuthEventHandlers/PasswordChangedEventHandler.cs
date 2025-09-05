@@ -19,7 +19,7 @@ public sealed class PasswordChangedEventHandler : IIntegrationEventHandler<Passw
         var dto = new EmailNotificationDto(
             Template: "Auth/PasswordChanged.html",
             Model: new { e.DisplayName, e.ChangedAt },
-            Subject: "Contraseña actualizada correctamente",
+            Subject: "Password updated successfully",
             To: e.Email,
             InlineLogoPath: Path.Combine(_env.ContentRootPath, "Assets", "logo.png")
         );
