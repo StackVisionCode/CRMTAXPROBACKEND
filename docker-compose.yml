@@ -13,7 +13,8 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    networks: [backend]
+    networks:
+      - backend
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 30s
@@ -48,7 +49,8 @@ services:
       - "6379:6379"
     volumes:
       - redisdata:/data
-    networks: [backend]
+    networks:
+      - backend
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "Brittany040238.", "ping"]
       interval: 10s
@@ -74,7 +76,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks:
+      - backend
     restart: unless-stopped
 
   # --- API Gateway (solo red interna) ---------------------------------------
@@ -89,7 +92,6 @@ services:
       HybridCache__Redis__Database: "0"
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -97,7 +99,7 @@ services:
         condition: service_healthy
     networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -130,7 +132,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
@@ -145,6 +148,24 @@ services:
         reservations:
           memory: 512M
 
+  # --- CommLink Service -----------------------------------------------------------
+  commlink-service:
+    image: ${REGISTRY_PREFIX}-commlink-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
   # --- SMS Service -----------------------------------------------------------
   sms-service:
     image: ${REGISTRY_PREFIX}-sms-service:${TAG}
@@ -154,7 +175,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   # --- Calendar Service ------------------------------------------------------
   calendar-service:
@@ -165,7 +187,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   # --- Reminder Service ------------------------------------------------------
   reminder-service:
@@ -176,7 +199,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   # --- Customer Service ------------------------------------------------------
   customer-service:
@@ -198,7 +222,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
@@ -227,7 +252,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend]
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
@@ -254,7 +280,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    networks: [backend]
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
       interval: 30s
@@ -262,23 +289,6 @@ services:
       retries: 3
       start_period: 30s
     restart: unless-stopped
-
-  # --- Signature Service -----------------------------------------------------
-  commlink-service:
-    image: ${REGISTRY_PREFIX}-commlink-service:${TAG}
-    environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: 10.128.3.20
-      DB_USER: sa
-      DB_PASSWORD: "Brittany040238."
-      RabbitMQ__HostName: rabbitmq
-      RabbitMQ__UserName: guest
-      RabbitMQ__Password: guest
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks: [backend]
 
   # --- Subscription Service --------------------------------------------------
   subscription-service:
@@ -289,7 +299,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   # --- Landing Service -------------------------------------------------------
   landing-service:
@@ -300,8 +311,9 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
-        
+    networks:
+      - backend
+
 
   # --- Migrators (imágenes dedicadas) ---------------------------------------
   auth-migrator:
@@ -310,7 +322,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   customer-migrator:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
@@ -318,7 +331,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   calendar-migrator:
     image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
@@ -326,7 +340,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
@@ -334,7 +349,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   signature-migrator:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
@@ -342,7 +358,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   reminder-migrator:
     image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
@@ -350,7 +367,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   sms-migrator:
     image: ${REGISTRY_PREFIX}-sms-migrator:${TAG}
@@ -358,7 +376,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   subscription-migrator:
     image: ${REGISTRY_PREFIX}-subscription-migrator:${TAG}
@@ -366,7 +385,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   landing-migrator:
     image: ${REGISTRY_PREFIX}-landing-migrator:${TAG}
@@ -374,7 +394,8 @@ services:
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
-    networks: [backend]
+    networks:
+      - backend
 
   commlink-migrator:
     image: ${REGISTRY_PREFIX}-commlink-migrator:${TAG}
@@ -393,4 +414,5 @@ volumes:
 # ────────────────────  Redes  ─────────────────────────────
 networks:
   backend:
+    name: crmtaxpro_backend
     driver: bridge
