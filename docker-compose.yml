@@ -130,8 +130,6 @@ services:
       HybridCache__Redis__Database: "1"
       # Configuraciones de geolocalización
       GeoIP__MmdbPath: "/Data/GeoLite2-City.mmdb"
-      GeoIP__EnableCaching: "true"
-      GeoIP__EnableCloudflareHeaders: "true"
       # Configuraciones de seguridad de sesiones
       SessionSecurity__EnableSingleSessionPolicy: "true"
       SessionSecurity__AllowMultipleSessionsInDevelopment: "false"
