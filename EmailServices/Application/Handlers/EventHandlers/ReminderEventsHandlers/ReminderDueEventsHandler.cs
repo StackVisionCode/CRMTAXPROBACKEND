@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Hosting;
 using SharedLibrary.Contracts;
 using SharedLibrary.DTOs.ReminderEvents;
+
 namespace Handlers.EventHandlers.ReminderEventsHandlers;
 
 public sealed class ReminderDueEventsHandler : IIntegrationEventHandler<ReminderDueEvent>
@@ -34,10 +35,12 @@ public sealed class ReminderDueEventsHandler : IIntegrationEventHandler<Reminder
                 evt.Message,
                 evt.AggregateType,
                 evt.AggregateId,
-                RemindAtLocal = TimeZoneInfo.ConvertTimeFromUtc(
-                    evt.RemindAtUtc.UtcDateTime,
-                    TimeZoneInfo.FindSystemTimeZoneById("America/Santo_Domingo")
-                ).ToString("dddd, dd MMMM yyyy 'a las' HH:mm"),
+                RemindAtLocal = TimeZoneInfo
+                    .ConvertTimeFromUtc(
+                        evt.RemindAtUtc.UtcDateTime,
+                        TimeZoneInfo.FindSystemTimeZoneById("America/Santo_Domingo")
+                    )
+                    .ToString("dddd, dd MMMM yyyy 'a las' HH:mm"),
                 OccurredOn = evt.OccurredOn.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"),
             };
 
@@ -59,11 +62,20 @@ public sealed class ReminderDueEventsHandler : IIntegrationEventHandler<Reminder
 
             await _mediator.Send(new SendEmailNotificationCommand(dto));
 
-            _logger.LogInformation("Reminder email sent to {Email} (User {UserId})", evt.Email, evt.UserId);
+            _logger.LogInformation(
+                "Reminder email sent to {Email} (User {UserId})",
+                evt.Email,
+                evt.UserId
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send reminder email to {Email} (User {UserId})", evt.Email, evt.UserId);
+            _logger.LogError(
+                ex,
+                "Failed to send reminder email to {Email} (User {UserId})",
+                evt.Email,
+                evt.UserId
+            );
             // No relanzar para no interrumpir el pipeline de eventos
         }
     }
