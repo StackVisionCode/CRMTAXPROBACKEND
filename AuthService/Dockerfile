@@ -16,20 +16,6 @@ RUN dotnet publish "AuthService.csproj" -c Release -o /app/publish /p:UseAppHost
 
 FROM base AS final
 WORKDIR /app
-
-RUN mkdir -p /Data
-# Instalar curl para descargar GeoLite2
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-# Descargar GeoLite2-City.mmdb automáticamente
-RUN curl -L -o /Data/GeoLite2-City.mmdb \
-    "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb" && \
-    chmod 644 /Data/GeoLite2-City.mmdb && \
-    ls -la /Data/
-
 COPY --from=publish /app/publish .
-
-# Verificar que el archivo GeoLite2 existe
-RUN echo "GeoLite2 database size:" && du -h /Data/GeoLite2-City.mmdb
 
 ENTRYPOINT ["dotnet", "AuthService.dll"]
