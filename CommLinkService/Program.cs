@@ -78,10 +78,25 @@ try
         "Auth",
         c =>
         {
-            c.BaseAddress = new Uri(
-                builder.Configuration["Services:Auth"] ?? "http://localhost:5001"
-            );
+            // DETECTAR ENTORNO Y CONFIGURAR URL CORRECTA
+            var isRunningInDocker =
+                Environment.GetEnvironmentVariable("RUNNING_IN_DOCKER") == "true";
+
+            string authServiceUrl;
+            if (isRunningInDocker)
+            {
+                // En Docker: usar nombre DNS interno
+                authServiceUrl = "http://auth-service:8080";
+            }
+            else
+            {
+                // En Local: usar configuración desde appsettings
+                authServiceUrl = builder.Configuration["Services:Auth"] ?? "http://localhost:5001";
+            }
+
+            c.BaseAddress = new Uri(authServiceUrl);
             c.DefaultRequestHeaders.Add("X-From-Gateway", "Api-Gateway");
+            c.Timeout = TimeSpan.FromSeconds(30);
         }
     );
 
