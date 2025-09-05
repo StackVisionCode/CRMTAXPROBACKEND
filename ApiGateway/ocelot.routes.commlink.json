@@ -5,12 +5,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/create",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -25,12 +27,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/my-rooms",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -45,12 +49,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/direct-between",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -65,12 +71,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -85,12 +93,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/messages",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -105,12 +115,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/participants",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -125,12 +137,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/unread-count",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -145,12 +159,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/join",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -165,12 +181,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/leave",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -185,12 +203,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/typing",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -200,18 +220,19 @@
             "Priority": 5,
             "SwaggerKey": "commlink"
         },
-
         {
             "DownstreamPathTemplate": "/api/Message/send",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/send",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -226,12 +247,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}/edit",
-            "UpstreamHttpMethod": ["PUT"],
+            "UpstreamHttpMethod": [
+                "PUT"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -246,12 +269,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}/react",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -266,12 +291,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}",
-            "UpstreamHttpMethod": ["DELETE"],
+            "UpstreamHttpMethod": [
+                "DELETE"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -281,18 +308,19 @@
             "Priority": 10,
             "SwaggerKey": "commlink"
         },
-
         {
             "DownstreamPathTemplate": "/api/VideoCall/start",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/start",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -307,12 +335,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/end",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -327,12 +357,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/active",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -347,12 +379,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/participant/status",
-            "UpstreamHttpMethod": ["PUT"],
+            "UpstreamHttpMethod": [
+                "PUT"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -362,18 +396,19 @@
             "Priority": 1,
             "SwaggerKey": "commlink"
         },
-
         {
             "DownstreamPathTemplate": "/api/Connection/active",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/connections/active",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -388,12 +423,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/connections/disconnect/{connectionId}",
-            "UpstreamHttpMethod": ["POST"],
+            "UpstreamHttpMethod": [
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer"
             },
@@ -403,7 +440,6 @@
             "Priority": 5,
             "SwaggerKey": "commlink"
         },
-
         {
             "DownstreamPathTemplate": "/ws",
             "DownstreamScheme": "ws",
@@ -419,18 +455,19 @@
             },
             "Priority": 100
         },
-
         {
             "DownstreamPathTemplate": "/health",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/health",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },
@@ -442,12 +479,14 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "commlink-service",
-                    "Port": 8080
+                    "Host": "localhost",
+                    "Port": 5007
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/info",
-            "UpstreamHttpMethod": ["GET"],
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
             "AddHeadersToRequest": {
                 "X-From-Gateway": "Api-Gateway"
             },

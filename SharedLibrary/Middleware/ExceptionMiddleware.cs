@@ -9,14 +9,18 @@ public class ExceptionMiddleware
     private readonly ILogger<ExceptionMiddleware> _logger;
     private readonly string _serviceName;
 
-    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, string serviceName)
+    public ExceptionMiddleware(
+        RequestDelegate next,
+        ILogger<ExceptionMiddleware> logger,
+        string serviceName
+    )
     {
         _next = next;
         _logger = logger;
         _serviceName = serviceName ?? "UnknownService";
     }
-   
-        public async Task InvokeAsync(HttpContext context)
+
+    public async Task InvokeAsync(HttpContext context)
     {
         try
         {
@@ -24,7 +28,10 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[{_serviceName}] Exception caught. Path: {context.Request?.Path}");
+            _logger.LogError(
+                ex,
+                $"[{_serviceName}] Exception caught. Path: {context.Request?.Path}"
+            );
 
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Response.ContentType = "application/json";
@@ -35,7 +42,7 @@ public class ExceptionMiddleware
                 StatusCode = context.Response.StatusCode,
                 Message = "An unexpected error occurred.",
                 Error = ex.Message,
-                Path = context.Request?.Path
+                Path = context.Request?.Path,
             };
 
             await context.Response.WriteAsJsonAsync(ErrorResponse);

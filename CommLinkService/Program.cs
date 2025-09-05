@@ -201,7 +201,6 @@ try
         app.UseHttpsRedirection();
     }
 
-
     app.UseAuthentication();
     app.UseSessionValidation();
     app.UseAuthorization();
