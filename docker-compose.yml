@@ -130,9 +130,6 @@ services:
       HybridCache__Redis__Database: "1"
       # Configuraciones de geolocalización
       GeoIP__MmdbPath: "/Data/GeoLite2-City.mmdb"
-      # Configuraciones de seguridad de sesiones
-      SessionSecurity__EnableSingleSessionPolicy: "true"
-      SessionSecurity__AllowMultipleSessionsInDevelopment: "false"
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"   
     depends_on:
       rabbitmq:
