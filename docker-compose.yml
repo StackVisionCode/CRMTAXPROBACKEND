@@ -92,6 +92,7 @@ services:
       HybridCache__Redis__Database: "0"
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       rabbitmq:
         condition: service_healthy
