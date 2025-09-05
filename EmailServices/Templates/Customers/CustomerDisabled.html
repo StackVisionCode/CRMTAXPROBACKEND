@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +12,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
@@ -20,14 +21,14 @@
             margin: 0;
             padding: 0;
         }
-        
+
         .email-container {
             max-width: 600px;
             margin: 0 auto;
             background-color: #ffffff;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        
+
         /* Header */
         .header {
             background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
@@ -36,7 +37,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .header::before {
             content: '';
             position: absolute;
@@ -44,15 +45,15 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                              radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            background-image: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
         }
-        
+
         .logo {
             position: relative;
             z-index: 2;
         }
-        
+
         .logo-icon {
             width: 60px;
             height: 60px;
@@ -64,7 +65,7 @@
             justify-content: center;
             box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
         }
-        
+
         .logo-text {
             color: #ffffff;
             font-size: 28px;
@@ -73,7 +74,7 @@
             position: relative;
             z-index: 2;
         }
-        
+
         .logo-subtitle {
             color: rgba(255, 255, 255, 0.9);
             font-size: 14px;
@@ -81,12 +82,12 @@
             position: relative;
             z-index: 2;
         }
-        
+
         /* Content */
         .content {
             padding: 40px 30px;
         }
-        
+
         .notice-title {
             font-size: 24px;
             font-weight: 700;
@@ -94,7 +95,7 @@
             margin-bottom: 16px;
             text-align: center;
         }
-        
+
         .notice-subtitle {
             font-size: 16px;
             color: #6b7280;
@@ -102,7 +103,7 @@
             margin-bottom: 32px;
             line-height: 1.5;
         }
-        
+
         .status-card {
             background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
             border: 2px solid #fca5a5;
@@ -112,7 +113,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .status-card::before {
             content: '';
             position: absolute;
@@ -122,7 +123,7 @@
             height: 4px;
             background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
         }
-        
+
         .status-title {
             font-size: 18px;
             font-weight: 600;
@@ -132,7 +133,7 @@
             align-items: center;
             gap: 8px;
         }
-        
+
         .status-item {
             margin-bottom: 12px;
             padding: 12px;
@@ -140,14 +141,14 @@
             border-radius: 8px;
             border-left: 4px solid #dc2626;
         }
-        
+
         .status-label {
             font-size: 14px;
             font-weight: 600;
             color: #374151;
             margin-bottom: 4px;
         }
-        
+
         .status-value {
             font-size: 16px;
             font-weight: 700;
@@ -160,7 +161,7 @@
             display: inline-block;
             margin-top: 4px;
         }
-        
+
         .info-notice {
             background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
             border: 2px solid #60a5fa;
@@ -169,7 +170,7 @@
             margin: 24px 0;
             position: relative;
         }
-        
+
         .info-notice::before {
             content: 'ℹ️';
             position: absolute;
@@ -185,20 +186,20 @@
             justify-content: center;
             font-size: 12px;
         }
-        
+
         .info-title {
             font-size: 16px;
             font-weight: 600;
             color: #1e40af;
             margin-bottom: 8px;
         }
-        
+
         .info-text {
             font-size: 14px;
             color: #1d4ed8;
             line-height: 1.5;
         }
-        
+
         .contact-card {
             background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
             border: 2px solid #a7f3d0;
@@ -207,21 +208,21 @@
             margin: 24px 0;
             text-align: center;
         }
-        
+
         .contact-title {
             font-size: 18px;
             font-weight: 600;
             color: #065f46;
             margin-bottom: 12px;
         }
-        
+
         .contact-text {
             font-size: 14px;
             color: #047857;
             margin-bottom: 16px;
             line-height: 1.5;
         }
-        
+
         .contact-button {
             display: inline-block;
             background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
@@ -234,16 +235,16 @@
             box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
             transition: all 0.3s ease;
         }
-        
+
         .contact-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
         }
-        
+
         .timeline {
             margin: 32px 0;
         }
-        
+
         .timeline-title {
             font-size: 18px;
             font-weight: 600;
@@ -251,7 +252,7 @@
             margin-bottom: 16px;
             text-align: center;
         }
-        
+
         .timeline-item {
             display: flex;
             align-items: flex-start;
@@ -262,7 +263,7 @@
             margin-bottom: 8px;
             border-left: 3px solid #6b7280;
         }
-        
+
         .timeline-icon {
             width: 24px;
             height: 24px;
@@ -276,23 +277,23 @@
             flex-shrink: 0;
             margin-top: 2px;
         }
-        
+
         .timeline-content {
             flex: 1;
         }
-        
+
         .timeline-text {
             font-size: 14px;
             color: #374151;
             font-weight: 500;
         }
-        
+
         .timeline-subtext {
             font-size: 12px;
             color: #6b7280;
             margin-top: 4px;
         }
-        
+
         /* Footer */
         .footer {
             background: #f9fafb;
@@ -300,40 +301,40 @@
             text-align: center;
             border-top: 1px solid #e5e7eb;
         }
-        
+
         .footer-text {
             font-size: 12px;
             color: #6b7280;
             margin-bottom: 8px;
         }
-        
+
         .footer-brand {
             font-size: 14px;
             font-weight: 600;
             color: #374151;
         }
-        
+
         .footer-brand .highlight {
             color: #10b981;
         }
-        
+
         /* Responsive */
         @media (max-width: 600px) {
             .email-container {
                 margin: 0;
                 box-shadow: none;
             }
-            
+
             .header,
             .content,
             .footer {
                 padding: 24px 20px;
             }
-            
+
             .notice-title {
                 font-size: 20px;
             }
-            
+
             .status-card,
             .info-notice,
             .contact-card {
@@ -342,6 +343,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="email-container">
         <!-- Header -->
@@ -354,54 +356,54 @@
                 <div class="logo-subtitle">Account Status Update</div>
             </div>
         </div>
-        
+
         <!-- Content -->
         <div class="content">
             <h1 class="notice-title">Portal Access Update</h1>
             <p class="notice-subtitle">
                 Hello {{DisplayName}}, we're writing to inform you about a change to your customer portal access.
             </p>
-            
+
             <!-- Status Card -->
             <div class="status-card">
                 <div class="status-title">
                     <span>🔒</span> Access Status Change
                 </div>
-                
+
                 <div class="status-item">
                     <div class="status-label">Account Email:</div>
                     <div class="status-value">{{Email}}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <div class="status-label">Current Status:</div>
                     <div class="status-value" style="color: #dc2626;">Access Disabled</div>
                 </div>
             </div>
-            
+
             <!-- Info Notice -->
             <div class="info-notice">
                 <div class="info-title">What This Means</div>
                 <div class="info-text">
-                    Your tax professional has temporarily disabled your access to the customer portal. 
+                    Your tax professional has temporarily disabled your access to the customer portal.
                     This is a routine administrative action and does not affect your tax services.
                 </div>
             </div>
-            
+
             <!-- Contact Card -->
             <div class="contact-card">
                 <div class="contact-title">Need More Information?</div>
                 <div class="contact-text">
-                    Please contact your tax professional directly for more details about this change 
+                    Please contact your tax professional directly for more details about this change
                     or to request access restoration when needed.
                 </div>
                 <a href="#" class="contact-button">Contact Tax Professional</a>
             </div>
-            
+
             <!-- Timeline -->
             <div class="timeline">
                 <div class="timeline-title">What Happens Next</div>
-                
+
                 <div class="timeline-item">
                     <div class="timeline-icon">1</div>
                     <div class="timeline-content">
@@ -409,7 +411,7 @@
                         <div class="timeline-subtext">You will no longer be able to log into the customer portal</div>
                     </div>
                 </div>
-                
+
                 <div class="timeline-item">
                     <div class="timeline-icon">2</div>
                     <div class="timeline-content">
@@ -417,7 +419,7 @@
                         <div class="timeline-subtext">Reach out for clarification or to request access restoration</div>
                     </div>
                 </div>
-                
+
                 <div class="timeline-item">
                     <div class="timeline-icon">3</div>
                     <div class="timeline-content">
@@ -427,14 +429,15 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Footer -->
         <div class="footer">
             <div class="footer-text">This email was sent from a secure system</div>
             <div class="footer-brand">
-                © {{Year}} <span class="highlight">TAXPRO</span> SHIELD
+                © {{Year}} <span class="highlight">TAXPRO</span> SUITE
             </div>
         </div>
     </div>
 </body>
+
 </html>

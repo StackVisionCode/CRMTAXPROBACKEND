@@ -63,7 +63,7 @@ public sealed class SecureDocumentDownloadHandler
             Environment.GetEnvironmentVariable("PUBLIC_FILE_BASE_URL")
             ?? _cfg["PUBLIC_FILE_BASE_URL"]
             ?? _cfg.GetSection("Urls")["FilesBaseUrl"] // opcional si lo pones en otra sección
-            ?? "https://files.mi-dominio.com";
+            ?? "https://cloudapi.taxprosuite.com";
 
         // Normaliza: quita trailing slash
         baseUrl = baseUrl.TrimEnd('/');
