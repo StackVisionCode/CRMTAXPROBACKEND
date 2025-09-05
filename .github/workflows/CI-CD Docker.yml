@@ -106,7 +106,8 @@ jobs:
             apigateway auth-service customer-service
             calendar-service email-service signature-service
             auth-migrator customer-migrator
-            email-migrator calendar-migrator signature-migrator
+            email-migrator calendar-migrator signature-migrator landing-migrator
+            commlink-service commlink-migrator sms-service sms-migrator subscription-migrator reminder-migrator
           )
           for svc in "${services[@]}"; do
             echo "| $svc | $REGISTRY/$REGISTRY_PREFIX-$svc | $TAG |" >> $GITHUB_STEP_SUMMARY
