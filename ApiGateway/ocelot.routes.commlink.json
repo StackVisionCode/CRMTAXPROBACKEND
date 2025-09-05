@@ -5,8 +5,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/create",
@@ -27,8 +27,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/my-rooms",
@@ -49,8 +49,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/direct-between",
@@ -71,8 +71,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}",
@@ -93,8 +93,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/messages",
@@ -115,8 +115,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/participants",
@@ -137,8 +137,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/unread-count",
@@ -159,8 +159,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/join",
@@ -181,8 +181,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/leave",
@@ -203,8 +203,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/rooms/{roomId}/typing",
@@ -225,8 +225,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/send",
@@ -247,8 +247,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}/edit",
@@ -269,8 +269,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}/react",
@@ -291,8 +291,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/messages/{messageId}",
@@ -313,8 +313,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/start",
@@ -335,8 +335,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/end",
@@ -357,8 +357,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/active",
@@ -379,8 +379,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/videocall/participant/status",
@@ -401,8 +401,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/connections/active",
@@ -423,8 +423,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/connections/disconnect/{connectionId}",
@@ -460,8 +460,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/health",
@@ -479,8 +479,8 @@
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
-                    "Host": "localhost",
-                    "Port": 5007
+                    "Host": "commlink-service",
+                    "Port": 8080
                 }
             ],
             "UpstreamPathTemplate": "/api/commlink/info",

@@ -207,12 +207,6 @@ try
     // WebSocket support
     app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
 
-    app.UseAuthentication();
-    app.UseSessionValidation();
-    // Gateway validation
-    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
-    app.UseAuthorization();
-
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
@@ -223,6 +217,13 @@ try
         app.UseHsts();
         app.UseHttpsRedirection();
     }
+
+    app.UseAuthentication();
+    app.UseSessionValidation();
+    app.UseAuthorization();
+
+    // Gateway validation
+    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
 
     // WebSocket middleware
     app.UseMiddleware<WebSocketMiddleware>();

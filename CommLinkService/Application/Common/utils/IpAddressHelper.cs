@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace CommLinkService.Application.Common.Utils;
 
@@ -6,17 +7,27 @@ public static class IpAddressHelper
 {
     public static string GetClientIp(HttpContext ctx)
     {
-        // 1) Cloudflare
+        // Cloudflare
         var cf = ctx.Request.Headers["CF-Connecting-IP"].ToString();
         if (IsValidPublicIp(cf))
             return cf;
 
-        // 2) X-Real-IP (otros ingress)
+        // X-Real-IP
         var xri = ctx.Request.Headers["X-Real-IP"].ToString();
         if (IsValidPublicIp(xri))
             return xri;
 
-        // 3) X-Forwarded-For (toma el primer IP público)
+        // RFC 7239: Forwarded: for=1.2.3.4, for="[2001:db8:cafe::17]"
+        var fwd = ctx.Request.Headers["Forwarded"].ToString();
+        if (!string.IsNullOrWhiteSpace(fwd))
+        {
+            var ips = ParseForwardedFor(fwd);
+            foreach (var ip in ips)
+                if (IsValidPublicIp(ip))
+                    return ip;
+        }
+
+        // X-Forwarded-For
         var xff = ctx.Request.Headers["X-Forwarded-For"].ToString();
         if (!string.IsNullOrWhiteSpace(xff))
         {
@@ -28,8 +39,31 @@ public static class IpAddressHelper
             }
         }
 
-        // 4) Fallback (ya “reparado” por UseForwardedHeaders)
         return ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
+
+    private static IEnumerable<string> ParseForwardedFor(string header)
+    {
+        // busca for=... (permite IPv6 entre [])
+        // Ej: for=192.0.2.60;proto=http;by=203.0.113.43, for="[2001:db8:cafe::17]"
+        var list = new List<string>();
+        var parts = header.Split(',');
+        foreach (var part in parts)
+        {
+            var m = Regex.Match(
+                part,
+                @"for=\s*(?<ip>""?\[?[A-Fa-f0-9\.\:]+?\]?""?)",
+                RegexOptions.IgnoreCase
+            );
+            if (m.Success)
+            {
+                var raw = m.Groups["ip"].Value.Trim().Trim('"');
+                if (raw.StartsWith("[") && raw.EndsWith("]"))
+                    raw = raw[1..^1]; // IPv6 brackets
+                list.Add(raw);
+            }
+        }
+        return list;
     }
 
     private static bool IsValidPublicIp(string? ip)

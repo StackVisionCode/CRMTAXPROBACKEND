@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Net;
 using AuthService.Infraestructure.Services;
+using MaxMind.GeoIP2;
+using MaxMind.GeoIP2.Responses;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace AuthService.Applications.Services;
@@ -11,6 +13,7 @@ public class GeolocationService : IGeolocationService
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _configuration;
     private readonly IHttpContextAccessor _http;
+    private readonly DatabaseReader? _mmdb;
 
     public GeolocationService(
         ILogger<GeolocationService> logger,
@@ -23,6 +26,24 @@ public class GeolocationService : IGeolocationService
         _cache = cache;
         _configuration = configuration;
         _http = httpContextAccessor;
+
+        try
+        {
+            var path = _configuration["GeoIP:MmdbPath"];
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                _mmdb = new DatabaseReader(path);
+                _logger.LogInformation("GeoIP DB loaded from {Path}", path);
+            }
+            else
+            {
+                _logger.LogWarning("GeoIP DB not found. Path: {Path}", path);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "GeoIP DB could not be initialized");
+        }
     }
 
     public async Task<GeolocationInfo?> GetLocationInfoAsync(string ipAddress)
@@ -30,9 +51,7 @@ public class GeolocationService : IGeolocationService
         if (string.IsNullOrWhiteSpace(ipAddress))
             return null;
 
-        // IP local => “Local Development”
         if (IsLocalIpAddress(ipAddress))
-        {
             return new GeolocationInfo
             {
                 IpAddress = ipAddress,
@@ -45,42 +64,62 @@ public class GeolocationService : IGeolocationService
                 Timezone = TimeZoneInfo.Local.Id,
                 ISP = "Local Network",
             };
-        }
 
-        // CACHE
         var cacheKey = $"geo_{ipAddress}";
         if (_cache.TryGetValue(cacheKey, out GeolocationInfo? cached))
             return cached;
 
-        // "Hint" de país desde Cloudflare
-        string? cfCountry = _http.HttpContext?.Request.Headers["CF-IPCountry"].ToString();
-        cfCountry = string.IsNullOrWhiteSpace(cfCountry)
-            ? null
-            : cfCountry.Trim().ToUpperInvariant();
-
-        var geoInfo = await GetLocationUsingDotNet(ipAddress);
-
-        // Si Cloudflare nos da país, úsalo/ajústalo
-        if (!string.IsNullOrEmpty(cfCountry) && cfCountry.Length == 2)
+        // 1) MaxMind (si disponible)
+        GeolocationInfo? geoInfo = null;
+        if (_mmdb != null)
         {
-            geoInfo ??= new GeolocationInfo { IpAddress = ipAddress };
-            geoInfo.CountryCode = cfCountry;
-
             try
             {
-                var ri = new RegionInfo(cfCountry);
-                geoInfo.Country = ri.EnglishName;
+                var city = _mmdb.City(ipAddress);
+                geoInfo = new GeolocationInfo
+                {
+                    IpAddress = ipAddress,
+                    Country = city.Country?.Name,
+                    CountryCode = city.Country?.IsoCode,
+                    City = city.City?.Name,
+                    Region =
+                        city.MostSpecificSubdivision?.Name
+                        ?? city.Subdivisions?.FirstOrDefault()?.Name,
+                    Latitude = city.Location?.Latitude,
+                    Longitude = city.Location?.Longitude,
+                    Timezone = city.Location?.TimeZone,
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "MaxMind lookup failed for {IP}", ipAddress);
+            }
+        }
+
+        // 2) Fallback a tu lógica .NET
+        if (geoInfo == null)
+            geoInfo = await GetLocationUsingDotNet(ipAddress);
+
+        // 3) Ajuste con Cloudflare (si viene CF-IPCountry)
+        var cfCountry = _http.HttpContext?.Request.Headers["CF-IPCountry"].ToString();
+        if (!string.IsNullOrWhiteSpace(cfCountry) && cfCountry.Length == 2)
+        {
+            geoInfo ??= new GeolocationInfo { IpAddress = ipAddress };
+            geoInfo.CountryCode = cfCountry.ToUpperInvariant();
+            try
+            {
+                var ri = new System.Globalization.RegionInfo(geoInfo.CountryCode);
+                geoInfo.Country ??= ri.EnglishName;
             }
             catch
             {
-                geoInfo.Country ??= cfCountry;
+                geoInfo.Country ??= geoInfo.CountryCode;
             }
 
             if (string.IsNullOrEmpty(geoInfo.Timezone))
-                geoInfo.Timezone = GetTimezoneFromCountry(cfCountry); // <- generaliza
+                geoInfo.Timezone = GetTimezoneFromCountry(geoInfo.CountryCode);
         }
 
-        // Cachear 1 hora
         if (geoInfo != null)
         {
             _cache.Set(
@@ -88,8 +127,8 @@ public class GeolocationService : IGeolocationService
                 geoInfo,
                 new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
-                    SlidingExpiration = TimeSpan.FromMinutes(30),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6),
+                    SlidingExpiration = TimeSpan.FromHours(1),
                 }
             );
         }
