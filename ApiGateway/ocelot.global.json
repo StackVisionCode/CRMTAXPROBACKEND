@@ -1,29 +1,18 @@
 {
   "GlobalConfiguration": {
-    "BaseUrl": "https://api.taxprosuite.com",
-    "RequestIdKey": "X-Request-Id",
-
+    "BaseUrl": "http://localhost",
     "DownstreamHeaderTransform": {
       "Authorization": ">>",
       "X-From-Gateway": "set(Api-Gateway)"
     },
-
     "RateLimitOptions": {
       "StoreType": "Redis",
-      "RedisConnectionString": "redis:6379",
+      "RedisConnectionString": "localhost:6379",
       "DisableRateLimitHeaders": false,
       "QuotaExceededMessage": "Rate limit exceeded",
       "HttpStatusCode": 429
-    },
-
-    "HttpHandlerOptions": {
-      "AllowAutoRedirect": false,
-      "UseProxy": false,
-      "UseCookieContainer": false,
-      "MaxConnectionsPerServer": 256
     }
   },
-
   "SwaggerEndPoints": [
     {
       "Key": "auth",
@@ -31,7 +20,7 @@
         {
           "Name": "Auth Service API",
           "Version": "v1",
-          "Url": "http://auth-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5001/swagger/v1/swagger.json"
         }
       ]
     },
@@ -41,7 +30,7 @@
         {
           "Name": "Customer Service API",
           "Version": "v1",
-          "Url": "http://customer-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5002/swagger/v1/swagger.json"
         }
       ]
     },
@@ -51,7 +40,7 @@
         {
           "Name": "Calendar Service API",
           "Version": "v1",
-          "Url": "http://calendar-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5003/swagger/v1/swagger.json"
         }
       ]
     },
@@ -61,7 +50,7 @@
         {
           "Name": "Email Service API",
           "Version": "v1",
-          "Url": "http://email-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5004/swagger/v1/swagger.json"
         }
       ]
     },
@@ -71,7 +60,7 @@
         {
           "Name": "BankStatements Service API",
           "Version": "v1",
-          "Url": "http://bankstaments-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5005/swagger/v1/swagger.json"
         }
       ]
     },
@@ -81,7 +70,7 @@
         {
           "Name": "Signature Service API",
           "Version": "v1",
-          "Url": "http://signature-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5006/swagger/v1/swagger.json"
         }
       ]
     },
@@ -91,17 +80,7 @@
         {
           "Name": "CommLink Service API",
           "Version": "v1",
-          "Url": "http://commlink-service:8080/swagger/v1/swagger.json"
-        }
-      ]
-    },
-    {
-      "Key": "reminder",
-      "Config": [
-        {
-          "Name": "Reminder Service API",
-          "Version": "v1",
-          "Url": "http://reminder-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5007/swagger/v1/swagger.json"
         }
       ]
     },
@@ -111,27 +90,7 @@
         {
           "Name": "Subscription Service API",
           "Version": "v1",
-          "Url": "http://subscription-service:8080/swagger/v1/swagger.json"
-        }
-      ]
-    },
-    {
-      "Key": "sms",
-      "Config": [
-        {
-          "Name": "SMS Service API",
-          "Version": "v1",
-          "Url": "http://sms-service:8080/swagger/v1/swagger.json"
-        }
-      ]
-    },
-    {
-      "Key": "landing",
-      "Config": [
-        {
-          "Name": "Landing Service API",
-          "Version": "v1",
-          "Url": "http://landing-service:8080/swagger/v1/swagger.json"
+          "Url": "http://localhost:5011/swagger/v1/swagger.json"
         }
       ]
     }
