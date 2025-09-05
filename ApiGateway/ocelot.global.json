@@ -2,47 +2,28 @@
   "GlobalConfiguration": {
     "BaseUrl": "https://api.taxprosuite.com",
     "RequestIdKey": "X-Request-Id",
+
     "DownstreamHeaderTransform": {
       "Authorization": ">>",
-      "X-From-Gateway": "set(Api-Gateway)",
-      "Connection": ">>",
-      "Upgrade": ">>",
-      "Sec-WebSocket-Key": ">>",
-      "Sec-WebSocket-Version": ">>",
-      "Sec-WebSocket-Protocol": ">>",
-      "Sec-WebSocket-Extensions": ">>"
+      "X-From-Gateway": "set(Api-Gateway)"
     },
-    "UpstreamHeaderTransform": {
-      "Connection": ">>",
-      "Upgrade": ">>",
-      "Sec-WebSocket-Accept": ">>",
-      "Sec-WebSocket-Protocol": ">>"
-    },
+
     "RateLimitOptions": {
       "StoreType": "Redis",
-      "RedisConnectionString": "redis:6379,password=Brittany040238.",
+      "RedisConnectionString": "redis:6379",
       "DisableRateLimitHeaders": false,
       "QuotaExceededMessage": "Rate limit exceeded",
       "HttpStatusCode": 429
     },
+
     "HttpHandlerOptions": {
       "AllowAutoRedirect": false,
       "UseProxy": false,
       "UseCookieContainer": false,
-      "MaxConnectionsPerServer": 512,
-      "UseDefaultCredentials": false
-    },
-    "LoadBalancerOptions": {
-      "Type": "RoundRobin",
-      "Key": "",
-      "Expiry": 0
-    },
-    "QoSOptions": {
-      "ExceptionsAllowedBeforeBreaking": 3,
-      "DurationOfBreak": 10000,
-      "TimeoutValue": 30000
+      "MaxConnectionsPerServer": 256
     }
   },
+
   "SwaggerEndPoints": [
     {
       "Key": "auth",

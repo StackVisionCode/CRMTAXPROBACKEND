@@ -46,6 +46,7 @@ jobs:
           declare -A DF=(
             [apigateway]=ApiGateway/Dockerfile
             [auth-service]=AuthService/Dockerfile
+            [commlink-service]=CommLinkService/Dockerfile
             [customer-service]=CustomerService/Dockerfile
             [calendar-service]=CalendarService/Dockerfile
             [email-service]=EmailServices/Dockerfile
@@ -55,6 +56,7 @@ jobs:
             [subscription-service]=SubscriptionsService/Dockerfile
             [landing-service]=LandingService/Dockerfile
             [auth-migrator]=AuthService/Dockerfile.migrator
+            [commlink-migrator]=CommLinkService/Dockerfile.migrator
             [customer-migrator]=CustomerService/Dockerfile.migrator
             [email-migrator]=EmailServices/Dockerfile.migrator
             [calendar-migrator]=CalendarService/Dockerfile.migrator
