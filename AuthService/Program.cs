@@ -6,7 +6,7 @@ using AuthService.Applications.Services;
 using AuthService.BackgroundServices;
 using AuthService.Infraestructure.Services;
 using Infraestructure.Context;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -156,6 +156,22 @@ try
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
 
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor
+            | ForwardedHeaders.XForwardedProto
+            | ForwardedHeaders.XForwardedHost;
+
+        // Limpiar listas para aceptar cualquier proxy o red conocida
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+
+        // En cadenas de proxies, no limitar saltos (o ajusta si quieres)
+        options.ForwardLimit = null;
+        options.RequireHeaderSymmetry = false;
+    });
+
     var objetoConexion = new ConnectionApp();
 
     var connectionString =
@@ -208,6 +224,8 @@ try
             logger.LogWarning(ex, "Could not retrieve cache status information");
         }
     }
+
+    app.UseForwardedHeaders();
 
     // Middlewares
     app.UseCors("AllowAll");

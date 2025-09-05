@@ -1,6 +1,8 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
+using CommLinkService.Application.Common.Utils;
 using CommLinkService.Infrastructure.Services;
 
 namespace CommLinkService.Infrastructure.WebSockets;
@@ -22,6 +24,23 @@ public sealed class WebSocketMiddleware
         _logger = logger;
     }
 
+    string? GetUserId(ClaimsPrincipal user)
+    {
+        // 1) NameIdentifier mapeado (si existe)
+        var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!string.IsNullOrEmpty(id))
+            return id;
+
+        // 2) sub (lo fijaste como NameClaimType en TokenValidationParameters)
+        id = user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!string.IsNullOrEmpty(id))
+            return id;
+
+        // 3) nameid "crudo" (por si el handler no mapeó)
+        id = user.FindFirst("nameid")?.Value;
+        return id;
+    }
+
     public async Task InvokeAsync(HttpContext context, IServiceProvider serviceProvider)
     {
         if (!context.WebSockets.IsWebSocketRequest)
@@ -30,7 +49,7 @@ public sealed class WebSocketMiddleware
             return;
         }
 
-        var userIdStr = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdStr = GetUserId(context.User);
         var companyIdStr = context.User.FindFirst("companyId")?.Value;
 
         if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
@@ -69,7 +88,7 @@ public sealed class WebSocketMiddleware
 
         var connectionId = Guid.NewGuid().ToString();
         var userAgent = context.Request.Headers.UserAgent.ToString();
-        var ipAddress = context.Connection.RemoteIpAddress?.ToString();
+        var ipAddress = IpAddressHelper.GetClientIp(context);
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
 

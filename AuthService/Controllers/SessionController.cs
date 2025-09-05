@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using AuthService.Applications.Common.Utils;
 using AuthService.DTOs.SessionDTOs;
 using Commands.SessionCommands;
 using Common;
@@ -37,7 +38,7 @@ namespace AuthService.Controllers
 
                 var command = new LoginCommands(
                     dto,
-                    HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    IpAddressHelper.GetClientIp(HttpContext),
                     Request.Headers["User-Agent"].ToString()
                 );
 

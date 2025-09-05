@@ -3,7 +3,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/Login",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/login",
       "UpstreamHttpMethod": [ "POST" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -13,7 +13,7 @@
     {
       "DownstreamPathTemplate": "/api/auth/customer/login",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/client/login",
       "UpstreamHttpMethod": [ "POST" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -23,7 +23,7 @@
     {
       "DownstreamPathTemplate": "/api/auth/customer/logout",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/client/logout",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
@@ -33,7 +33,7 @@
     {
       "DownstreamPathTemplate": "/api/auth/customer/logout-all",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/client/logout-all",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
@@ -43,7 +43,7 @@
     {
       "DownstreamPathTemplate": "/api/auth/customer/profile",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/client/profile",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
@@ -53,7 +53,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/Logout",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/logout",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -64,7 +64,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/LogoutAll",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/logout-all",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -75,7 +75,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/Active",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/sessions/active",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -86,7 +86,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/CompanyActiveSessions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/company/sessions/active",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -97,7 +97,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/CompanyAllSessions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/company/sessions",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -109,7 +109,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/UserSessions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/sessions/user/{targetUserId}",
       "UpstreamHttpMethod": [ "GET" ],
       "AddQueriesToDownstream": {
@@ -124,7 +124,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/CompanySessionStats",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/sessions/stats",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -138,7 +138,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/RevokeSession",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/sessions/revoke",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -149,7 +149,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/RevokeBulkSessions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/sessions/revoke/bulk",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -160,7 +160,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/RevokeUserSessions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/sessions/revoke/user",
       "UpstreamHttpMethod": [ "POST" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -171,7 +171,7 @@
     {
       "DownstreamPathTemplate": "/api/auth/customer/sessions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/client/sessions",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -182,7 +182,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/GetSessionById",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/session/{id}",
       "UpstreamHttpMethod": [ "GET" ],
       "AddQueriesToDownstream": {
@@ -196,7 +196,7 @@
     {
       "DownstreamPathTemplate": "/api/Session/GetAllSessions",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/sessions",
       "UpstreamHttpMethod": [ "GET" ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer", "AllowedScopes": [] },
@@ -207,7 +207,7 @@
     {
       "DownstreamPathTemplate": "/api/password/request",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/password/request",
       "UpstreamHttpMethod": [ "POST" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -217,7 +217,7 @@
     {
       "DownstreamPathTemplate": "/api/password/otp/send",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/password/otp/send",
       "UpstreamHttpMethod": [ "POST" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -227,7 +227,7 @@
     {
       "DownstreamPathTemplate": "/api/password/otp/validate",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/password/otp/validate",
       "UpstreamHttpMethod": [ "POST" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -237,7 +237,7 @@
     {
       "DownstreamPathTemplate": "/api/password/reset",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/password/reset",
       "UpstreamHttpMethod": [ "POST" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -247,7 +247,7 @@
     {
       "DownstreamPathTemplate": "/api/account/confirm",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/confirm",
       "UpstreamHttpMethod": [ "POST" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },
@@ -259,7 +259,7 @@
     {
       "DownstreamPathTemplate": "/api/health",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 8080 }],
+      "DownstreamHostAndPorts": [{ "Host": "localhost", "Port": 5001 }],
       "UpstreamPathTemplate": "/api/auth/health",
       "UpstreamHttpMethod": [ "GET" ],
       "AddHeadersToRequest": { "X-From-Gateway": "Api-Gateway" },

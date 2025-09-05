@@ -2,6 +2,7 @@ using CommLinkService.Infrastructure.Persistence;
 using CommLinkService.Infrastructure.Security;
 using CommLinkService.Infrastructure.Services;
 using CommLinkService.Infrastructure.WebSockets;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -111,6 +112,21 @@ try
         cfg.Lifetime = ServiceLifetime.Scoped;
     });
 
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor
+            | ForwardedHeaders.XForwardedProto
+            | ForwardedHeaders.XForwardedHost;
+
+        // Si tu origen está detrás de gateway/Cloudflare y cerrado por firewall:
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+
+        options.ForwardLimit = null;
+        options.RequireHeaderSymmetry = false;
+    });
+
     builder.Services.AddOpenApi();
     builder.Services.AddSwaggerGen(c =>
     {
@@ -168,6 +184,8 @@ try
 
     var app = builder.Build();
 
+    app.UseForwardedHeaders();
+
     // 5. MOSTRAR INFORMACIÓN DEL CACHÉ
     using (var scope = app.Services.CreateScope())
     {
@@ -187,8 +205,13 @@ try
     app.UseCors("AllowAll");
 
     // WebSocket support
-    var webSocketOptions = new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) };
-    app.UseWebSockets(webSocketOptions);
+    app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
+
+    app.UseAuthentication();
+    app.UseSessionValidation();
+    // Gateway validation
+    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
+    app.UseAuthorization();
 
     if (app.Environment.IsDevelopment())
     {
@@ -201,15 +224,8 @@ try
         app.UseHttpsRedirection();
     }
 
-    app.UseAuthentication();
-    app.UseSessionValidation();
-    app.UseAuthorization();
-
     // WebSocket middleware
     app.UseMiddleware<WebSocketMiddleware>();
-
-    // Gateway validation
-    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
 
     // HEALTH ENDPOINT
     app.MapHealthChecks("/health");

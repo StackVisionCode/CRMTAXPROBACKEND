@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using AuthService.Applications.Common.Utils;
 using AuthService.DTOs.SessionDTOs;
 using Commands.CustomerCommands;
 using Commands.SessionCommands;
@@ -29,7 +30,7 @@ public class CustomerAuthController : ControllerBase
         [FromBody] CustomerLoginRequestDTO dto
     )
     {
-        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ip = IpAddressHelper.GetClientIp(HttpContext);
         var agent = Request.Headers.UserAgent.ToString();
         var command = new CustomerLoginCommand(dto, ip, agent);
         var result = await _med.Send(command);

@@ -7,17 +7,25 @@ namespace SharedLibrary.Extensions;
 
 public static class JwtOptionsFactory
 {
-    public static TokenValidationParameters Build(IConfigurationSection cfg) =>
-        new()
+    public static TokenValidationParameters Build(IConfigurationSection cfg)
+    {
+        var audiences = (cfg["Audience"] ?? "").Split(
+            ',',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+        );
+
+        return new TokenValidationParameters
         {
             ValidateIssuer = bool.Parse(cfg["ValidateIssuer"] ?? "false"),
             ValidateAudience = bool.Parse(cfg["ValidateAudience"] ?? "false"),
             ValidateLifetime = bool.Parse(cfg["ValidateLifetime"] ?? "true"),
             ValidateIssuerSigningKey = bool.Parse(cfg["ValidateIssuerSigningKey"] ?? "true"),
             ValidIssuer = cfg["Issuer"],
-            ValidAudience = cfg["Audience"],
+            ValidAudience = audiences.Length == 1 ? audiences[0] : null,
+            ValidAudiences = audiences.Length > 1 ? audiences : null,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(cfg["SecretKey"]!)),
-            ClockSkew = TimeSpan.Zero,
+            ClockSkew = TimeSpan.FromMinutes(2),
             NameClaimType = JwtRegisteredClaimNames.Sub,
         };
+    }
 }

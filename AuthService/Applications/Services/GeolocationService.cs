@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using AuthService.Infraestructure.Services;
 using Microsoft.Extensions.Caching.Memory;
@@ -9,16 +10,19 @@ public class GeolocationService : IGeolocationService
     private readonly ILogger<GeolocationService> _logger;
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _configuration;
+    private readonly IHttpContextAccessor _http;
 
     public GeolocationService(
         ILogger<GeolocationService> logger,
         IMemoryCache cache,
-        IConfiguration configuration
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor
     )
     {
         _logger = logger;
         _cache = cache;
         _configuration = configuration;
+        _http = httpContextAccessor;
     }
 
     public async Task<GeolocationInfo?> GetLocationInfoAsync(string ipAddress)
@@ -26,7 +30,7 @@ public class GeolocationService : IGeolocationService
         if (string.IsNullOrWhiteSpace(ipAddress))
             return null;
 
-        // Manejar IP local/localhost
+        // IP local => “Local Development”
         if (IsLocalIpAddress(ipAddress))
         {
             return new GeolocationInfo
@@ -43,57 +47,54 @@ public class GeolocationService : IGeolocationService
             };
         }
 
-        // Verificar cache
-        string cacheKey = $"geo_{ipAddress}";
+        // CACHE
+        var cacheKey = $"geo_{ipAddress}";
         if (_cache.TryGetValue(cacheKey, out GeolocationInfo? cached))
-        {
             return cached;
+
+        // "Hint" de país desde Cloudflare
+        string? cfCountry = _http.HttpContext?.Request.Headers["CF-IPCountry"].ToString();
+        cfCountry = string.IsNullOrWhiteSpace(cfCountry)
+            ? null
+            : cfCountry.Trim().ToUpperInvariant();
+
+        var geoInfo = await GetLocationUsingDotNet(ipAddress);
+
+        // Si Cloudflare nos da país, úsalo/ajústalo
+        if (!string.IsNullOrEmpty(cfCountry) && cfCountry.Length == 2)
+        {
+            geoInfo ??= new GeolocationInfo { IpAddress = ipAddress };
+            geoInfo.CountryCode = cfCountry;
+
+            try
+            {
+                var ri = new RegionInfo(cfCountry);
+                geoInfo.Country = ri.EnglishName;
+            }
+            catch
+            {
+                geoInfo.Country ??= cfCountry;
+            }
+
+            if (string.IsNullOrEmpty(geoInfo.Timezone))
+                geoInfo.Timezone = GetTimezoneFromCountry(cfCountry); // <- generaliza
         }
 
-        try
+        // Cachear 1 hora
+        if (geoInfo != null)
         {
-            // Usar .NET nativo para obtener información básica de la IP
-            var geoInfo = await GetLocationUsingDotNet(ipAddress);
-
-            if (geoInfo != null)
-            {
-                // Cache por 1 hora
-                var cacheOptions = new MemoryCacheEntryOptions
+            _cache.Set(
+                cacheKey,
+                geoInfo,
+                new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
                     SlidingExpiration = TimeSpan.FromMinutes(30),
-                    Priority = CacheItemPriority.Normal,
-                };
-
-                _cache.Set(cacheKey, geoInfo, cacheOptions);
-
-                _logger.LogDebug(
-                    "Cached geolocation for IP {IpAddress}: {Location}",
-                    ipAddress,
-                    $"{geoInfo.City}, {geoInfo.Country}"
-                );
-            }
-
-            return geoInfo;
+                }
+            );
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting location for IP {IpAddress}", ipAddress);
 
-            // Return basic info even if geolocation fails
-            return new GeolocationInfo
-            {
-                IpAddress = ipAddress,
-                Country = "Unknown",
-                CountryCode = "??",
-                City = "Unknown",
-                Region = "Unknown",
-                Latitude = null,
-                Longitude = null,
-                Timezone = "UTC",
-                ISP = "Unknown",
-            };
-        }
+        return geoInfo;
     }
 
     private async Task<GeolocationInfo?> GetLocationUsingDotNet(string ipAddress)
