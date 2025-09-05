@@ -155,6 +155,7 @@ services:
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."

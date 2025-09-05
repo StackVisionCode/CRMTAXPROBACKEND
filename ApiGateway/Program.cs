@@ -79,7 +79,10 @@ try
     var app = builder.Build();
     var fwd = new ForwardedHeadersOptions
     {
-        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+        ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor
+            | ForwardedHeaders.XForwardedProto
+            | ForwardedHeaders.XForwardedHost,
     };
     fwd.KnownNetworks.Clear();
     fwd.KnownProxies.Clear();
@@ -117,6 +120,14 @@ try
 
     // Configure middleware pipeline
     app.UseSerilogRequestLogging();
+
+    /* --- AÑADE ESTO --- */
+    var wsOptions = new WebSocketOptions
+    {
+        // opcional: mantén los defaults o ajusta si quieres
+        KeepAliveInterval = TimeSpan.FromSeconds(30),
+    };
+    app.UseWebSockets(wsOptions);
 
     // HEALTH CHECKS ENDPOINT
     app.MapHealthChecks(
@@ -158,14 +169,6 @@ try
     app.UseSessionValidation();
 
     app.UseAuthorization();
-
-    /* --- AÑADE ESTO --- */
-    var wsOptions = new WebSocketOptions
-    {
-        // opcional: mantén los defaults o ajusta si quieres
-        KeepAliveInterval = TimeSpan.FromSeconds(30),
-    };
-    app.UseWebSockets(wsOptions);
 
     // Use Ocelot middleware
     await app.UseOcelot();
