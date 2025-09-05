@@ -1,5 +1,5 @@
 # =============================================================
-#  CRMTaxPro Backend – Docker Compose (Ubuntu Server 24.04)
+#  CRMTaxPro Backend – Docker Compose Escalable (Sin NGINX)
 # =============================================================
 
 services:
@@ -80,18 +80,25 @@ services:
       - backend
     restart: unless-stopped
 
-  # --- API Gateway (solo red interna) ---------------------------------------
+  # --- API Gateway con SSL Nativo -------------------------------------------
   apigateway:
     image: ${REGISTRY_PREFIX}-apigateway:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://0.0.0.0:80
+      ASPNETCORE_URLS: http://0.0.0.0:80;https://0.0.0.0:443
       HybridCache__Redis__ConnectionString: "redis:6379,password=Brittany040238."
       HybridCache__Redis__KeyPrefix: "gateway"
       HybridCache__Redis__Database: "0"
+      # Variables específicas para WebSocket
+      WebSocket__AllowedOrigins: "https://go.taxprosuite.com,https://api.taxprosuite.com"
+      WebSocket__KeepAliveInterval: "30"
+      # Cloudflare settings
+      CloudFlare__Enabled: "true"
+      CloudFlare__Mode: "Full"
     ports:
-      - "80:80"
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS (SSL nativo)
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -99,18 +106,18 @@ services:
         condition: service_healthy
     networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost/health || curl -k -f https://localhost/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
         reservations:
-          memory: 256M
+          memory: 384M
 
   # --- Auth Service ----------------------------------------------------------
   auth-service:
@@ -135,7 +142,7 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -148,41 +155,48 @@ services:
         reservations:
           memory: 512M
 
-  # --- SMS Service -----------------------------------------------------------
-  sms-service:
-    image: ${REGISTRY_PREFIX}-sms-service:${TAG}
+  # --- CommLink Service con WebSocket optimizado ----------------------------
+  commlink-service:
+    image: ${REGISTRY_PREFIX}-commlink-service:${TAG}
     environment:
       RUNNING_IN_DOCKER: "true"
       ASPNETCORE_URLS: http://0.0.0.0:8080
       DB_SERVER: 10.128.3.20
       DB_USER: sa
       DB_PASSWORD: "Brittany040238."
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
+      HybridCache__Redis__ConnectionString: "redis:6379,password=Brittany040238."
+      HybridCache__Redis__KeyPrefix: "commlink"
+      HybridCache__Redis__Database: "4"
+      # Configuraciones específicas para WebSocket
+      WebSocket__MaxConnections: "1000"
+      WebSocket__KeepAliveInterval: "30"
+      WebSocket__BufferSize: "8192"
+      WebSocket__EnableCompression: "true"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
     networks:
       - backend
-
-  # --- Calendar Service ------------------------------------------------------
-  calendar-service:
-    image: ${REGISTRY_PREFIX}-calendar-service:${TAG}
-    environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: 10.128.3.20
-      DB_USER: sa
-      DB_PASSWORD: "Brittany040238."
-    networks:
-      - backend
-
-  # --- Reminder Service ------------------------------------------------------
-  reminder-service:
-    image: ${REGISTRY_PREFIX}-reminder-service:${TAG}
-    environment:
-      RUNNING_IN_DOCKER: "true"
-      ASPNETCORE_URLS: http://0.0.0.0:8080
-      DB_SERVER: 10.128.3.20
-      DB_USER: sa
-      DB_PASSWORD: "Brittany040238."
-    networks:
-      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 512M
 
   # --- Customer Service ------------------------------------------------------
   customer-service:
@@ -207,7 +221,7 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -237,7 +251,7 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -265,14 +279,47 @@ services:
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || nc -z 127.0.0.1 8080"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
     restart: unless-stopped
 
-  # --- Subscription Service --------------------------------------------------
+  # --- Otros servicios (misma configuración que antes) ---------------------
+  sms-service:
+    image: ${REGISTRY_PREFIX}-sms-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks:
+      - backend
+
+  calendar-service:
+    image: ${REGISTRY_PREFIX}-calendar-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks:
+      - backend
+
+  reminder-service:
+    image: ${REGISTRY_PREFIX}-reminder-service:${TAG}
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks:
+      - backend
+
   subscription-service:
     image: ${REGISTRY_PREFIX}-subscription-service:${TAG}
     environment:
@@ -284,7 +331,6 @@ services:
     networks:
       - backend
 
-  # --- Landing Service -------------------------------------------------------
   landing-service:
     image: ${REGISTRY_PREFIX}-landing-service:${TAG}
     environment:
@@ -295,9 +341,8 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
-        
 
-  # --- Migrators (imágenes dedicadas) ---------------------------------------
+  # --- Migrators (ejecutan una vez y terminan) -----------------------------
   auth-migrator:
     image: ${REGISTRY_PREFIX}-auth-migrator:${TAG}
     environment:
@@ -306,6 +351,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   customer-migrator:
     image: ${REGISTRY_PREFIX}-customer-migrator:${TAG}
@@ -315,6 +361,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   calendar-migrator:
     image: ${REGISTRY_PREFIX}-calendar-migrator:${TAG}
@@ -324,6 +371,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   email-migrator:
     image: ${REGISTRY_PREFIX}-email-migrator:${TAG}
@@ -333,6 +381,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   signature-migrator:
     image: ${REGISTRY_PREFIX}-signature-migrator:${TAG}
@@ -342,6 +391,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   reminder-migrator:
     image: ${REGISTRY_PREFIX}-reminder-migrator:${TAG}
@@ -351,6 +401,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   sms-migrator:
     image: ${REGISTRY_PREFIX}-sms-migrator:${TAG}
@@ -360,6 +411,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   subscription-migrator:
     image: ${REGISTRY_PREFIX}-subscription-migrator:${TAG}
@@ -369,6 +421,7 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
   landing-migrator:
     image: ${REGISTRY_PREFIX}-landing-migrator:${TAG}
@@ -378,9 +431,17 @@ services:
       DB_PASSWORD: "Brittany040238."
     networks:
       - backend
+    restart: "no"
 
-  # --- NGINX Reverse Proxy (TLS del host) -----------------------------------
-  
+  commlink-migrator:
+    image: ${REGISTRY_PREFIX}-commlink-migrator:${TAG}
+    environment:
+      DB_SERVER: 10.128.3.20
+      DB_USER: sa
+      DB_PASSWORD: "Brittany040238."
+    networks:
+      - backend
+    restart: "no"
 
 # ────────────────────  Volúmenes  ─────────────────────────
 volumes:
