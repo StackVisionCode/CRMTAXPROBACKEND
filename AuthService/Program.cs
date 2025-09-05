@@ -139,7 +139,7 @@ try
     builder.Services.AddAuthorization();
 
     builder.Services.AddScoped<IPasswordHash, PasswordHash>();
-    builder.Services.AddScoped<IGeolocationService, GeolocationService>();
+    builder.Services.AddSingleton<IGeolocationService, GeolocationService>();
     builder.Services.AddHostedService<InvitationCleanupService>();
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddSingleton<LinkBuilder>();

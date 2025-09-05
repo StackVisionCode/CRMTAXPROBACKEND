@@ -2,14 +2,14 @@ using System.Globalization;
 using System.Net;
 using AuthService.Infraestructure.Services;
 using MaxMind.GeoIP2;
-using Microsoft.Extensions.Caching.Memory;
+using SharedLibrary.Caching;
 
 namespace AuthService.Applications.Services;
 
 public class GeolocationService : IGeolocationService, IDisposable
 {
     private readonly ILogger<GeolocationService> _logger;
-    private readonly IMemoryCache _cache;
+    private readonly IHybridCache _cache;
     private readonly IConfiguration _configuration;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly DatabaseReader? _mmdbReader;
@@ -17,7 +17,7 @@ public class GeolocationService : IGeolocationService, IDisposable
 
     public GeolocationService(
         ILogger<GeolocationService> logger,
-        IMemoryCache cache,
+        IHybridCache cache,
         IConfiguration configuration,
         IHttpContextAccessor httpContextAccessor
     )
@@ -94,12 +94,21 @@ public class GeolocationService : IGeolocationService, IDisposable
             return CreateLocalGeolocationInfo(ipAddress);
         }
 
-        // Verificar caché
+        // Verificar caché con Redis
         var cacheKey = $"geo_v2_{ipAddress}";
-        if (_cache.TryGetValue(cacheKey, out GeolocationInfo? cached))
+        try
         {
-            _logger.LogDebug("Geolocation cache hit for IP: {IpAddress}", ipAddress);
-            return cached;
+            var cached = await _cache.GetAsync<GeolocationInfo>(cacheKey);
+            if (cached != null)
+            {
+                _logger.LogDebug("Geolocation cache hit for IP: {IpAddress}", ipAddress);
+                return cached;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving from cache for IP: {IpAddress}", ipAddress);
+            // Continuar sin caché si falla
         }
 
         GeolocationInfo? geoInfo = null;
@@ -122,28 +131,28 @@ public class GeolocationService : IGeolocationService, IDisposable
         // 4. Aplicar valores por defecto si aún faltan datos
         ApplyDefaultValues(geoInfo, ipAddress);
 
-        // 5. Guardar en caché
+        // 5. Guardar en caché con Redis
         if (geoInfo != null)
         {
-            var cacheOptions = new MemoryCacheEntryOptions
+            try
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6),
-                SlidingExpiration = TimeSpan.FromHours(1),
-                Priority = CacheItemPriority.Normal,
-            };
-
-            _cache.Set(cacheKey, geoInfo, cacheOptions);
-            _logger.LogDebug(
-                "Geolocation cached for IP: {IpAddress} - {Location}",
-                ipAddress,
-                $"{geoInfo.City}, {geoInfo.Country}"
-            );
+                await _cache.SetAsync(cacheKey, geoInfo, TimeSpan.FromHours(6));
+                _logger.LogDebug(
+                    "Geolocation cached for IP: {IpAddress} - {Location}",
+                    ipAddress,
+                    $"{geoInfo.City}, {geoInfo.Country}"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error caching geolocation for IP: {IpAddress}", ipAddress);
+                // No falla si no puede cachear
+            }
         }
 
         return geoInfo;
     }
 
-    // CORREGIDO: Removido async ya que no usa await
     private GeolocationInfo? GetLocationFromMaxMind(string ipAddress)
     {
         try
@@ -193,7 +202,6 @@ public class GeolocationService : IGeolocationService, IDisposable
         }
     }
 
-    // CORREGIDO: Renombrado para indicar que es async y usa await
     private async Task<GeolocationInfo?> GetLocationFromAlternativeMethodsAsync(string ipAddress)
     {
         try
@@ -235,7 +243,6 @@ public class GeolocationService : IGeolocationService, IDisposable
         }
     }
 
-    // CORREGIDO: Removido async ya que no usa await
     private void ExtractLocationFromHostname(string hostname, GeolocationInfo geoInfo)
     {
         var parts = hostname.Split('.');
@@ -366,7 +373,6 @@ public class GeolocationService : IGeolocationService, IDisposable
         }
     }
 
-    // CORREGIDO: Removido async ya que no usa await
     private void ApplyKnownIpRanges(IPAddress ipAddress, GeolocationInfo geoInfo)
     {
         if (ipAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
@@ -476,7 +482,6 @@ public class GeolocationService : IGeolocationService, IDisposable
         return 0;
     }
 
-    // CORREGIDO: Removido async ya que no usa await
     private void EnrichWithCloudflareHeaders(GeolocationInfo? geoInfo, string ipAddress)
     {
         if (geoInfo == null)
@@ -553,7 +558,6 @@ public class GeolocationService : IGeolocationService, IDisposable
         }
     }
 
-    // CORREGIDO: Removido async ya que no usa await
     private void ApplyDefaultValues(GeolocationInfo? geoInfo, string ipAddress)
     {
         if (geoInfo == null)
@@ -709,7 +713,7 @@ public class GeolocationService : IGeolocationService, IDisposable
     }
 }
 
-// Modelos mejorados para la información de geolocalización
+// Modelos para la información de geolocalización
 public class GeolocationInfo
 {
     public string IpAddress { get; set; } = string.Empty;
@@ -752,6 +756,7 @@ public class GeolocationInfo
         );
     }
 }
+
 
 // Esta podria ser la implementacion que podriamos usar si usamos un servicio free:
 
