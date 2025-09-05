@@ -24,7 +24,7 @@ public class CustomerLoginHandler
     private readonly AuthService.Infraestructure.Services.IGeolocationService _geolocationService;
 
     // Configuración para notificaciones inteligentes
-    private static readonly TimeSpan NotificationGracePeriod = TimeSpan.FromDays(3); // 3 dias sin notificar desde mismo lugar/device
+    private static readonly TimeSpan NotificationGracePeriod = TimeSpan.FromDays(3);
 
     public CustomerLoginHandler(
         IHttpClientFactory http,
@@ -74,18 +74,50 @@ public class CustomerLoginHandler
             if (!_hash.Verify(req.Petition.Password, data.PasswordHash))
                 return new ApiResponse<LoginResponseDTO>(false, "Invalid credentials");
 
-            // 🔒 NUEVA LÓGICA: Revocar sesiones existentes de Customer
-            await RevokeExistingCustomerSessionsAsync(data.CustomerId, ct);
+            // 3) Obtener información de geolocalización ANTES de verificar sesiones
+            var geoInfo = await _geolocationService.GetLocationInfoAsync(req.IpAddress ?? "");
+            var deviceKey = GenerateDeviceKey(req.Device ?? "");
 
-            // 🌍 NUEVA LÓGICA: Verificar si debe enviar notificación para Customer
-            var shouldSendNotification = await ShouldSendCustomerLoginNotificationAsync(
+            // 4) Verificar si existe sesión activa similar
+            var existingSessionCheck = await CheckForExistingActiveCustomerSessionAsync(
                 data.CustomerId,
                 req.IpAddress ?? "",
-                req.Device ?? "",
+                geoInfo,
+                deviceKey,
                 ct
             );
 
-            // 3) Cargar roles y permisos reales del cliente
+            if (existingSessionCheck.HasActiveSession)
+            {
+                _log.LogWarning(
+                    "Customer login denied for {Email}: Active session exists from same location/device. SessionId: {SessionId}, Location: {Location}",
+                    req.Petition.Email,
+                    existingSessionCheck.ExistingSessionId,
+                    existingSessionCheck.Location
+                );
+
+                return new ApiResponse<LoginResponseDTO>(
+                    false,
+                    "You already have an active session from this location. Please close other sessions first."
+                )
+                {
+                    StatusCode = 409, // Conflict
+                };
+            }
+
+            // 5) Revocar TODAS las sesiones existentes de Customer (política de sesión única)
+            await RevokeAllExistingCustomerSessionsAsync(data.CustomerId, ct);
+
+            // 6) Verificar si debe enviar notificación para Customer
+            var shouldSendNotification = await ShouldSendCustomerLoginNotificationAsync(
+                data.CustomerId,
+                req.IpAddress ?? "",
+                geoInfo,
+                deviceKey,
+                ct
+            );
+
+            // 7) Cargar roles y permisos reales del cliente
             var roleNames = await (
                 from cr in _db.CustomerRoles
                 where cr.CustomerId == data.CustomerId
@@ -137,7 +169,7 @@ public class CustomerLoginHandler
                 };
             }
 
-            // 4) generar token
+            // 8) generar token
             var sessionId = Guid.NewGuid();
             var userInfo = new UserInfo(
                 UserId: data.CustomerId,
@@ -162,13 +194,21 @@ public class CustomerLoginHandler
                 new TokenGenerationRequest(userInfo, sessionInfo, TimeSpan.FromDays(3))
             );
 
-            // 5) Crear sesión con geolocalización
-            await CreateCustomerSessionAsync(data.CustomerId, sessionId, access, refresh, req, ct);
+            // 9) Crear sesión con geolocalización mejorada
+            await CreateCustomerSessionAsync(
+                data.CustomerId,
+                sessionId,
+                access,
+                refresh,
+                req,
+                geoInfo,
+                ct
+            );
 
-            // 6) Publicar evento SOLO si debe enviar notificación
+            // 10) Publicar evento SOLO si debe enviar notificación
             if (shouldSendNotification)
             {
-                // Aquí podrías crear un CustomerLoginEvent si existe
+                // Aquí podrías crear un CustomerLoginEvent específico si existe
                 // O usar el mismo UserLoginEvent adaptando los campos
                 _log.LogInformation(
                     "Customer login notification sent for {CustomerId} from new location/device",
@@ -191,10 +231,11 @@ public class CustomerLoginHandler
             };
 
             _log.LogInformation(
-                "Customer {CustomerId} ({Email}) logged in successfully. Session {SessionId} created. Notification sent: {NotificationSent}",
+                "Customer {CustomerId} ({Email}) logged in successfully. Session {SessionId} created from {Location}. Notification sent: {NotificationSent}",
                 data.CustomerId,
                 req.Petition.Email,
                 sessionId,
+                geoInfo?.GetLocationKey() ?? "unknown",
                 shouldSendNotification
             );
 
@@ -208,9 +249,77 @@ public class CustomerLoginHandler
     }
 
     /// <summary>
-    /// 🔒 Revoca todas las sesiones activas del Customer (una sola sesión)
+    /// Verifica si existe una sesión activa similar para Customer
     /// </summary>
-    private async Task RevokeExistingCustomerSessionsAsync(Guid customerId, CancellationToken ct)
+    private async Task<(
+        bool HasActiveSession,
+        Guid? ExistingSessionId,
+        string? Location
+    )> CheckForExistingActiveCustomerSessionAsync(
+        Guid customerId,
+        string ipAddress,
+        GeolocationInfo? geoInfo,
+        string deviceKey,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            var locationKey = geoInfo?.GetLocationKey() ?? "unknown";
+            var currentTime = DateTime.UtcNow;
+
+            // Buscar sesiones activas del customer
+            var activeSession = await _db
+                .CustomerSessions.Where(s =>
+                    s.CustomerId == customerId && !s.IsRevoke && s.ExpireTokenRequest > currentTime
+                )
+                .OrderByDescending(s => s.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (activeSession == null)
+            {
+                return (false, null, null);
+            }
+
+            // Para IPs locales, siempre permitir nueva sesión (desarrollo)
+            if (IsLocalEnvironment(ipAddress))
+            {
+                _log.LogDebug(
+                    "Allowing multiple sessions for customer {CustomerId} in local environment",
+                    customerId
+                );
+                return (false, null, null);
+            }
+
+            // Verificar si es desde la misma ubicación/dispositivo exacto
+            var isSameLocation =
+                activeSession.IpAddress == ipAddress
+                || activeSession.Location == locationKey
+                || activeSession.Device == deviceKey;
+
+            if (isSameLocation)
+            {
+                return (true, activeSession.Id, activeSession.Location);
+            }
+
+            return (false, null, null);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(
+                ex,
+                "Error checking for existing active customer sessions for {CustomerId}",
+                customerId
+            );
+            // En caso de error, permitir el login para no bloquear al usuario
+            return (false, null, null);
+        }
+    }
+
+    /// <summary>
+    /// Revoca TODAS las sesiones activas del Customer (política de sesión única)
+    /// </summary>
+    private async Task RevokeAllExistingCustomerSessionsAsync(Guid customerId, CancellationToken ct)
     {
         try
         {
@@ -250,12 +359,13 @@ public class CustomerLoginHandler
     }
 
     /// <summary>
-    /// 🌍 Determina si debe enviar notificación de login para Customer
+    /// Determina si debe enviar notificación de login para Customer
     /// </summary>
     private async Task<bool> ShouldSendCustomerLoginNotificationAsync(
         Guid customerId,
         string ipAddress,
-        string device,
+        GeolocationInfo? geoInfo,
+        string deviceKey,
         CancellationToken ct
     )
     {
@@ -272,14 +382,10 @@ public class CustomerLoginHandler
                 return false;
             }
 
-            // Obtener información de geolocalización
-            var geoInfo = await _geolocationService.GetLocationInfoAsync(ipAddress);
-            var locationKey = GenerateLocationKey(geoInfo);
-            var deviceKey = GenerateDeviceKey(device);
-
-            // Buscar login reciente desde la misma ubicación/dispositivo
+            var locationKey = geoInfo?.GetLocationKey() ?? "unknown";
             var cutoffTime = DateTime.UtcNow.Subtract(NotificationGracePeriod);
 
+            // Buscar login reciente desde la misma ubicación/dispositivo
             var recentSimilarLogin = await _db
                 .CustomerSessions.Where(s =>
                     s.CustomerId == customerId
@@ -318,7 +424,7 @@ public class CustomerLoginHandler
     }
 
     /// <summary>
-    /// Crea sesión para Customer con geolocalización
+    /// Crea sesión para Customer con geolocalización mejorada
     /// </summary>
     private async Task CreateCustomerSessionAsync(
         Guid customerId,
@@ -326,36 +432,14 @@ public class CustomerLoginHandler
         TokenResult accessToken,
         TokenResult refreshToken,
         CustomerLoginCommand request,
+        GeolocationInfo? geoInfo,
         CancellationToken ct
     )
     {
-        GeolocationInfo? geoInfo = null;
-        string? displayLocation = null;
-
-        try
-        {
-            geoInfo = await _geolocationService.GetLocationInfoAsync(request.IpAddress ?? "");
-            displayLocation = await _geolocationService.GetLocationDisplayAsync(
-                request.IpAddress ?? ""
-            );
-
-            _log.LogDebug(
-                "Customer geolocation for IP {IpAddress}: {DisplayLocation} (Country: {Country}, City: {City})",
-                request.IpAddress,
-                displayLocation,
-                geoInfo?.Country,
-                geoInfo?.City
-            );
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(
-                ex,
-                "Failed to get customer geolocation for IP: {IpAddress}",
-                request.IpAddress
-            );
-            displayLocation = "Unknown Location";
-        }
+        var displayLocation = await _geolocationService.GetLocationDisplayAsync(
+            request.IpAddress ?? ""
+        );
+        var coordinates = geoInfo?.GetCoordinatesAsString() ?? (null, null);
 
         var session = new CustomerSession
         {
@@ -371,13 +455,21 @@ public class CustomerLoginHandler
             Country = geoInfo?.Country,
             City = geoInfo?.City,
             Region = geoInfo?.Region,
-            Latitude = geoInfo?.Latitude?.ToString("F6"),
-            Longitude = geoInfo?.Longitude?.ToString("F6"),
-            Location = displayLocation,
+            Latitude = coordinates.Lat,
+            Longitude = coordinates.Lng,
+            Location = geoInfo?.GetLocationKey() ?? "unknown",
         };
 
         _db.CustomerSessions.Add(session);
         await _db.SaveChangesAsync(ct);
+
+        _log.LogDebug(
+            "Customer session created for {CustomerId}: {SessionId} from {DisplayLocation} (IP: {IpAddress})",
+            customerId,
+            sessionId,
+            displayLocation,
+            request.IpAddress
+        );
     }
 
     /// <summary>
@@ -426,50 +518,39 @@ public class CustomerLoginHandler
     }
 
     /// <summary>
-    /// Genera una clave de ubicación normalizada
-    /// </summary>
-    private static string GenerateLocationKey(GeolocationInfo? geoInfo)
-    {
-        if (geoInfo == null || geoInfo.Country == "Local")
-            return "local-dev";
-
-        var parts = new List<string>();
-
-        if (!string.IsNullOrEmpty(geoInfo.Country))
-            parts.Add(geoInfo.Country.ToLowerInvariant());
-
-        if (!string.IsNullOrEmpty(geoInfo.City))
-            parts.Add(geoInfo.City.ToLowerInvariant());
-
-        return parts.Any() ? string.Join("-", parts) : "unknown";
-    }
-
-    /// <summary>
-    /// Genera una clave de dispositivo normalizada
+    /// Genera una clave de dispositivo normalizada mejorada
     /// </summary>
     private static string GenerateDeviceKey(string? device)
     {
         if (string.IsNullOrWhiteSpace(device))
             return "unknown-device";
 
-        // Normalizar user agent para detectar navegadores similares
         var deviceLower = device.ToLowerInvariant();
 
-        // Detectar navegadores comunes
-        if (deviceLower.Contains("chrome"))
+        // Detectar navegadores con mayor precisión
+        if (deviceLower.Contains("chrome") && !deviceLower.Contains("edge"))
             return "chrome-browser";
         if (deviceLower.Contains("firefox"))
             return "firefox-browser";
         if (deviceLower.Contains("safari") && !deviceLower.Contains("chrome"))
             return "safari-browser";
-        if (deviceLower.Contains("edge"))
+        if (deviceLower.Contains("edg")) // Edge usa "Edg" en user agent
             return "edge-browser";
+        if (deviceLower.Contains("opera") || deviceLower.Contains("opr"))
+            return "opera-browser";
+
+        // Detectar herramientas de desarrollo
         if (deviceLower.Contains("postman"))
             return "postman-client";
         if (deviceLower.Contains("insomnia"))
             return "insomnia-client";
+        if (deviceLower.Contains("curl"))
+            return "curl-client";
+        if (deviceLower.Contains("wget"))
+            return "wget-client";
 
-        // Para otros casos, usar hash para consistencia pero privacidad
-        return $"device-{Math.Abs(device.GetHashCode() % 10000)}";
+        // Para otros casos, usar hash consistente pero más específico
+        var hash = Math.Abs(device.GetHashCode() % 10000);
+        return $"device-{hash:D4}";
     }
 }

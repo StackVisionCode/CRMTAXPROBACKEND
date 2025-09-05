@@ -22,7 +22,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     private readonly IGeolocationService _geolocationService;
 
     // Configuración para notificaciones inteligentes
-    private static readonly TimeSpan NotificationGracePeriod = TimeSpan.FromDays(3); // 3 días sin notificar desde mismo lugar/device
+    private static readonly TimeSpan NotificationGracePeriod = TimeSpan.FromDays(3);
 
     public LoginHandler(
         ApplicationDbContext context,
@@ -95,7 +95,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 );
             }
 
-            // PASO 4: Verificar estado de la Company (SIN CustomPlans)
+            // PASO 4: Verificar estado de la Company
             if (!userResult.CompanyIsOperational)
             {
                 _logger.LogWarning(
@@ -110,13 +110,44 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 );
             }
 
-            // PASO 5: Obtener roles y permisos del TaxUser
+            // PASO 5: Obtener información de geolocalización ANTES de verificar sesiones
+            var geoInfo = await _geolocationService.GetLocationInfoAsync(request.IpAddress ?? "");
+            var deviceKey = GenerateDeviceKey(request.Device ?? "");
+
+            // PASO 6: Verificar si existe sesión activa similar
+            var existingSessionCheck = await CheckForExistingActiveSessionAsync(
+                userResult.UserId,
+                request.IpAddress ?? "",
+                geoInfo,
+                deviceKey,
+                cancellationToken
+            );
+
+            if (existingSessionCheck.HasActiveSession)
+            {
+                _logger.LogWarning(
+                    "Login denied for {Email}: Active session exists from same location/device. SessionId: {SessionId}, Location: {Location}",
+                    request.Petition.Email,
+                    existingSessionCheck.ExistingSessionId,
+                    existingSessionCheck.Location
+                );
+
+                return new ApiResponse<LoginResponseDTO>(
+                    false,
+                    "You already have an active session from this location. Please close other sessions first."
+                )
+                {
+                    StatusCode = 409, // Conflict
+                };
+            }
+
+            // PASO 7: Obtener roles y permisos del TaxUser
             var rolesAndPermissions = await GetTaxUserRolesAndPermissionsAsync(
                 userResult.UserId,
                 cancellationToken
             );
 
-            // 🚪 PASO 6: Verificar autorización para Staff portal
+            // PASO 8: Verificar autorización para Staff portal
             var allowedPortals = rolesAndPermissions
                 .Roles.Select(r => r.PortalAccess)
                 .Distinct()
@@ -144,18 +175,19 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 };
             }
 
-            // 🔒 PASO 7: Revocar sesiones existentes (una sola sesión activa)
-            await RevokeExistingSessionsAsync(userResult.UserId, cancellationToken);
+            // PASO 9: Revocar TODAS las sesiones existentes (política de sesión única)
+            await RevokeAllExistingSessionsAsync(userResult.UserId, cancellationToken);
 
-            // 🌍 PASO 8: Verificar si debe enviar notificación
+            // PASO 10: Verificar si debe enviar notificación
             var shouldSendNotification = await ShouldSendLoginNotificationAsync(
                 userResult.UserId,
                 request.IpAddress ?? "",
-                request.Device ?? "",
+                geoInfo,
+                deviceKey,
                 cancellationToken
             );
 
-            // PASO 9: Crear información para el token
+            // PASO 11: Crear información para el token
             var userInfo = new UserInfo(
                 UserId: userResult.UserId,
                 Email: userResult.Email,
@@ -171,7 +203,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 Portals: allowedPortals.Select(p => p.ToString()).ToList()
             );
 
-            // PASO 10: Generar tokens
+            // PASO 12: Generar tokens
             var sessionId = Guid.NewGuid();
             var sessionInfo = new SessionInfo(sessionId);
 
@@ -189,17 +221,18 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 new TokenGenerationRequest(userInfo, sessionInfo, refreshTokenLifetime)
             );
 
-            // PASO 11: Crear sesión
+            // PASO 13: Crear sesión con geolocalización mejorada
             await CreateTaxUserSessionAsync(
                 userResult.UserId,
                 sessionId,
                 accessToken,
                 refreshToken,
                 request,
+                geoInfo,
                 cancellationToken
             );
 
-            // PASO 12: Publicar evento de login SOLO si debe enviar notificación
+            // PASO 14: Publicar evento de login SOLO si debe enviar notificación
             if (shouldSendNotification)
             {
                 var displayName = DetermineDisplayName(userResult);
@@ -235,7 +268,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 );
             }
 
-            // PASO 13: Preparar respuesta
+            // PASO 15: Preparar respuesta
             var response = new LoginResponseDTO
             {
                 TokenRequest = accessToken.AccessToken,
@@ -245,11 +278,12 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
 
             _logger.LogInformation(
                 "TaxUser {UserId} (IsOwner: {IsOwner}, ServiceLevel: {ServiceLevel}) logged in successfully. "
-                    + "Session {SessionId} created. Notification sent: {NotificationSent}",
+                    + "Session {SessionId} created from {Location}. Notification sent: {NotificationSent}",
                 userResult.UserId,
                 userResult.IsOwner,
                 userResult.CompanyServiceLevel,
                 sessionId,
+                geoInfo?.GetLocationKey() ?? "unknown",
                 shouldSendNotification
             );
 
@@ -263,9 +297,77 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     }
 
     /// <summary>
-    /// Revoca todas las sesiones activas del usuario (una sola sesión)
+    /// Verifica si existe una sesión activa similar
     /// </summary>
-    private async Task RevokeExistingSessionsAsync(Guid userId, CancellationToken ct)
+    private async Task<(
+        bool HasActiveSession,
+        Guid? ExistingSessionId,
+        string? Location
+    )> CheckForExistingActiveSessionAsync(
+        Guid userId,
+        string ipAddress,
+        GeolocationInfo? geoInfo,
+        string deviceKey,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            var locationKey = geoInfo?.GetLocationKey() ?? "unknown";
+            var currentTime = DateTime.UtcNow;
+
+            // Buscar sesiones activas del usuario
+            var activeSession = await _context
+                .Sessions.Where(s =>
+                    s.TaxUserId == userId && !s.IsRevoke && s.ExpireTokenRequest > currentTime
+                )
+                .OrderByDescending(s => s.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (activeSession == null)
+            {
+                return (false, null, null);
+            }
+
+            // Para IPs locales, siempre permitir nueva sesión (desarrollo)
+            if (IsLocalEnvironment(ipAddress))
+            {
+                _logger.LogDebug(
+                    "Allowing multiple sessions for user {UserId} in local environment",
+                    userId
+                );
+                return (false, null, null);
+            }
+
+            // Verificar si es desde la misma ubicación/dispositivo exacto
+            var isSameLocation =
+                activeSession.IpAddress == ipAddress
+                || activeSession.Location == locationKey
+                || activeSession.Device == deviceKey;
+
+            if (isSameLocation)
+            {
+                return (true, activeSession.Id, activeSession.Location);
+            }
+
+            return (false, null, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error checking for existing active sessions for user {UserId}",
+                userId
+            );
+            // En caso de error, permitir el login para no bloquear al usuario
+            return (false, null, null);
+        }
+    }
+
+    /// <summary>
+    /// Revoca TODAS las sesiones existentes del usuario (política de sesión única estricta)
+    /// </summary>
+    private async Task RevokeAllExistingSessionsAsync(Guid userId, CancellationToken ct)
     {
         try
         {
@@ -305,7 +407,8 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     private async Task<bool> ShouldSendLoginNotificationAsync(
         Guid userId,
         string ipAddress,
-        string device,
+        GeolocationInfo? geoInfo,
+        string deviceKey,
         CancellationToken ct
     )
     {
@@ -322,14 +425,10 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 return false;
             }
 
-            // Obtener información de geolocalización
-            var geoInfo = await _geolocationService.GetLocationInfoAsync(ipAddress);
-            var locationKey = GenerateLocationKey(geoInfo);
-            var deviceKey = GenerateDeviceKey(device);
-
-            // Buscar login reciente desde la misma ubicación/dispositivo
+            var locationKey = geoInfo?.GetLocationKey() ?? "unknown";
             var cutoffTime = DateTime.UtcNow.Subtract(NotificationGracePeriod);
 
+            // Buscar login reciente desde ubicación/dispositivo similar
             var recentSimilarLogin = await _context
                 .Sessions.Where(s =>
                     s.TaxUserId == userId
@@ -376,6 +475,55 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     }
 
     /// <summary>
+    /// Crea sesión para TaxUser con geolocalización mejorada
+    /// </summary>
+    private async Task CreateTaxUserSessionAsync(
+        Guid userId,
+        Guid sessionId,
+        TokenResult accessToken,
+        TokenResult refreshToken,
+        LoginCommands request,
+        GeolocationInfo? geoInfo,
+        CancellationToken ct
+    )
+    {
+        var displayLocation = await _geolocationService.GetLocationDisplayAsync(
+            request.IpAddress ?? ""
+        );
+        var coordinates = geoInfo?.GetCoordinatesAsString() ?? (null, null);
+
+        var session = new Session
+        {
+            Id = sessionId,
+            TaxUserId = userId,
+            TokenRequest = accessToken.AccessToken,
+            ExpireTokenRequest = accessToken.ExpireAt,
+            TokenRefresh = refreshToken.AccessToken,
+            IpAddress = request.IpAddress,
+            Device = request.Device,
+            IsRevoke = false,
+            CreatedAt = DateTime.UtcNow,
+            Country = geoInfo?.Country,
+            City = geoInfo?.City,
+            Region = geoInfo?.Region,
+            Latitude = coordinates.Lat,
+            Longitude = coordinates.Lng,
+            Location = geoInfo?.GetLocationKey() ?? "unknown",
+        };
+
+        _context.Sessions.Add(session);
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogDebug(
+            "Session created for user {UserId}: {SessionId} from {DisplayLocation} (IP: {IpAddress})",
+            userId,
+            sessionId,
+            displayLocation,
+            request.IpAddress
+        );
+    }
+
+    /// <summary>
     /// Verifica si estamos en entorno de desarrollo
     /// </summary>
     private static bool IsLocalEnvironment(string ipAddress)
@@ -409,24 +557,7 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
     }
 
     /// <summary>
-    /// Genera una clave de ubicación normalizada
-    /// </summary>
-    private static string GenerateLocationKey(GeolocationInfo? geoInfo)
-    {
-        if (geoInfo == null || geoInfo.Country == "Local")
-            return "local-dev";
-
-        var parts = new List<string>();
-        if (!string.IsNullOrEmpty(geoInfo.Country))
-            parts.Add(geoInfo.Country.ToLowerInvariant());
-        if (!string.IsNullOrEmpty(geoInfo.City))
-            parts.Add(geoInfo.City.ToLowerInvariant());
-
-        return parts.Any() ? string.Join("-", parts) : "unknown";
-    }
-
-    /// <summary>
-    /// Genera una clave de dispositivo normalizada
+    /// Genera una clave de dispositivo normalizada mejorada
     /// </summary>
     private static string GenerateDeviceKey(string? device)
     {
@@ -435,25 +566,34 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
 
         var deviceLower = device.ToLowerInvariant();
 
-        if (deviceLower.Contains("chrome"))
+        // Detectar navegadores con mayor precisión
+        if (deviceLower.Contains("chrome") && !deviceLower.Contains("edge"))
             return "chrome-browser";
         if (deviceLower.Contains("firefox"))
             return "firefox-browser";
         if (deviceLower.Contains("safari") && !deviceLower.Contains("chrome"))
             return "safari-browser";
-        if (deviceLower.Contains("edge"))
+        if (deviceLower.Contains("edg")) // Edge usa "Edg" en user agent
             return "edge-browser";
+        if (deviceLower.Contains("opera") || deviceLower.Contains("opr"))
+            return "opera-browser";
+
+        // Detectar herramientas de desarrollo
         if (deviceLower.Contains("postman"))
             return "postman-client";
         if (deviceLower.Contains("insomnia"))
             return "insomnia-client";
+        if (deviceLower.Contains("curl"))
+            return "curl-client";
+        if (deviceLower.Contains("wget"))
+            return "wget-client";
 
-        return $"device-{Math.Abs(device.GetHashCode() % 10000)}";
+        // Para otros casos, usar hash consistente pero más específico
+        var hash = Math.Abs(device.GetHashCode() % 10000);
+        return $"device-{hash:D4}";
     }
 
-    /// <summary>
-    /// Busca TaxUser por email sin CustomPlans
-    /// </summary>
+    // Los métodos restantes permanecen igual...
     private async Task<TaxUserLoginResult?> FindTaxUserByEmailAsync(
         string email,
         CancellationToken ct
@@ -465,7 +605,6 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             where u.Email == email
             select new
             {
-                // Datos del usuario
                 UserId = u.Id,
                 Email = u.Email,
                 HashedPassword = u.Password,
@@ -474,16 +613,12 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
                 IsActive = u.IsActive,
                 IsConfirmed = u.Confirm ?? false,
                 IsOwner = u.IsOwner,
-
-                // Datos de la company
                 CompanyId = c.Id,
                 CompanyName = c.CompanyName,
                 CompanyFullName = c.FullName,
                 CompanyDomain = c.Domain,
                 IsCompany = c.IsCompany,
                 CompanyServiceLevel = c.ServiceLevel,
-
-                // Calcular si la company está operacional
                 CompanyOwnerCount = _context.TaxUsers.Count(owner =>
                     owner.CompanyId == c.Id && owner.IsOwner && owner.IsActive
                 ),
@@ -511,19 +646,15 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             IsCompany = result.IsCompany,
             CompanyServiceLevel = result.CompanyServiceLevel,
             CompanyOwnerCount = result.CompanyOwnerCount,
-            CompanyIsOperational = result.CompanyOwnerCount > 0, // Company operacional si tiene owners activos
+            CompanyIsOperational = result.CompanyOwnerCount > 0,
         };
     }
 
-    /// <summary>
-    /// Obtiene roles y permisos del TaxUser, incluyendo permisos personalizados
-    /// </summary>
     private async Task<(
         List<RoleResult> Roles,
         List<PermissionResult> Permissions
     )> GetTaxUserRolesAndPermissionsAsync(Guid userId, CancellationToken ct)
     {
-        // Obtener roles del TaxUser
         var roles = await (
             from ur in _context.UserRoles
             join r in _context.Roles on ur.RoleId equals r.Id
@@ -536,7 +667,6 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             }
         ).ToListAsync(ct);
 
-        // Obtener permisos base de los roles
         var rolePermissions = await (
             from ur in _context.UserRoles
             join rp in _context.RolePermissions on ur.RoleId equals rp.RoleId
@@ -550,7 +680,6 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             }
         ).ToListAsync(ct);
 
-        // Obtener permisos personalizados granted
         var customPermissionsGranted = await (
             from cp in _context.CompanyPermissions
             join p in _context.Permissions on cp.PermissionId equals p.Id
@@ -563,7 +692,6 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             }
         ).ToListAsync(ct);
 
-        // Obtener códigos de permisos revocados
         var revokedPermissionCodes = await (
             from cp in _context.CompanyPermissions
             join p in _context.Permissions on cp.PermissionId equals p.Id
@@ -571,7 +699,6 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
             select p.Code
         ).ToListAsync(ct);
 
-        // Combinar permisos: (roles + custom granted) - revoked
         var allPermissions = rolePermissions
             .Concat(customPermissionsGranted)
             .Where(p => !revokedPermissionCodes.Contains(p.Code))
@@ -581,73 +708,6 @@ public class LoginHandler : IRequestHandler<LoginCommands, ApiResponse<LoginResp
         return (roles, allPermissions);
     }
 
-    /// <summary>
-    /// Crea sesión para TaxUser
-    /// </summary>
-    private async Task CreateTaxUserSessionAsync(
-        Guid userId,
-        Guid sessionId,
-        TokenResult accessToken,
-        TokenResult refreshToken,
-        LoginCommands request,
-        CancellationToken ct
-    )
-    {
-        // Obtener geolocalización
-        GeolocationInfo? geoInfo = null;
-        string? displayLocation = null;
-
-        try
-        {
-            geoInfo = await _geolocationService.GetLocationInfoAsync(request.IpAddress ?? "");
-            displayLocation = await _geolocationService.GetLocationDisplayAsync(
-                request.IpAddress ?? ""
-            );
-
-            _logger.LogDebug(
-                "Geolocation for IP {IpAddress}: {DisplayLocation} (Country: {Country}, City: {City})",
-                request.IpAddress,
-                displayLocation,
-                geoInfo?.Country,
-                geoInfo?.City
-            );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Failed to get geolocation for IP: {IpAddress}",
-                request.IpAddress
-            );
-            displayLocation = "Unknown Location";
-        }
-
-        var session = new Session
-        {
-            Id = sessionId,
-            TaxUserId = userId,
-            TokenRequest = accessToken.AccessToken,
-            ExpireTokenRequest = accessToken.ExpireAt,
-            TokenRefresh = refreshToken.AccessToken,
-            IpAddress = request.IpAddress,
-            Device = request.Device,
-            IsRevoke = false,
-            CreatedAt = DateTime.UtcNow,
-            Country = geoInfo?.Country,
-            City = geoInfo?.City,
-            Region = geoInfo?.Region,
-            Latitude = geoInfo?.Latitude?.ToString("F6"),
-            Longitude = geoInfo?.Longitude?.ToString("F6"),
-            Location = displayLocation,
-        };
-
-        _context.Sessions.Add(session);
-        await _context.SaveChangesAsync(ct);
-    }
-
-    /// <summary>
-    /// Determina el nombre para mostrar
-    /// </summary>
     private static string DetermineDisplayName(TaxUserLoginResult user)
     {
         if (user.IsCompany && !string.IsNullOrWhiteSpace(user.CompanyName))

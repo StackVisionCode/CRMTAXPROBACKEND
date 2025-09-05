@@ -8,6 +8,7 @@ using AuthService.Infraestructure.Services;
 using Infraestructure.Context;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SharedLibrary;
@@ -143,6 +144,14 @@ try
     builder.Services.AddHostedService<InvitationCleanupService>();
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddSingleton<LinkBuilder>();
+
+    // Configurar MemoryCache con configuración optimizada para geolocalización
+    builder.Services.Configure<MemoryCacheOptions>(options =>
+    {
+        options.SizeLimit = 1000; // Límite de entradas en caché
+        options.CompactionPercentage = 0.25; // Limpiar 25% cuando se alcance el límite
+        options.ExpirationScanFrequency = TimeSpan.FromMinutes(5); // Escanear cada 5 minutos
+    });
 
     builder.Services.AddControllers();
 
