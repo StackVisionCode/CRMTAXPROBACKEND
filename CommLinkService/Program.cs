@@ -205,7 +205,8 @@ try
     app.UseCors("AllowAll");
 
     // WebSocket support
-    app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
+    var webSocketOptions = new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) };
+    app.UseWebSockets(webSocketOptions);
 
     if (app.Environment.IsDevelopment())
     {
@@ -222,11 +223,11 @@ try
     app.UseSessionValidation();
     app.UseAuthorization();
 
-    // Gateway validation
-    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
-
     // WebSocket middleware
     app.UseMiddleware<WebSocketMiddleware>();
+
+    // Gateway validation
+    app.UseMiddleware<RequireGatewayHeaderMiddleware>();
 
     // HEALTH ENDPOINT
     app.MapHealthChecks("/health");

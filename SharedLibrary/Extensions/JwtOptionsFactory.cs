@@ -17,7 +17,7 @@ public static class JwtOptionsFactory
             ValidIssuer = cfg["Issuer"],
             ValidAudience = cfg["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(cfg["SecretKey"]!)),
-            ClockSkew = TimeSpan.FromMinutes(2),
+            ClockSkew = TimeSpan.Zero,
             NameClaimType = JwtRegisteredClaimNames.Sub,
         };
 }
