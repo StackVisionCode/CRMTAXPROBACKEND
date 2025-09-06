@@ -63,6 +63,8 @@ namespace SharedLibrary
             "/api/public/taxuser/{taxUserId}",
             "/api/taxuser/invitations/by-token/{token}",
             "/api/subscriptions/custom-plans/create",
+            // Configuración WebRTC
+            "/api/webrtc/{everything}",
         };
 
         /* ------------------ RUTAS PÚBLICAS "UPSTREAM" (si las expones por gateway) ------------------ */

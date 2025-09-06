@@ -1,6 +1,32 @@
 {
     "Routes": [
         {
+            "DownstreamPathTemplate": "/api/commlink/webrtc/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "commlink-service",
+                    "Port": 8080
+                }
+            ],
+            "UpstreamPathTemplate": "/api/webrtc/{everything}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            },
+            "RouteClaimsRequirement": {},
+            "RateLimitOptions": {
+                "ClientWhitelist": [],
+                "EnableRateLimiting": true,
+                "Period": "5m",
+                "PeriodTimespan": 300,
+                "Limit": 10
+            }
+        },
+        {
             "DownstreamPathTemplate": "/api/Room/create",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [

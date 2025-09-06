@@ -1,8 +1,12 @@
+using System.Threading.RateLimiting;
+using CommLinkService.Infrastructure.Configuration;
 using CommLinkService.Infrastructure.Persistence;
 using CommLinkService.Infrastructure.Security;
 using CommLinkService.Infrastructure.Services;
 using CommLinkService.Infrastructure.WebSockets;
+using CommLinkService.Services;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -11,6 +15,36 @@ using SharedLibrary.Extensions;
 using SharedLibrary.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configurar Rate Limiting para WebRTC
+builder.Services.AddRateLimiter(options =>
+{
+    // Policy general
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name
+                ?? httpContext.Request.Headers.Host.ToString(),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+            }
+        )
+    );
+
+    // Policy específico para WebRTC
+    options.AddFixedWindowLimiter(
+        "WebRTCPolicy",
+        policyOptions =>
+        {
+            policyOptions.PermitLimit = 10; // 10 requests por ventana
+            policyOptions.Window = TimeSpan.FromMinutes(5); // cada 5 minutos
+            policyOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            policyOptions.QueueLimit = 3;
+        }
+    );
+});
 
 // Configurar logs con Serilog
 var logFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "LogsApplication");
@@ -114,6 +148,10 @@ try
     // Security
     builder.Services.AddSingleton<IRateLimitingService, RateLimitingService>();
 
+    // WebRTC
+    builder.Services.Configure<TurnServerConfig>(builder.Configuration.GetSection("TurnServer"));
+    builder.Services.AddScoped<IWebRTCService, WebRTCService>();
+
     // Add services
     builder.Services.AddControllers();
 
@@ -198,6 +236,9 @@ try
     //builder.Services.AddRbac(builder.Configuration);
 
     var app = builder.Build();
+
+    // Usar Rate Limiting WebRTC
+    app.UseRateLimiter();
 
     app.UseForwardedHeaders();
 
